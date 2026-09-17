@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-type ClassRelation = { short_name: string; name: string }
+type ClassRelation = { short_name: string; name?: string }
 type AcademicYearRelation = { name: string }
 type ClassItem = { id: string; name: string; grade_levels?: ClassRelation | ClassRelation[] | null; academic_years?: AcademicYearRelation | AcademicYearRelation[] | null }
 type Student = { id: string; first_name: string; last_name: string; student_code: string | null }
@@ -39,7 +39,7 @@ export default function BulletinsPage() {
       ])
       if (schoolResult.error || classResult.error || periodResult.error || settingsResult.error) setError((schoolResult.error || classResult.error || periodResult.error || settingsResult.error)?.message || 'Could not load bulletin data.')
       setSchool(schoolResult.data as School | null)
-      setClasses((classResult.data || []) as ClassItem[])
+      setClasses((classResult.data || []) as unknown as ClassItem[])
       setPeriods(((periodResult.data || []) as Period[]).filter(p => p.is_active))
       const settingRow = (Array.isArray(settingsResult.data) ? settingsResult.data[0] : settingsResult.data) as GradingSettings | undefined
       if (settingRow) setSettings({ controls_per_period: Number(settingRow.controls_per_period) || 4, passing_average: Number(settingRow.passing_average) || 5 })

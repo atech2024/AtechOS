@@ -8,6 +8,7 @@ const modules = [
   ['Subjects', 'Manage subjects and assign teachers to classes.', '/dashboard/subjects'],
   ['Attendance', 'Track check-in, check-out, lateness and absences.', '/dashboard/attendance'],
   ['Grades', 'Enter and review grades by class, subject and grading period.', '/dashboard/grades'],
+  ['Grading settings', 'Choose controls per grading period and the passing average.', '/dashboard/grading-settings'],
   ['Bulletins', 'Generate printable student bulletins and save them as PDF.', '/dashboard/bulletins'],
   ['Assignments', 'Publish work, exams and learning documents.', '#'],
   ['Parents', 'Connect families with school information and meetings.', '#'],

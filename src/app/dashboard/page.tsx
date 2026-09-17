@@ -10,11 +10,12 @@ const modules = [
   ['Attendance Kiosk', 'Scan RFID/NFC badges for automatic student check-in and check-out.', '/dashboard/attendance/kiosk'],
   ['Student Badges', 'Preview and print school badges without exposing the private AtechOS ID or NISU.', '/dashboard/badges'],
   ['Grades', 'Enter and review grades by class, subject and grading period.', '/dashboard/grades'],
+  ['Grading periods', 'Create and review the periods used for grades and bulletins.', '/dashboard/grading-periods'],
   ['Grading settings', 'Choose controls per grading period and the passing average.', '/dashboard/grading-settings'],
   ['Bulletins', 'Generate printable student bulletins and save them as PDF.', '/dashboard/bulletins'],
   ['Parents', 'Review parent accounts and student relationships.', '/dashboard/parents'],
   ['Parent Portal', 'Parent-only view of linked children, attendance and grades.', '/dashboard/parent-portal'],
-  ['Assignments', 'Publish work, exams and learning documents.', '#'],
+  ['Assignments', 'Publish work, exams and learning documents.', '/dashboard/assignments'],
   ['Staff', 'Manage teachers, secretaries, accountants and staff.', '#'],
 ]
 

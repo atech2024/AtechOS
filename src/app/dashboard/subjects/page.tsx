@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 
 type Subject = { id: string; name: string; code: string | null }
 type Teacher = { id: string; full_name: string }
-type ClassItem = { id: string; name: string; academic_years?: { name: string } | null }
-type Assignment = { id: string; class_id: string; subject_id: string; teacher_id: string | null; classes?: { name: string } | null; subjects?: { name: string; code: string | null } | null; users?: { full_name: string } | null }
+type ClassItem = { id: string; name: string }
+type Assignment = { id: string; class_id: string; subject_id: string; teacher_id: string | null }
 
 export default function SubjectsPage() {
   const supabase = createClient()
@@ -24,15 +24,22 @@ export default function SubjectsPage() {
     setLoading(true); setError('')
     const [s, c, t, a] = await Promise.all([
       supabase.from('subjects').select('id,name,code').order('name'),
-      supabase.from('classes').select('id,name,academic_years(name)').order('name'),
-      supabase.from('school_members').select('user_id,users(id,full_name)').eq('role', 'teacher'),
-      supabase.from('class_subjects').select('id,class_id,subject_id,teacher_id,classes(name),subjects(name,code),users(full_name)').order('id')
+      supabase.from('classes').select('id,name').order('name'),
+      supabase.from('school_members').select('user_id').eq('role', 'teacher'),
+      supabase.from('class_subjects').select('id,class_id,subject_id,teacher_id').order('id')
     ])
     const firstError = s.error || c.error || t.error || a.error
     if (firstError) setError(firstError.message)
     setSubjects((s.data || []) as Subject[])
     setClasses((c.data || []) as ClassItem[])
-    setTeachers(((t.data || []) as Array<{user_id:string; users?: {id:string;full_name:string}|null}>).map(x => ({ id: x.user_id, full_name: x.users?.full_name || 'Teacher' })))
+    const teacherIds = ((t.data || []) as Array<{user_id:string}>).map(x => x.user_id)
+    if (teacherIds.length) {
+      const { data: teacherUsers, error: teacherError } = await supabase.from('users').select('id,full_name').in('id', teacherIds)
+      if (teacherError) setError(teacherError.message)
+      setTeachers(((teacherUsers || []) as Array<{id:string;full_name:string}>).map(x => ({ id: x.id, full_name: x.full_name || 'Teacher' })))
+    } else {
+      setTeachers([])
+    }
     setAssignments((a.data || []) as Assignment[])
     setLoading(false)
   }
@@ -68,9 +75,9 @@ export default function SubjectsPage() {
     </header>
     {error && <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
     <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{subjects.map(s => <article key={s.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-semibold text-slate-900">{s.name}</h2><p className="mt-2 text-xs text-slate-500">{s.code || 'No code'}</p></article>)}{!loading && subjects.length === 0 && <p className="text-slate-500">No subjects yet.</p>}</section>
-    <section className="mt-8"><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-bold text-slate-900">Class subject assignments</h2><span className="text-sm text-slate-500">{assignments.length} assignment{assignments.length === 1 ? '' : 's'}</span></div>{loading ? <p className="text-slate-500">Loading...</p> : <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm"><table className="w-full text-left text-sm"><thead className="border-b border-slate-200 bg-slate-50"><tr><th className="px-4 py-3">Class</th><th className="px-4 py-3">Subject</th><th className="px-4 py-3">Teacher</th></tr></thead><tbody>{assignments.map(a => <tr key={a.id} className="border-b border-slate-100 last:border-0"><td className="px-4 py-3 font-medium">{a.classes?.name || 'Class'}</td><td className="px-4 py-3">{a.subjects?.name || 'Subject'}{a.subjects?.code ? <span className="ml-2 text-xs text-slate-400">{a.subjects.code}</span> : null}</td><td className="px-4 py-3"><select value={a.teacher_id || ''} onChange={e => changeTeacher(a.id, e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2"><option value="">Unassigned</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}</select></td></tr>)}</tbody></table>{assignments.length === 0 && <p className="p-6 text-slate-500">No class subjects assigned yet.</p>}</div>}</section>
+    <section className="mt-8"><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-bold text-slate-900">Class subject assignments</h2><span className="text-sm text-slate-500">{assignments.length} assignment{assignments.length === 1 ? '' : 's'}</span></div>{loading ? <p className="text-slate-500">Loading...</p> : <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm"><table className="w-full text-left text-sm"><thead className="border-b border-slate-200 bg-slate-50"><tr><th className="px-4 py-3">Class</th><th className="px-4 py-3">Subject</th><th className="px-4 py-3">Teacher</th></tr></thead><tbody>{assignments.map(a => <tr key={a.id} className="border-b border-slate-100 last:border-0"><td className="px-4 py-3 font-medium">{classes.find(c => c.id === a.class_id)?.name || 'Class'}</td><td className="px-4 py-3">{subjects.find(s => s.id === a.subject_id)?.name || 'Subject'}{subjects.find(s => s.id === a.subject_id)?.code ? <span className="ml-2 text-xs text-slate-400">{subjects.find(s => s.id === a.subject_id)?.code}</span> : null}</td><td className="px-4 py-3"><select value={a.teacher_id || ''} onChange={e => changeTeacher(a.id, e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2"><option value="">Unassigned</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}</select></td></tr>)}</tbody></table>{assignments.length === 0 && <p className="p-6 text-slate-500">No class subjects assigned yet.</p>}</div>}</section>
     {subjectOpen && <Modal title="Create subject" onClose={() => setSubjectOpen(false)}><form onSubmit={createSubject} className="space-y-4"><Input name="name" label="Subject name" placeholder="Mathematics" required/><Input name="code" label="Code" placeholder="MATH"/><button disabled={saving} className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white">{saving ? 'Saving...' : 'Create subject'}</button></form></Modal>}
-    {assignmentOpen && <Modal title="Assign subject" onClose={() => setAssignmentOpen(false)}><form onSubmit={assign} className="space-y-4"><Select name="class_id" label="Class" options={classes.map(c => ({value:c.id,label:`${c.name}${c.academic_years?.name ? ` · ${c.academic_years.name}` : ''}`}))}/><Select name="subject_id" label="Subject" options={subjects.map(s => ({value:s.id,label:s.code ? `${s.name} · ${s.code}` : s.name}))}/><Select name="teacher_id" label="Teacher (optional)" options={teachers.map(t => ({value:t.id,label:t.full_name}))} optional/><button disabled={saving} className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white">{saving ? 'Saving...' : 'Assign subject'}</button></form></Modal>}
+    {assignmentOpen && <Modal title="Assign subject" onClose={() => setAssignmentOpen(false)}><form onSubmit={assign} className="space-y-4"><Select name="class_id" label="Class" options={classes.map(c => ({value:c.id,label:c.name}))}/><Select name="subject_id" label="Subject" options={subjects.map(s => ({value:s.id,label:s.code ? `${s.name} · ${s.code}` : s.name}))}/><Select name="teacher_id" label="Teacher (optional)" options={teachers.map(t => ({value:t.id,label:t.full_name}))} optional/><button disabled={saving} className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white">{saving ? 'Saving...' : 'Assign subject'}</button></form></Modal>}
   </div></main>
 }
 

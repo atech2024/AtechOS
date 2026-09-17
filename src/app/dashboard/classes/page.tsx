@@ -32,7 +32,16 @@ export default function ClassesPage() {
     if (firstError) setError(firstError.message)
     setYears((y.data || []) as Year[])
     setGrades((g.data || []) as GradeLevel[])
-    setClasses((c.data || []) as SchoolClass[])
+    const normalizedClasses: SchoolClass[] = (c.data || []).map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      grade_level_id: item.grade_level_id,
+      room: item.room,
+      academic_year_id: item.academic_year_id,
+      grade_levels: Array.isArray(item.grade_levels) ? (item.grade_levels[0] || null) : (item.grade_levels || null),
+      academic_years: Array.isArray(item.academic_years) ? (item.academic_years[0] || null) : (item.academic_years || null),
+    }))
+    setClasses(normalizedClasses)
     const current = (y.data || []).find((item: Year) => item.is_current)
     if (current) setYearId(current.id)
     setLoading(false)

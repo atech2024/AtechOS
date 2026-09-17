@@ -1,3 +1,6 @@
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+
 const modules = [
   ['Students', 'Manage student profiles, enrollment and NISU records.'],
   ['Attendance', 'Track check-in, check-out, lateness and absences.'],
@@ -7,7 +10,12 @@ const modules = [
   ['Staff', 'Manage teachers, secretaries, accountants and staff.'],
 ]
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
+
   return (
     <main className="min-h-screen bg-slate-50 p-6 md:p-10">
       <div className="mx-auto max-w-7xl">

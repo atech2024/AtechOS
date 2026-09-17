@@ -7,7 +7,7 @@ const modules = [
   ['Classes', 'Manage academic years, classes, rooms and grade levels.', '/dashboard/classes'],
   ['Subjects', 'Manage subjects and assign teachers to classes.', '/dashboard/subjects'],
   ['Attendance', 'Track check-in, check-out, lateness and absences.', '/dashboard/attendance'],
-  ['Grades', 'Enter and review grades by class and subject.', '#'],
+  ['Grades', 'Enter and review grades by class, subject and grading period.', '/dashboard/grades'],
   ['Assignments', 'Publish work, exams and learning documents.', '#'],
   ['Parents', 'Connect families with school information and meetings.', '#'],
   ['Staff', 'Manage teachers, secretaries, accountants and staff.', '#'],

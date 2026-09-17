@@ -26,20 +26,22 @@ export default function ClassesPage() {
     const [y, g, c] = await Promise.all([
       supabase.from('academic_years').select('id,name,start_date,end_date,is_current').order('start_date', { ascending: false }),
       supabase.rpc('get_grade_levels'),
-      supabase.from('classes').select('id,name,grade_level_id,room,academic_year_id,grade_levels(short_name,name),academic_years(name)').order('name')
+      supabase.from('classes').select('id,name,grade_level_id,room,academic_year_id').order('name')
     ])
     const firstError = y.error || g.error || c.error
     if (firstError) setError(firstError.message)
     setYears((y.data || []) as Year[])
     setGrades((g.data || []) as GradeLevel[])
+    const gradeMap = new Map((g.data || []).map((item: GradeLevel) => [item.id, { short_name: item.short_name, name: item.name }]))
+    const yearMap = new Map((y.data || []).map((item: Year) => [item.id, { name: item.name }]))
     const normalizedClasses: SchoolClass[] = (c.data || []).map((item: any) => ({
       id: item.id,
       name: item.name,
       grade_level_id: item.grade_level_id,
       room: item.room,
       academic_year_id: item.academic_year_id,
-      grade_levels: Array.isArray(item.grade_levels) ? (item.grade_levels[0] || null) : (item.grade_levels || null),
-      academic_years: Array.isArray(item.academic_years) ? (item.academic_years[0] || null) : (item.academic_years || null),
+      grade_levels: item.grade_level_id ? (gradeMap.get(item.grade_level_id) || null) : null,
+      academic_years: item.academic_year_id ? (yearMap.get(item.academic_year_id) || null) : null,
     }))
     setClasses(normalizedClasses)
     const current = (y.data || []).find((item: Year) => item.is_current)

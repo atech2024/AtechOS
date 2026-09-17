@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 const modules = [
   ['Students', 'Manage student profiles, enrollment and NISU records.', '/dashboard/students'],
   ['Classes', 'Manage academic years, classes, rooms and grade levels.', '/dashboard/classes'],
+  ['Subjects', 'Create subjects and assign them to classes and teachers.', '/dashboard/subjects'],
   ['Attendance', 'Track check-in, check-out, lateness and absences.', '#'],
   ['Grades', 'Enter and review grades by class and subject.', '#'],
   ['Assignments', 'Publish work, exams and learning documents.', '#'],

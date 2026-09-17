@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 
 type ClassRelation = { short_name: string; name?: string }
 type AcademicYearRelation = { name: string }
-type ClassItem = { id: string; name: string; grade_levels?: ClassRelation | ClassRelation[] | null; academic_years?: AcademicYearRelation | AcademicYearRelation[] | null }
+type ClassItem = { id: string; name: string; grade_level: ClassRelation | null; academic_year: AcademicYearRelation | null }
 type Student = { id: string; first_name: string; last_name: string; student_code: string | null }
 type Subject = { id: string; name: string; code: string | null }
 type Period = { id: string; name: string; code: string; weight: number; start_date: string; end_date: string; is_active: boolean }
@@ -39,7 +39,13 @@ export default function BulletinsPage() {
       ])
       if (schoolResult.error || classResult.error || periodResult.error || settingsResult.error) setError((schoolResult.error || classResult.error || periodResult.error || settingsResult.error)?.message || 'Could not load bulletin data.')
       setSchool(schoolResult.data as School | null)
-      setClasses((classResult.data || []) as unknown as ClassItem[])
+      const classList: ClassItem[] = (classResult.data || []).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        grade_level: Array.isArray(row.grade_levels) ? (row.grade_levels[0] || null) : (row.grade_levels || null),
+        academic_year: Array.isArray(row.academic_years) ? (row.academic_years[0] || null) : (row.academic_years || null)
+      }))
+      setClasses(classList)
       setPeriods(((periodResult.data || []) as Period[]).filter(p => p.is_active))
       const settingRow = (Array.isArray(settingsResult.data) ? settingsResult.data[0] : settingsResult.data) as GradingSettings | undefined
       if (settingRow) setSettings({ controls_per_period: Number(settingRow.controls_per_period) || 4, passing_average: Number(settingRow.passing_average) || 5 })
@@ -73,8 +79,8 @@ export default function BulletinsPage() {
 
   const student = students.find(s => s.id === studentId)
   const selectedClass = classes.find(c => c.id === classId)
-  const gradeLevel = selectedClass && selectedClass.grade_levels ? (Array.isArray(selectedClass.grade_levels) ? selectedClass.grade_levels[0] : selectedClass.grade_levels) : null
-  const academicYear = selectedClass && selectedClass.academic_years ? (Array.isArray(selectedClass.academic_years) ? selectedClass.academic_years[0] : selectedClass.academic_years) : null
+  const gradeLevel = selectedClass?.grade_level || null
+  const academicYear = selectedClass?.academic_year || null
   const gradeLevelName = gradeLevel?.short_name || ''
   const academicYearName = academicYear?.name || ''
 
@@ -100,7 +106,7 @@ export default function BulletinsPage() {
     <header className="mb-8 print:hidden"><p className="text-sm font-semibold text-blue-600">AtechOS</p><h1 className="mt-1 text-3xl font-bold text-slate-900">Bulletins</h1><p className="mt-1 text-slate-500">Generate a student bulletin with grading-period averages, final averages and school passing threshold.</p></header>
     {error && <p className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 print:hidden">{error}</p>}
     <section className="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 print:hidden">
-      <label className="text-sm font-medium">Class<select value={classId} onChange={e => setClassId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select class...</option>{classes.map(c => <option key={c.id} value={c.id}>{c.name}{(Array.isArray(c.grade_levels) ? c.grade_levels[0]?.short_name : c.grade_levels?.short_name) ? ` · ${Array.isArray(c.grade_levels) ? c.grade_levels[0]?.short_name : c.grade_levels?.short_name}` : ''}{(Array.isArray(c.academic_years) ? c.academic_years[0]?.name : c.academic_years?.name) ? ` · ${Array.isArray(c.academic_years) ? c.academic_years[0]?.name : c.academic_years?.name}` : ''}</option>)}</select></label>
+      <label className="text-sm font-medium">Class<select value={classId} onChange={e => setClassId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select class...</option>{classes.map(c => <option key={c.id} value={c.id}>{c.name}{c.grade_level?.short_name ? ` · ${c.grade_level.short_name}` : ''}{c.academic_year?.name ? ` · ${c.academic_year.name}` : ''}</option>)}</select></label>
       <label className="text-sm font-medium">Student<select value={studentId} onChange={e => setStudentId(e.target.value)} disabled={!classId} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select student...</option>{students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}{s.student_code ? ` · ${s.student_code}` : ''}</option>)}</select></label>
       <div className="md:col-span-2"><button type="button" onClick={() => window.print()} disabled={!studentId} className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white disabled:opacity-50">Print / Save PDF</button></div>
     </section>

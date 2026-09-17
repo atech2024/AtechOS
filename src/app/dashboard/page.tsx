@@ -8,6 +8,7 @@ const modules = [
   ['Subjects', 'Manage subjects and assign teachers to classes.', '/dashboard/subjects'],
   ['Attendance', 'Track check-in, check-out, lateness and absences.', '/dashboard/attendance'],
   ['Attendance Kiosk', 'Scan RFID/NFC badges for automatic student check-in and check-out.', '/dashboard/attendance/kiosk'],
+  ['Student Badges', 'Preview and print school badges without exposing the private AtechOS ID or NISU.', '/dashboard/badges'],
   ['Grades', 'Enter and review grades by class, subject and grading period.', '/dashboard/grades'],
   ['Grading settings', 'Choose controls per grading period and the passing average.', '/dashboard/grading-settings'],
   ['Bulletins', 'Generate printable student bulletins and save them as PDF.', '/dashboard/bulletins'],

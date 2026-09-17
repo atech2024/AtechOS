@@ -13,6 +13,7 @@ const modules = [
   ['Grading settings', 'Choose controls per grading period and the passing average.', '/dashboard/grading-settings'],
   ['Bulletins', 'Generate printable student bulletins and save them as PDF.', '/dashboard/bulletins'],
   ['Parents', 'Review parent accounts and student relationships.', '/dashboard/parents'],
+  ['Parent Portal', 'Parent-only view of linked children, attendance and grades.', '/dashboard/parent-portal'],
   ['Assignments', 'Publish work, exams and learning documents.', '#'],
   ['Staff', 'Manage teachers, secretaries, accountants and staff.', '#'],
 ]

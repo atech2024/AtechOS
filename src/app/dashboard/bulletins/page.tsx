@@ -37,7 +37,7 @@ export default function BulletinsPage() {
       ])
       if (schoolResult.error || classResult.error || periodResult.error || settingsResult.error) setError((schoolResult.error || classResult.error || periodResult.error || settingsResult.error)?.message || 'Could not load bulletin data.')
       setSchool(schoolResult.data as School | null)
-      setClasses((classResult.data || []) as ClassItem[])
+      setClasses((classResult.data || []) as unknown as ClassItem[])
       setPeriods(((periodResult.data || []) as Period[]).filter(p => p.is_active))
       const settingRow = (Array.isArray(settingsResult.data) ? settingsResult.data[0] : settingsResult.data) as GradingSettings | undefined
       if (settingRow) setSettings({ controls_per_period: Number(settingRow.controls_per_period) || 4, passing_average: Number(settingRow.passing_average) || 5 })
@@ -53,8 +53,14 @@ export default function BulletinsPage() {
         supabase.from('enrollments').select('student_id,students(id,first_name,last_name,student_code)').eq('class_id', classId).eq('status', 'active').order('student_id'),
         supabase.from('class_subjects').select('subject_id,subjects(id,name,code)').eq('class_id', classId).order('subject_id')
       ])
-      setStudents(((enrollmentResult.data || []) as Array<{students:Student|null}>).map(x => x.students).filter(Boolean) as Student[])
-      setSubjects(((subjectResult.data || []) as Array<{subjects:Subject|null}>).map(x => x.subjects).filter(Boolean) as Subject[])
+
+      const enrollmentRows = (enrollmentResult.data || []) as unknown as Array<{ students: Student | Student[] | null }>
+      const subjectRows = (subjectResult.data || []) as unknown as Array<{ subjects: Subject | Subject[] | null }>
+      const studentList = enrollmentRows.flatMap(row => Array.isArray(row.students) ? row.students : row.students ? [row.students] : [])
+      const subjectList = subjectRows.flatMap(row => Array.isArray(row.subjects) ? row.subjects : row.subjects ? [row.subjects] : [])
+
+      setStudents(studentList)
+      setSubjects(subjectList)
       setStudentId('')
       const { data, error } = await supabase.from('grades').select('student_id,subject_id,grading_period_id,score,max_score,assessment_weight').eq('class_id', classId)
       if (error) setError(error.message)

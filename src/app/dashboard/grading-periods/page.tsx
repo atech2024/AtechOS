@@ -14,7 +14,11 @@ type Period = {
 }
 
 export default function GradingPeriodsPage() {
-  const supabase = createClient()
+  let supabase: ReturnType<typeof createClient> | null = null
+  const getSupabase = () => {
+    if (!supabase) supabase = createClient()
+    return supabase
+  }
   const [periods, setPeriods] = useState<Period[]>([])
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -28,7 +32,7 @@ export default function GradingPeriodsPage() {
 
   async function loadPeriods() {
     setLoading(true)
-    const { data, error } = await supabase.rpc('get_grading_periods')
+    const { data, error } = await getSupabase().rpc('get_grading_periods')
     if (error) setError(error.message)
     setPeriods((data || []) as Period[])
     setLoading(false)
@@ -64,7 +68,7 @@ export default function GradingPeriodsPage() {
       return
     }
 
-    const { error } = await supabase.rpc('create_grading_period', {
+    const { error } = await getSupabase().rpc('create_grading_period', {
       p_name: cleanName,
       p_code: cleanCode,
       p_start_date: startDate,

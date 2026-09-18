@@ -13,15 +13,19 @@ type Badge = { student_id: string; badge_uid: string; badge_type: string; active
 const emptyForm = { nis: '', student_code: '', first_name: '', last_name: '', date_of_birth: '', sex: '', phone: '', email: '', address: '', emergency_contact_name: '', emergency_contact_phone: '', badge_uid: '', badge_type: 'rfid', active: true }
 
 export default function StudentsPage() {
-  const supabase = createClient()
+  let supabase: ReturnType<typeof createClient> | null = null
+  const getSupabase = () => {
+    if (!supabase) supabase = createClient()
+    return supabase
+  }
   const [students, setStudents] = useState<Student[]>([]); const [badges, setBadges] = useState<Badge[]>([]); const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState(''); const [showForm, setShowForm] = useState(false); const [editing, setEditing] = useState<Student | null>(null); const [form, setForm] = useState(emptyForm); const [photoFile, setPhotoFile] = useState<File | null>(null)
 
   async function loadStudents() {
     setLoading(true); setError('')
     const [sr, br] = await Promise.all([
-      supabase.from('students').select('id,atechos_id,nis,student_code,first_name,last_name,photo_url,date_of_birth,sex,phone,email,address,emergency_contact_name,emergency_contact_phone,active').order('last_name').order('first_name'),
-      supabase.from('student_badges').select('student_id,badge_uid,badge_type,active').eq('active', true),
+      getSupabase().from('students').select('id,atechos_id,nis,student_code,first_name,last_name,photo_url,date_of_birth,sex,phone,email,address,emergency_contact_name,emergency_contact_phone,active').order('last_name').order('first_name'),
+      getSupabase().from('student_badges').select('student_id,badge_uid,badge_type,active').eq('active', true),
     ])
     if (sr.error || br.error) setError((sr.error || br.error)?.message || 'Could not load students')
     setStudents((sr.data || []) as Student[]); setBadges((br.data || []) as Badge[]); setLoading(false)
@@ -35,23 +39,23 @@ export default function StudentsPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setError('')
     const args = { p_nis: form.nis || null, p_student_code: form.student_code || null, p_first_name: form.first_name, p_last_name: form.last_name, p_date_of_birth: form.date_of_birth || null, p_sex: form.sex || null, p_phone: form.phone || null, p_email: form.email || null, p_address: form.address || null, p_emergency_contact_name: form.emergency_contact_name || null, p_emergency_contact_phone: form.emergency_contact_phone || null }
-    const result = editing ? await supabase.rpc('update_student', { p_student_id: editing.id, ...args, p_active: form.active }) : await supabase.rpc('create_student', args)
+    const result = editing ? await getSupabase().rpc('update_student', { p_student_id: editing.id, ...args, p_active: form.active }) : await getSupabase().rpc('create_student', args)
     if (result.error) { setError(result.error.message.replace('student_code_already_exists','Student code already exists').replace('nis_already_exists','NISU already exists').replace('first_name_required','First name is required').replace('last_name_required','Last name is required').replace('not_authorized','Only school administration can manage students')); setSaving(false); return }
     const studentId = editing?.id || result.data
     if (photoFile) {
       if (!['image/jpeg','image/png','image/webp'].includes(photoFile.type)) { setError('Photo must be JPG, PNG or WebP.'); setSaving(false); return }
       if (photoFile.size > 5 * 1024 * 1024) { setError('Photo must be 5 MB or smaller.'); setSaving(false); return }
-      const { data: schoolId, error: schoolError } = await supabase.rpc('get_my_school_id')
+      const { data: schoolId, error: schoolError } = await getSupabase().rpc('get_my_school_id')
       if (schoolError || !schoolId) { setError(schoolError?.message || 'Could not determine school.'); setSaving(false); return }
       const ext = photoFile.name.split('.').pop()?.toLowerCase() || 'jpg'
       const path = `${schoolId}/${studentId}-${Date.now()}.${ext}`
-      const upload = await supabase.storage.from('student-photos').upload(path, photoFile, { contentType: photoFile.type, upsert: false })
+      const upload = await getSupabase().storage.from('student-photos').upload(path, photoFile, { contentType: photoFile.type, upsert: false })
       if (upload.error) { setError(upload.error.message); setSaving(false); return }
-      const photoResult = await supabase.rpc('update_student_photo_url', { p_student_id: studentId, p_photo_url: path })
+      const photoResult = await getSupabase().rpc('update_student_photo_url', { p_student_id: studentId, p_photo_url: path })
       if (photoResult.error) { setError(photoResult.error.message.replace('not_authorized','Only school administration can manage student photos')); setSaving(false); return }
     }
     if (form.badge_uid.trim()) {
-      const badgeResult = await supabase.rpc('assign_student_badge', { p_student_id: studentId, p_badge_uid: form.badge_uid.trim(), p_badge_type: form.badge_type })
+      const badgeResult = await getSupabase().rpc('assign_student_badge', { p_student_id: studentId, p_badge_uid: form.badge_uid.trim(), p_badge_type: form.badge_type })
       if (badgeResult.error) { setError(badgeResult.error.message.replace('badge_already_assigned','This badge is already assigned to another student').replace('badge_uid_required','Badge UID is required').replace('not_authorized','Only school administration can manage badges')); setSaving(false); return }
     }
     setShowForm(false); setSaving(false); await loadStudents()

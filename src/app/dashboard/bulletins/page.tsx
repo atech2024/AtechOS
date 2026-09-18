@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-type ClassRelation = { short_name: string; name?: string }
-type AcademicYearRelation = { name: string }
-type ClassItem = { id: string; name: string; grade_level: ClassRelation | null; academic_year: AcademicYearRelation | null }
+type ClassItem = { id: string; name: string }
 type Student = { id: string; first_name: string; last_name: string; student_code: string | null }
 type Subject = { id: string; name: string; code: string | null }
 type Period = { id: string; name: string; code: string; weight: number; start_date: string; end_date: string; is_active: boolean }
@@ -33,18 +31,13 @@ export default function BulletinsPage() {
       const schoolId = (await supabase.rpc('get_my_school_id')).data
       const [schoolResult, classResult, periodResult, settingsResult] = await Promise.all([
         schoolId ? supabase.from('schools').select('name,code,email,phone,address,logo_url').eq('id', schoolId).single() : Promise.resolve({ data: null, error: null }),
-        supabase.from('classes').select('id,name,grade_levels(short_name),academic_years(name)').order('name'),
+        supabase.from('classes').select('id,name').order('name'),
         supabase.rpc('get_grading_periods'),
         supabase.rpc('get_grading_settings')
       ])
       if (schoolResult.error || classResult.error || periodResult.error || settingsResult.error) setError((schoolResult.error || classResult.error || periodResult.error || settingsResult.error)?.message || 'Could not load bulletin data.')
       setSchool(schoolResult.data as School | null)
-      const classList: ClassItem[] = (classResult.data || []).map((row: any) => ({
-        id: row.id,
-        name: row.name,
-        grade_level: Array.isArray(row.grade_levels) ? (row.grade_levels[0] || null) : (row.grade_levels || null),
-        academic_year: Array.isArray(row.academic_years) ? (row.academic_years[0] || null) : (row.academic_years || null)
-      }))
+      const classList: ClassItem[] = (classResult.data || []) as ClassItem[]
       setClasses(classList)
       setPeriods(((periodResult.data || []) as Period[]).filter(p => p.is_active))
       const settingRow = (Array.isArray(settingsResult.data) ? settingsResult.data[0] : settingsResult.data) as GradingSettings | undefined
@@ -58,17 +51,20 @@ export default function BulletinsPage() {
     async function loadClass() {
       if (!classId) { setStudents([]); setSubjects([]); setGrades([]); return }
       const [enrollmentResult, subjectResult] = await Promise.all([
-        supabase.from('enrollments').select('student_id,students(id,first_name,last_name,student_code)').eq('class_id', classId).eq('status', 'active').order('student_id'),
-        supabase.from('class_subjects').select('subject_id,subjects(id,name,code)').eq('class_id', classId).order('subject_id')
+        supabase.from('enrollments').select('student_id').eq('class_id', classId).eq('status', 'active').order('student_id'),
+        supabase.from('class_subjects').select('subject_id').eq('class_id', classId).order('subject_id')
       ])
 
-      const enrollmentRows = (enrollmentResult.data || []) as unknown as Array<{ students: Student | Student[] | null }>
-      const subjectRows = (subjectResult.data || []) as unknown as Array<{ subjects: Subject | Subject[] | null }>
-      const studentList = enrollmentRows.flatMap(row => Array.isArray(row.students) ? row.students : row.students ? [row.students] : [])
-      const subjectList = subjectRows.flatMap(row => Array.isArray(row.subjects) ? row.subjects : row.subjects ? [row.subjects] : [])
-
-      setStudents(studentList)
-      setSubjects(subjectList)
+      if (enrollmentResult.error || subjectResult.error) { setError((enrollmentResult.error || subjectResult.error)?.message || 'Could not load class data.'); return }
+      const studentIds = (enrollmentResult.data || []).map(row => row.student_id)
+      const subjectIds = (subjectResult.data || []).map(row => row.subject_id)
+      const [studentResult, subjectDetailsResult] = await Promise.all([
+        studentIds.length ? supabase.from('students').select('id,first_name,last_name,student_code').in('id', studentIds) : Promise.resolve({ data: [], error: null }),
+        subjectIds.length ? supabase.from('subjects').select('id,name,code').in('id', subjectIds) : Promise.resolve({ data: [], error: null })
+      ])
+      if (studentResult.error || subjectDetailsResult.error) { setError((studentResult.error || subjectDetailsResult.error)?.message || 'Could not load class details.'); return }
+      setStudents((studentResult.data || []) as Student[])
+      setSubjects((subjectDetailsResult.data || []) as Subject[])
       setStudentId('')
       const { data, error } = await supabase.from('grades').select('student_id,subject_id,grading_period_id,score,max_score,assessment_weight').eq('class_id', classId)
       if (error) setError(error.message)
@@ -79,10 +75,8 @@ export default function BulletinsPage() {
 
   const student = students.find(s => s.id === studentId)
   const selectedClass = classes.find(c => c.id === classId)
-  const gradeLevel = selectedClass?.grade_level || null
-  const academicYear = selectedClass?.academic_year || null
-  const gradeLevelName = gradeLevel?.short_name || ''
-  const academicYearName = academicYear?.name || ''
+  const gradeLevelName = ''
+  const academicYearName = ''
 
   const rows = useMemo(() => subjects.map(subject => {
     const periodRows = periods.map(period => {
@@ -106,7 +100,7 @@ export default function BulletinsPage() {
     <header className="mb-8 print:hidden"><p className="text-sm font-semibold text-blue-600">AtechOS</p><h1 className="mt-1 text-3xl font-bold text-slate-900">Bulletins</h1><p className="mt-1 text-slate-500">Generate a student bulletin with grading-period averages, final averages and school passing threshold.</p></header>
     {error && <p className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 print:hidden">{error}</p>}
     <section className="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 print:hidden">
-      <label className="text-sm font-medium">Class<select value={classId} onChange={e => setClassId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select class...</option>{classes.map(c => <option key={c.id} value={c.id}>{c.name}{c.grade_level?.short_name ? ` · ${c.grade_level.short_name}` : ''}{c.academic_year?.name ? ` · ${c.academic_year.name}` : ''}</option>)}</select></label>
+      <label className="text-sm font-medium">Class<select value={classId} onChange={e => setClassId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select class...</option>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       <label className="text-sm font-medium">Student<select value={studentId} onChange={e => setStudentId(e.target.value)} disabled={!classId} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select student...</option>{students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}{s.student_code ? ` · ${s.student_code}` : ''}</option>)}</select></label>
       <div className="md:col-span-2"><button type="button" onClick={() => window.print()} disabled={!studentId} className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white disabled:opacity-50">Print / Save PDF</button></div>
     </section>

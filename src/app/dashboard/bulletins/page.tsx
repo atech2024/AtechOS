@@ -12,7 +12,11 @@ type School = { name: string; code: string; email: string | null; phone: string 
 type GradingSettings = { controls_per_period: number; passing_average: number }
 
 export default function BulletinsPage() {
-  const supabase = createClient()
+  let supabase: ReturnType<typeof createClient> | null = null
+  const getSupabase = () => {
+    if (!supabase) supabase = createClient()
+    return supabase
+  }
   const [school, setSchool] = useState<School | null>(null)
   const [classes, setClasses] = useState<ClassItem[]>([])
   const [students, setStudents] = useState<Student[]>([])
@@ -28,12 +32,12 @@ export default function BulletinsPage() {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const schoolId = (await supabase.rpc('get_my_school_id')).data
+      const schoolId = (await getSupabase().rpc('get_my_school_id')).data
       const [schoolResult, classResult, periodResult, settingsResult] = await Promise.all([
-        schoolId ? supabase.from('schools').select('name,code,email,phone,address,logo_url').eq('id', schoolId).single() : Promise.resolve({ data: null, error: null }),
-        supabase.from('classes').select('id,name').order('name'),
-        supabase.rpc('get_grading_periods'),
-        supabase.rpc('get_grading_settings')
+        schoolId ? getSupabase().from('schools').select('name,code,email,phone,address,logo_url').eq('id', schoolId).single() : Promise.resolve({ data: null, error: null }),
+        getSupabase().from('classes').select('id,name').order('name'),
+        getSupabase().rpc('get_grading_periods'),
+        getSupabase().rpc('get_grading_settings')
       ])
       if (schoolResult.error || classResult.error || periodResult.error || settingsResult.error) setError((schoolResult.error || classResult.error || periodResult.error || settingsResult.error)?.message || 'Could not load bulletin data.')
       setSchool(schoolResult.data as School | null)
@@ -51,22 +55,22 @@ export default function BulletinsPage() {
     async function loadClass() {
       if (!classId) { setStudents([]); setSubjects([]); setGrades([]); return }
       const [enrollmentResult, subjectResult] = await Promise.all([
-        supabase.from('enrollments').select('student_id').eq('class_id', classId).eq('status', 'active').order('student_id'),
-        supabase.from('class_subjects').select('subject_id').eq('class_id', classId).order('subject_id')
+        getSupabase().from('enrollments').select('student_id').eq('class_id', classId).eq('status', 'active').order('student_id'),
+        getSupabase().from('class_subjects').select('subject_id').eq('class_id', classId).order('subject_id')
       ])
 
       if (enrollmentResult.error || subjectResult.error) { setError((enrollmentResult.error || subjectResult.error)?.message || 'Could not load class data.'); return }
       const studentIds = (enrollmentResult.data || []).map(row => row.student_id)
       const subjectIds = (subjectResult.data || []).map(row => row.subject_id)
       const [studentResult, subjectDetailsResult] = await Promise.all([
-        studentIds.length ? supabase.from('students').select('id,first_name,last_name,student_code').in('id', studentIds) : Promise.resolve({ data: [], error: null }),
-        subjectIds.length ? supabase.from('subjects').select('id,name,code').in('id', subjectIds) : Promise.resolve({ data: [], error: null })
+        studentIds.length ? getSupabase().from('students').select('id,first_name,last_name,student_code').in('id', studentIds) : Promise.resolve({ data: [], error: null }),
+        subjectIds.length ? getSupabase().from('subjects').select('id,name,code').in('id', subjectIds) : Promise.resolve({ data: [], error: null })
       ])
       if (studentResult.error || subjectDetailsResult.error) { setError((studentResult.error || subjectDetailsResult.error)?.message || 'Could not load class details.'); return }
       setStudents((studentResult.data || []) as Student[])
       setSubjects((subjectDetailsResult.data || []) as Subject[])
       setStudentId('')
-      const { data, error } = await supabase.from('grades').select('student_id,subject_id,grading_period_id,score,max_score,assessment_weight').eq('class_id', classId)
+      const { data, error } = await getSupabase().from('grades').select('student_id,subject_id,grading_period_id,score,max_score,assessment_weight').eq('class_id', classId)
       if (error) setError(error.message)
       setGrades((data || []) as Grade[])
     }

@@ -9,7 +9,11 @@ type LinkRow = { student_id: string; parent_id: string; is_primary: boolean }
 type UserRow = { id: string; full_name: string | null; email: string | null }
 
 export default function ParentsPage() {
-  const supabase = createClient()
+  let supabase: ReturnType<typeof createClient> | null = null
+  const getSupabase = () => {
+    if (!supabase) supabase = createClient()
+    return supabase
+  }
   const [parents, setParents] = useState<Parent[]>([])
   const [users, setUsers] = useState<UserRow[]>([])
   const [students, setStudents] = useState<Student[]>([])
@@ -26,16 +30,16 @@ export default function ParentsPage() {
   async function load() {
     setLoading(true); setError('')
     const [p, s, l] = await Promise.all([
-      supabase.from('parents').select('id,relationship,user_id').order('relationship'),
-      supabase.from('students').select('id,first_name,last_name,student_code').eq('active', true).order('last_name').order('first_name'),
-      supabase.from('student_parents').select('student_id,parent_id,is_primary'),
+      getSupabase().from('parents').select('id,relationship,user_id').order('relationship'),
+      getSupabase().from('students').select('id,first_name,last_name,student_code').eq('active', true).order('last_name').order('first_name'),
+      getSupabase().from('student_parents').select('student_id,parent_id,is_primary'),
     ])
     if (p.error || s.error || l.error) setError((p.error || s.error || l.error)?.message || 'Could not load parent data.')
     const parentRows = (p.data || []) as Parent[]
     setParents(parentRows); setStudents((s.data || []) as Student[]); setLinks((l.data || []) as LinkRow[])
     const userIds = parentRows.map(x => x.user_id).filter(Boolean) as string[]
     if (userIds.length) {
-      const u = await supabase.from('users').select('id,full_name,email').in('id', userIds)
+      const u = await getSupabase().from('users').select('id,full_name,email').in('id', userIds)
       if (u.error) setError(u.error.message); else setUsers((u.data || []) as UserRow[])
     } else setUsers([])
     setLoading(false)
@@ -45,7 +49,7 @@ export default function ParentsPage() {
   async function linkParent() {
     if (!studentId || !parentId || !relationship.trim()) { setError('Student, parent and relationship are required.'); return }
     setSaving(true); setError(''); setMessage('')
-    const { error: rpcError } = await supabase.rpc('link_student_parent', { p_student_id: studentId, p_parent_id: parentId, p_relationship: relationship.trim(), p_is_primary: primary })
+    const { error: rpcError } = await getSupabase().rpc('link_student_parent', { p_student_id: studentId, p_parent_id: parentId, p_relationship: relationship.trim(), p_is_primary: primary })
     if (rpcError) setError(rpcError.message)
     else { setMessage('Parent linked successfully.'); setStudentId(''); setParentId(''); setPrimary(false); await load() }
     setSaving(false)

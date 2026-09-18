@@ -9,7 +9,11 @@ type Enrollment = { student_id: string; class_id: string; class_name: string; ac
 type School = { name: string; logo_url: string | null }
 
 export default function BadgesPage() {
-  const supabase = createClient()
+  let supabase: ReturnType<typeof createClient> | null = null
+  const getSupabase = () => {
+    if (!supabase) supabase = createClient()
+    return supabase
+  }
   const [students, setStudents] = useState<Student[]>([]); const [badges, setBadges] = useState<Badge[]>([]); const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [school, setSchool] = useState<School | null>(null); const [selectedId, setSelectedId] = useState(''); const [photoSrc, setPhotoSrc] = useState(''); const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true); const [error, setError] = useState('')
@@ -17,19 +21,19 @@ export default function BadgesPage() {
   useEffect(() => {
     async function load() {
       setLoading(true); setError('')
-      const { data: schoolId, error: idError } = await supabase.rpc('get_my_school_id')
+      const { data: schoolId, error: idError } = await getSupabase().rpc('get_my_school_id')
       if (idError || !schoolId) { setError(idError?.message || 'No school found'); setLoading(false); return }
       const [sr, br, er, sch] = await Promise.all([
-        supabase.from('students').select('id,first_name,last_name,photo_url,active').eq('active', true).order('last_name').order('first_name'),
-        supabase.from('student_badges').select('student_id,badge_uid,badge_type,active').eq('active', true),
-        supabase.from('enrollments').select('student_id,class_id').eq('school_id', schoolId).eq('status', 'active'),
-        supabase.from('schools').select('name,logo_url').eq('id', schoolId).single(),
+        getSupabase().from('students').select('id,first_name,last_name,photo_url,active').eq('active', true).order('last_name').order('first_name'),
+        getSupabase().from('student_badges').select('student_id,badge_uid,badge_type,active').eq('active', true),
+        getSupabase().from('enrollments').select('student_id,class_id').eq('school_id', schoolId).eq('status', 'active'),
+        getSupabase().from('schools').select('name,logo_url').eq('id', schoolId).single(),
       ])
       const enrollmentRows = (er.data || []) as Array<{student_id:string;class_id:string}>
       const classIds = enrollmentRows.map(x => x.class_id)
-      const [classResult] = await Promise.all([classIds.length ? supabase.from('classes').select('id,name,academic_year_id').in('id', classIds) : Promise.resolve({data:[],error:null})])
+      const [classResult] = await Promise.all([classIds.length ? getSupabase().from('classes').select('id,name,academic_year_id').in('id', classIds) : Promise.resolve({data:[],error:null})])
       const academicYearIds = ((classResult.data || []) as Array<{id:string;name:string;academic_year_id:string|null}>).map(x => x.academic_year_id).filter((x):x is string => Boolean(x))
-      const yearResult = academicYearIds.length ? await supabase.from('academic_years').select('id,name').in('id', academicYearIds) : {data:[],error:null}
+      const yearResult = academicYearIds.length ? await getSupabase().from('academic_years').select('id,name').in('id', academicYearIds) : {data:[],error:null}
       const classMap = new Map(((classResult.data || []) as Array<{id:string;name:string;academic_year_id:string|null}>).map(x => [x.id, x]))
       const yearMap = new Map(((yearResult.data || []) as Array<{id:string;name:string}>).map(x => [x.id, x.name]))
       const normalizedEnrollments: Enrollment[] = enrollmentRows.map(x => ({student_id:x.student_id,class_id:x.class_id,class_name:classMap.get(x.class_id)?.name || 'Class',academic_year_name:classMap.get(x.class_id)?.academic_year_id ? (yearMap.get(classMap.get(x.class_id)!.academic_year_id!) || null) : null}))
@@ -55,7 +59,7 @@ export default function BadgesPage() {
       const path = selected?.photo_url?.trim()
       if (!path) return
       if (/^https?:\/\//i.test(path)) { setPhotoSrc(path); return }
-      const { data, error } = await supabase.storage.from('student-photos').createSignedUrl(path, 60 * 60)
+      const { data, error } = await getSupabase().storage.from('student-photos').createSignedUrl(path, 60 * 60)
       if (!cancelled && !error && data?.signedUrl) setPhotoSrc(data.signedUrl)
     }
     resolvePhoto()

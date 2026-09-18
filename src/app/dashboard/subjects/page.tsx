@@ -9,7 +9,11 @@ type ClassItem = { id: string; name: string }
 type Assignment = { id: string; class_id: string; subject_id: string; teacher_id: string | null }
 
 export default function SubjectsPage() {
-  const supabase = createClient()
+  let supabase: ReturnType<typeof createClient> | null = null
+  const getSupabase = () => {
+    if (!supabase) supabase = createClient()
+    return supabase
+  }
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [classes, setClasses] = useState<ClassItem[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -23,10 +27,10 @@ export default function SubjectsPage() {
   async function load() {
     setLoading(true); setError('')
     const [s, c, t, a] = await Promise.all([
-      supabase.from('subjects').select('id,name,code').order('name'),
-      supabase.from('classes').select('id,name').order('name'),
-      supabase.from('school_members').select('user_id').eq('role', 'teacher'),
-      supabase.from('class_subjects').select('id,class_id,subject_id,teacher_id').order('id')
+      getSupabase().from('subjects').select('id,name,code').order('name'),
+      getSupabase().from('classes').select('id,name').order('name'),
+      getSupabase().from('school_members').select('user_id').eq('role', 'teacher'),
+      getSupabase().from('class_subjects').select('id,class_id,subject_id,teacher_id').order('id')
     ])
     const firstError = s.error || c.error || t.error || a.error
     if (firstError) setError(firstError.message)
@@ -34,7 +38,7 @@ export default function SubjectsPage() {
     setClasses((c.data || []) as ClassItem[])
     const teacherIds = ((t.data || []) as Array<{user_id:string}>).map(x => x.user_id)
     if (teacherIds.length) {
-      const { data: teacherUsers, error: teacherError } = await supabase.from('users').select('id,full_name').in('id', teacherIds)
+      const { data: teacherUsers, error: teacherError } = await getSupabase().from('users').select('id,full_name').in('id', teacherIds)
       if (teacherError) setError(teacherError.message)
       setTeachers(((teacherUsers || []) as Array<{id:string;full_name:string}>).map(x => ({ id: x.id, full_name: x.full_name || 'Teacher' })))
     } else {
@@ -49,7 +53,7 @@ export default function SubjectsPage() {
   async function createSubject(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setSaving(true); setError('')
     const f = new FormData(e.currentTarget)
-    const { error } = await supabase.rpc('create_subject', { p_name: String(f.get('name') || ''), p_code: String(f.get('code') || '') })
+    const { error } = await getSupabase().rpc('create_subject', { p_name: String(f.get('name') || ''), p_code: String(f.get('code') || '') })
     if (error) setError(error.message); else { setSubjectOpen(false); e.currentTarget.reset(); await load() }
     setSaving(false)
   }
@@ -57,14 +61,14 @@ export default function SubjectsPage() {
   async function assign(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setSaving(true); setError('')
     const f = new FormData(e.currentTarget)
-    const { error } = await supabase.rpc('assign_subject_to_class', { p_class_id: String(f.get('class_id')), p_subject_id: String(f.get('subject_id')), p_teacher_id: String(f.get('teacher_id') || '') || null })
+    const { error } = await getSupabase().rpc('assign_subject_to_class', { p_class_id: String(f.get('class_id')), p_subject_id: String(f.get('subject_id')), p_teacher_id: String(f.get('teacher_id') || '') || null })
     if (error) setError(error.message); else { setAssignmentOpen(false); e.currentTarget.reset(); await load() }
     setSaving(false)
   }
 
   async function changeTeacher(id: string, teacherId: string) {
     setError('')
-    const { error } = await supabase.rpc('update_class_subject_teacher', { p_class_subject_id: id, p_teacher_id: teacherId || null })
+    const { error } = await getSupabase().rpc('update_class_subject_teacher', { p_class_subject_id: id, p_teacher_id: teacherId || null })
     if (error) setError(error.message); else await load()
   }
 

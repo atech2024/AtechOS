@@ -8,7 +8,11 @@ type GradeLevel = { id: string; code: string; name: string; short_name: string; 
 type SchoolClass = { id: string; name: string; grade_level_id: string | null; room: string | null; academic_year_id: string }
 
 export default function ClassesPage() {
-  const supabase = createClient()
+  let supabase: ReturnType<typeof createClient> | null = null
+  const getSupabase = () => {
+    if (!supabase) supabase = createClient()
+    return supabase
+  }
   const [years, setYears] = useState<Year[]>([])
   const [grades, setGrades] = useState<GradeLevel[]>([])
   const [classes, setClasses] = useState<SchoolClass[]>([])
@@ -22,9 +26,9 @@ export default function ClassesPage() {
   async function load() {
     setLoading(true); setError('')
     const [y, g, c] = await Promise.all([
-      supabase.from('academic_years').select('id,name,start_date,end_date,is_current').order('start_date', { ascending: false }),
-      supabase.rpc('get_grade_levels'),
-      supabase.from('classes').select('id,name,grade_level_id,room,academic_year_id').order('name')
+      getSupabase().from('academic_years').select('id,name,start_date,end_date,is_current').order('start_date', { ascending: false }),
+      getSupabase().rpc('get_grade_levels'),
+      getSupabase().from('classes').select('id,name,grade_level_id,room,academic_year_id').order('name')
     ])
     const firstError = y.error || g.error || c.error
     if (firstError) setError(firstError.message)
@@ -48,7 +52,7 @@ export default function ClassesPage() {
   async function createYear(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setSaving(true); setError('')
     const f = new FormData(e.currentTarget)
-    const { error } = await supabase.rpc('create_academic_year', { p_name: String(f.get('name') || ''), p_start_date: String(f.get('start_date') || ''), p_end_date: String(f.get('end_date') || ''), p_is_current: f.get('is_current') === 'on' })
+    const { error } = await getSupabase().rpc('create_academic_year', { p_name: String(f.get('name') || ''), p_start_date: String(f.get('start_date') || ''), p_end_date: String(f.get('end_date') || ''), p_is_current: f.get('is_current') === 'on' })
     if (error) setError(error.message); else { setYearOpen(false); e.currentTarget.reset(); await load() }
     setSaving(false)
   }
@@ -56,7 +60,7 @@ export default function ClassesPage() {
   async function createClass(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setSaving(true); setError('')
     const f = new FormData(e.currentTarget)
-    const { error } = await supabase.rpc('create_class', { p_academic_year_id: String(f.get('academic_year_id') || ''), p_name: String(f.get('name') || ''), p_grade_level: String(f.get('grade_level') || ''), p_room: String(f.get('room') || '') })
+    const { error } = await getSupabase().rpc('create_class', { p_academic_year_id: String(f.get('academic_year_id') || ''), p_name: String(f.get('name') || ''), p_grade_level: String(f.get('grade_level') || ''), p_room: String(f.get('room') || '') })
     if (error) setError(error.message); else { setClassOpen(false); e.currentTarget.reset(); await load() }
     setSaving(false)
   }

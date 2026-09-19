@@ -4,10 +4,19 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+
+  // Do not crash the entire Next.js middleware when the Vercel environment
+  // variables are missing from a preview/first deployment. The application
+  // pages that require Supabase will still surface their own configuration
+  // requirements, but public routing remains available.
+  if (!supabaseUrl || !supabaseKey) {
+    return response
+  }
+
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -20,9 +29,13 @@ export async function updateSession(request: NextRequest) {
           )
         },
       },
-    },
-  )
+    })
 
-  await supabase.auth.getUser()
+    await supabase.auth.getUser()
+  } catch {
+    // Never turn a Supabase session-refresh failure into a 500 middleware
+    // invocation. The request can continue and the route can handle auth.
+  }
+
   return response
 }

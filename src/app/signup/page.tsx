@@ -17,6 +17,7 @@ export default function SignupPage() {
     setError('')
     setMessage('')
     const form = new FormData(event.currentTarget)
+    const supabase = createClient()
     const email = String(form.get('email') || '')
     const password = String(form.get('password') || '')
     const fullName = String(form.get('full_name') || '')

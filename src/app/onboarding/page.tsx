@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 

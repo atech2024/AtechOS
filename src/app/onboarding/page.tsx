@@ -15,6 +15,7 @@ export default function OnboardingPage() {
     setError('')
 
     const form = new FormData(event.currentTarget)
+    const supabase = createClient()
     const { data, error } = await supabase.rpc('create_school_onboarding', {
       p_school_name: String(form.get('school_name') || ''),
       p_school_code: String(form.get('school_code') || ''),

@@ -7,13 +7,13 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const router = useRouter()
-  const supabase = createClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const supabase = createClient()
     event.preventDefault()
     setError('')
     setLoading(true)

@@ -38,11 +38,11 @@ export default function SignupPage() {
     }
 
     if (data.session) {
-      router.replace('/onboarding')
+      router.replace('/auth/continue')
       return
     }
 
-    setMessage('Account created. Check your email to confirm your account, then sign in and continue school setup.')
+    setMessage('Check your email to confirm your account, then sign in. If you were invited, reopen your invitation link after confirming your email.')
     setLoading(false)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to complete the request. Please try again.')
@@ -55,8 +55,8 @@ export default function SignupPage() {
     <main className="min-h-screen bg-slate-50 flex items-center justify-center px-6 py-10">
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm border border-slate-200">
         <p className="text-sm font-semibold text-blue-600">AtechOS</p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-900">Create admin account</h1>
-        <p className="mt-2 text-slate-500">Start a new school workspace.</p>
+        <h1 className="mt-2 text-3xl font-bold text-slate-900">Create your account</h1>
+        <p className="mt-2 text-slate-500">Join your school with an invitation, or start a new school workspace.</p>
         <form onSubmit={submit} className="mt-8 space-y-5">
           <Field name="full_name" label="Full name" placeholder="Your full name" required />
           <Field name="email" label="Email" type="email" placeholder="you@school.com" required />
@@ -81,3 +81,5 @@ function Field({ name, label, placeholder, type = 'text', required = false, minL
     </label>
   )
 }
+
+

@@ -6,11 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node tests/routes.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.7.0",
-    "@supabase/supabase-js": "^2.57.0",
+    "@supabase/ssr": "0.7.0",
+    "@supabase/supabase-js": "2.116.0",
     "lucide-react": "^0.468.0",
     "next": "^15.5.0",
     "react": "^19.1.0",
@@ -24,6 +26,7 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.5.0",
     "tailwindcss": "^4.1.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "@eslint/eslintrc": "3.3.7"
   }
 }

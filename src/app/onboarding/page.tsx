@@ -15,6 +15,7 @@ export default function OnboardingPage() {
     setError('')
 
     const form = new FormData(event.currentTarget)
+    try {
     const supabase = createClient()
     const { data, error } = await supabase.rpc('create_school_onboarding', {
       p_school_name: String(form.get('school_name') || ''),
@@ -32,7 +33,14 @@ export default function OnboardingPage() {
       return
     }
 
-    if (data) router.replace('/dashboard')
+    if (!data) throw new Error('School setup did not complete. Please try again.')
+    router.replace('/dashboard')
+    router.refresh()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to complete the request. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

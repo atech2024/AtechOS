@@ -34,7 +34,7 @@ export default function ClassesPage() {
     if (firstError) setError(firstError.message)
     setYears((y.data || []) as Year[])
     setGrades((g.data || []) as GradeLevel[])
-    const normalizedClasses: SchoolClass[] = (c.data || []).map((item: any) => ({
+    const normalizedClasses: SchoolClass[] = (c.data || []).map((item) => ({
       id: item.id,
       name: item.name,
       grade_level_id: item.grade_level_id,

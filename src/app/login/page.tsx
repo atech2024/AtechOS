@@ -27,7 +27,7 @@ export default function LoginPage() {
       return
     }
 
-    router.replace('/dashboard')
+    router.replace('/auth/continue')
     router.refresh()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to complete the request. Please try again.')
@@ -63,3 +63,5 @@ export default function LoginPage() {
     </main>
   )
 }
+
+

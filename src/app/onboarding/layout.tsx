@@ -1,9 +1,11 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
 export default async function OnboardingLayout({ children }: { children: React.ReactNode }) {
+  if ((await cookies()).has('atechos_invitation')) redirect('/invitation')
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -12,3 +14,4 @@ export default async function OnboardingLayout({ children }: { children: React.R
   if (data) redirect('/dashboard')
   return children
 }
+

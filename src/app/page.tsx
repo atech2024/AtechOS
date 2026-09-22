@@ -71,7 +71,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid">
+        <div className="modules-grid">
           {modules.map(([title, description]) => (
             <article className="module-card" key={title}>
               <div className="module-icon">

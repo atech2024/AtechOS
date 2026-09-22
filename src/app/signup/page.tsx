@@ -17,6 +17,7 @@ export default function SignupPage() {
     setError('')
     setMessage('')
     const form = new FormData(event.currentTarget)
+    try {
     const supabase = createClient()
     const email = String(form.get('email') || '')
     const password = String(form.get('password') || '')
@@ -27,7 +28,7 @@ export default function SignupPage() {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/onboarding`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
      },
   })
     if (error) {
@@ -43,6 +44,11 @@ export default function SignupPage() {
 
     setMessage('Account created. Check your email to confirm your account, then sign in and continue school setup.')
     setLoading(false)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to complete the request. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

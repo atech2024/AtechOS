@@ -13,11 +13,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    const supabase = createClient()
     event.preventDefault()
     setError('')
     setLoading(true)
 
+    try {
+    const supabase = createClient()
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (signInError) {
@@ -28,6 +29,11 @@ export default function LoginPage() {
 
     router.replace('/dashboard')
     router.refresh()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to complete the request. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

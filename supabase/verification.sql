@@ -22,6 +22,10 @@ begin
   select atechos_id into old_id from public.students where id=child1;
   perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',cls),child1);
   if not exists(select 1 from public.students where id=child1 and atechos_id=old_id and photo_url is null) then raise exception 'TEST stable ID and optional photo'; end if;
+  perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',other_cls),child1);
+  if not exists(select 1 from public.enrollments where student_id=child1 and class_id=cls and status='transferred') or not exists(select 1 from public.enrollments where student_id=child1 and class_id=other_cls and status='active') then raise exception 'TEST transfer did not move active class'; end if;
+  perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',cls),child1);
+  if (select count(*) from public.enrollments where student_id=child1 and status='active')<>1 then raise exception 'TEST duplicate active class'; end if;
   invitation:=public.create_school_invitation(teacher::text||'@example.invalid','Teacher','teacher');
   perform set_config('request.jwt.claim.sub',outsider::text,true);
   failed:=false;
@@ -82,4 +86,3 @@ begin
  exception when sqlstate 'ZX001' then null;
  end;
 end $test$;
-

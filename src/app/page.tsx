@@ -67,7 +67,7 @@ export default function Home() {
           </div>
 
           <p>
-            Manage your entire school operation from one secure workspace.
+            Explore the platform. Sign in to open the modules available to your school account.
           </p>
         </div>
 
@@ -85,9 +85,6 @@ export default function Home() {
 
               <h3>{title}</h3>
               <p>{description}</p>
-              <a href="/signup" className="learn-more">
-                Get started →
-              </a>
             </article>
           ))}
         </div>
@@ -127,3 +124,4 @@ export default function Home() {
     </main>
   );
 }
+

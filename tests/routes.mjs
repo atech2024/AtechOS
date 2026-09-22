@@ -28,13 +28,16 @@ try {
     assert.equal(html.includes('<form'), form, path)
     checks++
   }
-  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/dashboard', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error']]) {
+  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/onboarding/create-school', '/login'], ['/dashboard', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error']]) {
     const response = await fetch(origin + path, { redirect: 'manual' })
     assert.equal(response.status, 307, path)
     assert.equal(new URL(response.headers.get('location'), origin).pathname, destination, path)
     assert.equal(new URL(response.headers.get('location'), origin).origin, origin, path)
     checks++
   }
+  const home = await (await fetch(origin)).text()
+  assert.ok(!home.includes('Get started'), 'Marketing cards must not send every role to signup')
+  checks++
   const token = 'ab'.repeat(32)
   const invite = await fetch(`${origin}/invite?token=${token}`, { redirect: 'manual' })
   assert.equal(invite.status, 307)
@@ -59,5 +62,4 @@ try {
   server.kill()
   if (server.exitCode === null) await once(server, 'exit')
 }
-
 

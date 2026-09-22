@@ -20,7 +20,7 @@ try {
     await delay(500)
   }
   assert.ok(ready, output)
-  for (const [path, heading, form] of [['/', 'The Operating System', false], ['/signup', 'Create admin account', true], ['/login', 'Sign in', true], ['/auth/error', 'Unable to complete email confirmation', false]]) {
+  for (const [path, heading, form] of [['/', 'The Operating System', false], ['/signup', 'Create your account', true], ['/login', 'Sign in', true], ['/auth/error', 'Unable to complete email confirmation', false], ['/invitation', 'School invitation', true]]) {
     const response = await fetch(origin + path)
     assert.equal(response.status, 200, path)
     const html = await response.text()
@@ -35,9 +35,29 @@ try {
     assert.equal(new URL(response.headers.get('location'), origin).origin, origin, path)
     checks++
   }
-  console.log(`PASS: ${checks} production HTTP checks (public forms, redirects, missing configuration, invalid confirmation).`)
+  const token = 'ab'.repeat(32)
+  const invite = await fetch(`${origin}/invite?token=${token}`, { redirect: 'manual' })
+  assert.equal(invite.status, 307)
+  assert.equal(new URL(invite.headers.get('location')).pathname, '/invitation')
+  assert.ok(invite.headers.get('set-cookie').includes(`atechos_invitation=${token}`))
+  assert.match(invite.headers.get('set-cookie'), /HttpOnly/i)
+  assert.match(invite.headers.get('set-cookie'), /SameSite=lax/i)
+  assert.equal(invite.headers.get('referrer-policy'), 'no-referrer')
+  assert.match(invite.headers.get('cache-control'), /no-store/)
+  checks++
+  const invalid = await fetch(`${origin}/invite?token=not-a-token`, { redirect: 'manual' })
+  assert.match(invalid.headers.get('set-cookie'), /atechos_invitation=;/)
+  checks++
+  for (const [cookie, destination] of [['', '/onboarding'], [`atechos_invitation=${token}`, '/invitation']]) {
+    const response = await fetch(`${origin}/auth/continue?next=https://example.com`, { redirect: 'manual', headers: { cookie } })
+    assert.equal(new URL(response.headers.get('location')).pathname, destination)
+    assert.equal(new URL(response.headers.get('location')).origin, origin)
+    checks++
+  }
+  console.log(`PASS: ${checks} production HTTP checks (public forms, redirects, missing configuration, invitation cookies, invalid confirmation).`)
 } finally {
   server.kill()
   if (server.exitCode === null) await once(server, 'exit')
 }
+
 

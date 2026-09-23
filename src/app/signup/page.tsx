@@ -1,4 +1,5 @@
 'use client'
+import { T } from '@/components/translation-provider'
 
 import { FormEvent, useState } from 'react'
 import Link from 'next/link'
@@ -54,9 +55,9 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center px-6 py-10">
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm border border-slate-200">
-        <Link href="/" className="text-sm font-semibold text-blue-600">AtechOS</Link>
-        <h1 className="mt-2 text-3xl font-bold text-slate-900">Create your account</h1>
-        <p className="mt-2 text-slate-500">Join your school with an invitation, or start a new school workspace.</p>
+        <Link href="/onboarding" className="text-sm font-semibold text-blue-600">AtechOS</Link>
+        <h1 className="mt-2 text-3xl font-bold text-slate-900"><T text="Create your account"/></h1>
+        <p className="mt-2 text-slate-500"><T text="Join your school with an invitation, or start a new school workspace."/></p>
         <form onSubmit={submit} className="mt-8 space-y-5">
           <Field name="full_name" label="Full name" placeholder="Your full name" required />
           <Field name="email" label="Email" type="email" placeholder="you@school.com" required />
@@ -67,7 +68,7 @@ export default function SignupPage() {
             {loading ? 'Creating account...' : 'Create account'}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-slate-500">Already have an account? <Link href="/login" className="font-semibold text-blue-600 hover:underline">Sign in</Link></p>
+        <p className="mt-6 text-center text-sm text-slate-500"><T text="Already have an account?"/> <Link href="/login" className="font-semibold text-blue-600 hover:underline"><T text="Sign in"/></Link></p>
       </section>
     </main>
   )

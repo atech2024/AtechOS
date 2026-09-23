@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
+import AccountNavigation from '@/components/account-navigation'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,5 @@ export default async function OnboardingLayout({ children }: { children: React.R
   const { data, error } = await supabase.rpc('get_my_school_id')
   if (error) throw new Error('Unable to verify school membership. Please try again.')
   if (data) redirect('/dashboard')
-  return children
+  return <><AccountNavigation />{children}</>
 }
-

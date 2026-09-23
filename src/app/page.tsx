@@ -1,3 +1,4 @@
+import Link from 'next/link'
 const modules = [
   ["Students", "Profiles, enrollment, classes, attendance and student records."],
   ["Teachers & Staff", "Roles, assignments, schedules and school responsibilities."],
@@ -12,7 +13,7 @@ export default function Home() {
     <main>
       <header className="topbar">
         <div className="container nav">
-          <div className="brand">AtechOS</div>
+          <Link href="/" className="brand">AtechOS</Link>
 
           <nav className="nav-links">
             <a href="#modules">Modules</a>
@@ -124,4 +125,3 @@ export default function Home() {
     </main>
   );
 }
-

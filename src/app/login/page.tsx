@@ -40,7 +40,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm border border-slate-200">
         <div className="mb-8">
-          <p className="text-sm font-semibold text-blue-600">AtechOS</p>
+          <Link href="/" className="text-sm font-semibold text-blue-600">AtechOS</Link>
           <h1 className="mt-2 text-3xl font-bold text-slate-900">Sign in</h1>
           <p className="mt-2 text-slate-500">Access your school workspace securely.</p>
         </div>
@@ -63,5 +63,4 @@ export default function LoginPage() {
     </main>
   )
 }
-
 

@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import ParentInvite from '@/components/parent-invite'
 import { createClient } from '@/lib/supabase/client'
 
-type Parent = { id: string; relationship: string | null; user_id: string | null }
+type Parent = { id: string; full_name: string | null; email: string | null; relationship: string | null; user_id: string | null }
 type Student = { id: string; first_name: string; last_name: string; student_code: string | null }
 type LinkRow = { student_id: string; parent_id: string; is_primary: boolean }
 type UserRow = { id: string; full_name: string | null; email: string | null }
@@ -30,7 +31,7 @@ export default function ParentsPage() {
   async function load() {
     setLoading(true); setError('')
     const [p, s, l] = await Promise.all([
-      getSupabase().from('parents').select('id,relationship,user_id').order('relationship'),
+      getSupabase().from('parents').select('id,relationship,user_id,full_name,email').order('relationship'),
       getSupabase().from('students').select('id,first_name,last_name,student_code').eq('active', true).order('last_name').order('first_name'),
       getSupabase().from('student_parents').select('student_id,parent_id,is_primary'),
     ])
@@ -57,7 +58,7 @@ export default function ParentsPage() {
 
   function parentLabel(parent: Parent) {
     const user = users.find(u => u.id === parent.user_id)
-    return user?.full_name || user?.email || parent.relationship || 'Parent'
+    return parent.full_name || user?.full_name || parent.email || user?.email || parent.relationship || 'Parent'
   }
 
   return <main className="min-h-screen bg-slate-50 p-6 md:p-10"><div className="mx-auto max-w-7xl">
@@ -67,6 +68,7 @@ export default function ParentsPage() {
     {error && <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
     {message && <p className="mt-6 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700">{message}</p>}
 
+    <section className="mt-6"><label>Select student to invite a parent<select value={studentId} onChange={e=>setStudentId(e.target.value)} className="m-3 rounded border p-3"><option value="">Select student</option>{students.map(s=><option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}</select></label>{studentId && <ParentInvite key={studentId} studentId={studentId} />}</section>
     {!loading && parents.length > 0 && students.length > 0 && <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-semibold">Link a parent to a student</h2><div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <label className="text-sm font-medium">Student<select value={studentId} onChange={e=>setStudentId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select student</option>{students.map(s=><option key={s.id} value={s.id}>{s.first_name} {s.last_name}{s.student_code ? ` · ${s.student_code}` : ''}</option>)}</select></label>
       <label className="text-sm font-medium">Parent<select value={parentId} onChange={e=>setParentId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select parent</option>{parents.map(p=><option key={p.id} value={p.id}>{parentLabel(p)}</option>)}</select></label>

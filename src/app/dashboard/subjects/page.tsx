@@ -1,4 +1,6 @@
 'use client'
+import { subjectPresets } from '@/lib/school-catalog'
+import Link from 'next/link'
 
 import { FormEvent, useEffect, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -21,6 +23,7 @@ export default function SubjectsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [preset, setPreset] = useState('FR')
   const [subjectOpen, setSubjectOpen] = useState(false)
   const [assignmentOpen, setAssignmentOpen] = useState(false)
 
@@ -28,7 +31,7 @@ export default function SubjectsPage() {
     setLoading(true); setError('')
     const [s, c, t, a] = await Promise.all([
       getSupabase().from('subjects').select('id,name,code').order('name'),
-      getSupabase().from('classes').select('id,name').order('name'),
+      getSupabase().from('classes').select('id,name').eq('enabled',true).order('name'),
       getSupabase().from('school_members').select('user_id').eq('role', 'teacher'),
       getSupabase().from('class_subjects').select('id,class_id,subject_id,teacher_id').order('id')
     ])
@@ -52,17 +55,17 @@ export default function SubjectsPage() {
 
   async function createSubject(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setSaving(true); setError('')
-    const f = new FormData(e.currentTarget)
-    const { error } = await getSupabase().rpc('create_subject', { p_name: String(f.get('name') || ''), p_code: String(f.get('code') || '') })
-    if (error) setError(error.message); else { setSubjectOpen(false); e.currentTarget.reset(); await load() }
+    const formElement = e.currentTarget; const f = new FormData(formElement)
+    const { error } = await getSupabase().rpc('create_subject', { p_name: preset === 'custom' ? String(f.get('name') || '') : subjectPresets.find(s => s[0] === preset)![1], p_code: preset === 'custom' ? String(f.get('code') || '') : preset })
+    if (error) setError(error.message); else { setSubjectOpen(false); formElement.reset(); await load() }
     setSaving(false)
   }
 
   async function assign(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setSaving(true); setError('')
-    const f = new FormData(e.currentTarget)
+    const formElement = e.currentTarget; const f = new FormData(formElement)
     const { error } = await getSupabase().rpc('assign_subject_to_class', { p_class_id: String(f.get('class_id')), p_subject_id: String(f.get('subject_id')), p_teacher_id: String(f.get('teacher_id') || '') || null })
-    if (error) setError(error.message); else { setAssignmentOpen(false); e.currentTarget.reset(); await load() }
+    if (error) setError(error.message); else { setAssignmentOpen(false); formElement.reset(); await load() }
     setSaving(false)
   }
 
@@ -74,13 +77,13 @@ export default function SubjectsPage() {
 
   return <main className="min-h-screen bg-slate-50 p-6 md:p-10"><div className="mx-auto max-w-7xl">
     <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div><p className="text-sm font-semibold text-blue-600">AtechOS</p><h1 className="mt-1 text-3xl font-bold text-slate-900">Subjects & Teachers</h1><p className="mt-1 text-slate-500">Create subjects and assign them to classes and teachers.</p></div>
+      <div><Link href="/" className="text-sm font-semibold text-blue-600">AtechOS</Link><h1 className="mt-1 text-3xl font-bold text-slate-900">Subjects & Teachers</h1><p className="mt-1 text-slate-500">Create subjects and assign them to classes and teachers.</p></div>
       <div className="flex gap-2"><button onClick={() => setSubjectOpen(true)} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">+ Subject</button><button onClick={() => setAssignmentOpen(true)} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">+ Assign subject</button></div>
     </header>
     {error && <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
     <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{subjects.map(s => <article key={s.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-semibold text-slate-900">{s.name}</h2><p className="mt-2 text-xs text-slate-500">{s.code || 'No code'}</p></article>)}{!loading && subjects.length === 0 && <p className="text-slate-500">No subjects yet.</p>}</section>
     <section className="mt-8"><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-bold text-slate-900">Class subject assignments</h2><span className="text-sm text-slate-500">{assignments.length} assignment{assignments.length === 1 ? '' : 's'}</span></div>{loading ? <p className="text-slate-500">Loading...</p> : <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm"><table className="w-full text-left text-sm"><thead className="border-b border-slate-200 bg-slate-50"><tr><th className="px-4 py-3">Class</th><th className="px-4 py-3">Subject</th><th className="px-4 py-3">Teacher</th></tr></thead><tbody>{assignments.map(a => <tr key={a.id} className="border-b border-slate-100 last:border-0"><td className="px-4 py-3 font-medium">{classes.find(c => c.id === a.class_id)?.name || 'Class'}</td><td className="px-4 py-3">{subjects.find(s => s.id === a.subject_id)?.name || 'Subject'}{subjects.find(s => s.id === a.subject_id)?.code ? <span className="ml-2 text-xs text-slate-400">{subjects.find(s => s.id === a.subject_id)?.code}</span> : null}</td><td className="px-4 py-3"><select value={a.teacher_id || ''} onChange={e => changeTeacher(a.id, e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2"><option value="">Unassigned</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}</select></td></tr>)}</tbody></table>{assignments.length === 0 && <p className="p-6 text-slate-500">No class subjects assigned yet.</p>}</div>}</section>
-    {subjectOpen && <Modal title="Create subject" onClose={() => setSubjectOpen(false)}><form onSubmit={createSubject} className="space-y-4"><Input name="name" label="Subject name" placeholder="Mathematics" required/><Input name="code" label="Code" placeholder="MATH"/><button disabled={saving} className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white">{saving ? 'Saving...' : 'Create subject'}</button></form></Modal>}
+    {subjectOpen && <Modal title="Create subject" onClose={() => setSubjectOpen(false)}><form onSubmit={createSubject} className="space-y-4"><label className="block">Subject<select value={preset} onChange={e=>setPreset(e.target.value)} className="mt-2 w-full rounded border p-3">{subjectPresets.map(([code,name])=><option key={code} value={code}>{name}</option>)}<option value="custom">Other — add a subject</option></select></label>{preset === 'custom' && <><Input name="name" label="Subject name" placeholder="Subject" required/><Input name="code" label="Code" placeholder="Code"/></>}<button disabled={saving} className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white">{saving ? 'Saving...' : 'Create subject'}</button></form></Modal>}
     {assignmentOpen && <Modal title="Assign subject" onClose={() => setAssignmentOpen(false)}><form onSubmit={assign} className="space-y-4"><Select name="class_id" label="Class" options={classes.map(c => ({value:c.id,label:c.name}))}/><Select name="subject_id" label="Subject" options={subjects.map(s => ({value:s.id,label:s.code ? `${s.name} · ${s.code}` : s.name}))}/><Select name="teacher_id" label="Teacher (optional)" options={teachers.map(t => ({value:t.id,label:t.full_name}))} optional/><button disabled={saving} className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white">{saving ? 'Saving...' : 'Assign subject'}</button></form></Modal>}
   </div></main>
 }

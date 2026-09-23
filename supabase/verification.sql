@@ -2,7 +2,7 @@
 -- subtransaction. Any failed assertion propagates and aborts the migration.
 do $test$
 declare owner_a uuid:=gen_random_uuid(); owner_b uuid:=gen_random_uuid(); teacher uuid:=gen_random_uuid(); guardian uuid:=gen_random_uuid(); learner uuid:=gen_random_uuid(); outsider uuid:=gen_random_uuid();
- a uuid; b uuid; yr uuid; cls uuid; other_cls uuid; subject uuid; child1 uuid; child2 uuid; other_child uuid; member uuid; invitation jsonb; invited jsonb; rowcount integer; old_id text; failed boolean;
+ a uuid; b uuid; yr uuid; cls uuid; other_cls uuid; subject uuid; child1 uuid; child2 uuid; other_child uuid; member uuid; invitation jsonb; invited jsonb; pid uuid; period uuid; n integer; rowcount integer; old_id text; failed boolean;
 begin
  begin
   insert into auth.users(id,email,email_confirmed_at,role,aud) select id,id::text||'@example.invalid',now(),'authenticated','authenticated' from unnest(array[owner_a,owner_b,teacher,guardian,learner,outsider])id;
@@ -11,6 +11,13 @@ begin
   a:=public.create_school_onboarding('Verification A',gen_random_uuid()::text);
   if not exists(select 1 from public.schools where id=a and owner_user_id=owner_a) then raise exception 'TEST owner creation'; end if;
   yr:=public.create_academic_year('Verification',date '2026-01-01',date '2026-12-31',true);
+  perform public.activate_school_section(yr,'preschool');
+  perform public.activate_school_section(yr,'preschool');
+  if (select count(*) from public.classes where school_id=a and academic_year_id=yr)<>3 then raise exception 'TEST section activation duplicated classes'; end if;
+  perform public.activate_school_section(yr,'preschool',false);
+  if exists(select 1 from public.classes where school_id=a and enabled) then raise exception 'TEST section deactivation'; end if;
+  period:=public.activate_grading_period(yr,'Verification period','V1','2026-01-01','2026-03-31',array['fundamental']);
+  if public.activate_grading_period(yr,'Verification period','V1','2026-01-01','2026-03-31',array['fundamental'])<>period then raise exception 'TEST period duplicated'; end if;
   cls:=public.create_class(yr,'Class A','AF7');
   update public.classes set student_portal_allowed=true where id=cls;
   other_cls:=public.create_class(yr,'Class B','AF2');
@@ -26,6 +33,18 @@ begin
   if not exists(select 1 from public.enrollments where student_id=child1 and class_id=cls and status='transferred') or not exists(select 1 from public.enrollments where student_id=child1 and class_id=other_cls and status='active') then raise exception 'TEST transfer did not move active class'; end if;
   perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',cls),child1);
   if (select count(*) from public.enrollments where student_id=child1 and status='active')<>1 then raise exception 'TEST duplicate active class'; end if;
+  if not exists(select 1 from public.get_student_records(child1) r where r ? 'nis') then raise exception 'TEST admin NIS access'; end if;
+  invitation:=public.create_school_invitation(outsider::text||'@example.invalid','Director','director');
+  perform set_config('request.jwt.claim.sub',outsider::text,true);
+  perform public.accept_school_invitation(invitation->>'token');
+  pid:=public.save_parent_for_student(child1,'Guardian',guardian::text||'@example.invalid');
+  if public.save_parent_for_student(child2,'Guardian',guardian::text||'@example.invalid')<>pid then raise exception 'TEST duplicate parent'; end if;
+  invitation:=public.create_school_invitation(guardian::text||'@example.invalid','Guardian','parent',null,pid);
+  failed:=false; begin perform public.create_school_invitation(teacher::text||'@example.invalid','Teacher','teacher'); exception when others then failed:=true; end;
+  if not failed then raise exception 'TEST director grants staff'; end if;
+  perform set_config('request.jwt.claim.sub',guardian::text,true);
+  perform public.accept_school_invitation(invitation->>'token');
+  perform set_config('request.jwt.claim.sub',owner_a::text,true);
   invitation:=public.create_school_invitation(teacher::text||'@example.invalid','Teacher','teacher');
   perform set_config('request.jwt.claim.sub',outsider::text,true);
   failed:=false;
@@ -43,7 +62,14 @@ begin
   invited:=public.create_school_invitation(learner::text||'@example.invalid','Learner','student',child1);
   perform set_config('request.jwt.claim.sub',teacher::text,true);
   if (select count(*) from public.students where school_id=a)<>2 then raise exception 'TEST assigned teacher scope'; end if;
-  perform public.create_grade(child1,subject,cls,'Verification',8,10,null,null);
+  failed:=false; begin perform nis from public.students where id=child1; exception when insufficient_privilege then failed:=true; end;
+  if not failed then raise exception 'TEST teacher reads NIS'; end if;
+  if exists(select 1 from public.get_student_records(child1) r where r ? 'nis') then raise exception 'TEST teacher RPC exposes NIS'; end if;
+  failed:=false; begin perform public.publish_class_grades(cls,period); exception when others then failed:=true; end;
+  if not failed then raise exception 'TEST teacher publishes grades'; end if;
+  perform public.create_grade(child1,subject,cls,'Verification',8,10,null,period);
+  failed:=false; begin update public.grades set published=true where student_id=child1; exception when others then failed:=true; end;
+  if not failed then raise exception 'TEST teacher publishes directly'; end if;
   if not exists(select 1 from public.grades where student_id=child1) then raise exception 'TEST grade insert'; end if;
   failed:=false;
   begin perform public.create_grade(other_child,subject,other_cls,'Forbidden',8,10,null,null); exception when others then failed:=true; end;
@@ -56,7 +82,10 @@ begin
   get diagnostics rowcount=row_count;
   if rowcount<>0 then raise exception 'TEST parent writes student'; end if;
   perform set_config('request.jwt.claim.sub',owner_a::text,true);
-  update public.grades set published=true where student_id=child1;
+  n:=public.publish_class_grades(cls,period);
+  if n<>1 then raise exception 'TEST publish bulletin'; end if;
+  failed:=false; begin perform public.create_grade(other_child,subject,other_cls,'Wrong section',8,10,null,period); exception when others then failed:=true; end;
+  if not failed then raise exception 'TEST wrong section period accepted'; end if;
   select id into member from public.school_members where school_id=a and user_id=owner_a;
   failed:=false;
   begin perform public.manage_school_member(member,'remove'); exception when others then failed:=true; end;
@@ -79,6 +108,8 @@ begin
   perform public.manage_school_member(member,'disable');
   perform set_config('request.jwt.claim.sub',teacher::text,true);
   if exists(select 1 from public.students where school_id=a) then raise exception 'TEST disabled teacher access'; end if;
+  perform set_config('request.jwt.claim.sub',owner_a::text,true);
+  perform public.manage_school_member((select id from public.school_members where school_id=a and user_id=outsider),'disable');
   perform set_config('request.jwt.claim.sub',outsider::text,true);
   if exists(select 1 from public.students) or exists(select 1 from public.schools) then raise exception 'TEST user without membership'; end if;
   reset role;

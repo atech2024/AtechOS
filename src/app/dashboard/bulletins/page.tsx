@@ -1,12 +1,14 @@
 'use client'
+import { gradeSection } from '@/lib/school-catalog'
+import Link from 'next/link'
 
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-type ClassItem = { id: string; name: string }
+type ClassItem = { grade_level: string|null; academic_year_id: string; id: string; name: string }
 type Student = { id: string; first_name: string; last_name: string; student_code: string | null }
 type Subject = { id: string; name: string; code: string | null }
-type Period = { id: string; name: string; code: string; weight: number; start_date: string; end_date: string; is_active: boolean }
+type Period = { academic_year_id: string|null; sections:string[]; id: string; name: string; code: string; weight: number; start_date: string; end_date: string; is_active: boolean }
 type Grade = { student_id: string; subject_id: string; grading_period_id: string | null; score: number; max_score: number; assessment_weight: number | null }
 type School = { name: string; code: string; email: string | null; phone: string | null; address: string | null; logo_url: string | null }
 type GradingSettings = { controls_per_period: number; passing_average: number }
@@ -21,7 +23,7 @@ export default function BulletinsPage() {
   const [classes, setClasses] = useState<ClassItem[]>([])
   const [students, setStudents] = useState<Student[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
-  const [periods, setPeriods] = useState<Period[]>([])
+  const [allPeriods, setPeriods] = useState<Period[]>([])
   const [grades, setGrades] = useState<Grade[]>([])
   const [settings, setSettings] = useState<GradingSettings>({ controls_per_period: 4, passing_average: 5 })
   const [classId, setClassId] = useState('')
@@ -29,21 +31,23 @@ export default function BulletinsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const selectedClass = classes.find(c=>c.id===classId)
+  const periods = useMemo(()=>allPeriods.filter(p=>(!p.academic_year_id || p.academic_year_id===selectedClass?.academic_year_id) && p.sections.includes(gradeSection(selectedClass?.grade_level))),[allPeriods,selectedClass])
   useEffect(() => {
     async function load() {
       setLoading(true)
       const schoolId = (await getSupabase().rpc('get_my_school_id')).data
       const [schoolResult, classResult, periodResult, settingsResult] = await Promise.all([
         schoolId ? getSupabase().from('schools').select('name,code,email,phone,address,logo_url').eq('id', schoolId).single() : Promise.resolve({ data: null, error: null }),
-        getSupabase().from('classes').select('id,name').order('name'),
-        getSupabase().rpc('get_grading_periods'),
+        getSupabase().from('classes').select('id,name,grade_level,academic_year_id').order('name'),
+        getSupabase().from('grading_periods').select('id,name,code,weight,start_date,end_date,is_active,academic_year_id,sections'),
         getSupabase().rpc('get_grading_settings')
       ])
       if (schoolResult.error || classResult.error || periodResult.error || settingsResult.error) setError((schoolResult.error || classResult.error || periodResult.error || settingsResult.error)?.message || 'Could not load bulletin data.')
       setSchool(schoolResult.data as School | null)
       const classList: ClassItem[] = (classResult.data || []) as ClassItem[]
       setClasses(classList)
-      setPeriods(((periodResult.data || []) as Period[]).filter(p => p.is_active))
+      setPeriods(((periodResult.data || []) as Period[]))
       const settingRow = (Array.isArray(settingsResult.data) ? settingsResult.data[0] : settingsResult.data) as GradingSettings | undefined
       if (settingRow) setSettings({ controls_per_period: Number(settingRow.controls_per_period) || 4, passing_average: Number(settingRow.passing_average) || 5 })
       setLoading(false)
@@ -78,7 +82,7 @@ export default function BulletinsPage() {
   }, [classId])
 
   const student = students.find(s => s.id === studentId)
-  const selectedClass = classes.find(c => c.id === classId)
+
   const gradeLevelName = ''
   const academicYearName = ''
 
@@ -101,7 +105,7 @@ export default function BulletinsPage() {
   }, [rows])
 
   return <main className="min-h-screen bg-slate-50 p-6 md:p-10 print:bg-white print:p-0"><div className="mx-auto max-w-6xl">
-    <header className="mb-8 print:hidden"><p className="text-sm font-semibold text-blue-600">AtechOS</p><h1 className="mt-1 text-3xl font-bold text-slate-900">Bulletins</h1><p className="mt-1 text-slate-500">Generate a student bulletin with grading-period averages, final averages and school passing threshold.</p></header>
+    <header className="mb-8 print:hidden"><Link href="/" className="text-sm font-semibold text-blue-600">AtechOS</Link><h1 className="mt-1 text-3xl font-bold text-slate-900">Bulletins</h1><p className="mt-1 text-slate-500">Generate a student bulletin with grading-period averages, final averages and school passing threshold.</p></header>
     {error && <p className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 print:hidden">{error}</p>}
     <section className="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 print:hidden">
       <label className="text-sm font-medium">Class<select value={classId} onChange={e => setClassId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select class...</option>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>

@@ -54,7 +54,7 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center px-6 py-10">
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm border border-slate-200">
-        <p className="text-sm font-semibold text-blue-600">AtechOS</p>
+        <Link href="/" className="text-sm font-semibold text-blue-600">AtechOS</Link>
         <h1 className="mt-2 text-3xl font-bold text-slate-900">Create your account</h1>
         <p className="mt-2 text-slate-500">Join your school with an invitation, or start a new school workspace.</p>
         <form onSubmit={submit} className="mt-8 space-y-5">
@@ -81,5 +81,4 @@ function Field({ name, label, placeholder, type = 'text', required = false, minL
     </label>
   )
 }
-
 

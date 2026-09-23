@@ -21,20 +21,26 @@ try {
   }
   assert.ok(ready, output)
   for (const [path, heading, form] of [['/', 'The Operating System', false], ['/signup', 'Create your account', true], ['/login', 'Sign in', true], ['/auth/error', 'Unable to complete email confirmation', false], ['/invitation', 'School invitation', true]]) {
-    const response = await fetch(origin + path)
+    const response = await fetch(origin + path, {headers:{cookie:"atechos_locale=en"}})
     assert.equal(response.status, 200, path)
     const html = await response.text()
     assert.ok(html.includes(heading), path)
     assert.equal(html.includes('<form'), form, path)
     checks++
   }
-  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/onboarding/create-school', '/login'], ['/dashboard', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error']]) {
+  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/onboarding/create-school', '/login'], ['/dashboard', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/dashboard/family-bulletins','/login'], ['/dashboard/progression','/login'], ['/dashboard/teacher-requests','/login'], ['/student','/student/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error']]) {
     const response = await fetch(origin + path, { redirect: 'manual' })
     assert.equal(response.status, 307, path)
     assert.equal(new URL(response.headers.get('location'), origin).pathname, destination, path)
     assert.equal(new URL(response.headers.get('location'), origin).origin, origin, path)
     checks++
   }
+  for (const [locale,label] of [['fr','Se connecter'],['ht','Konekte']]) {
+    const html=await (await fetch(origin+'/login',{headers:{cookie:`atechos_locale=${locale}`}})).text();assert.ok(html.includes(label),locale);checks++
+  }
+  const student=await fetch(origin+'/student/login',{headers:{cookie:'atechos_locale=ht'}})
+  assert.equal(student.status,200);assert.ok((await student.text()).includes('Pòtal elèv'));checks++
+  assert.equal((await fetch(origin+'/student/attachment/invalid')).status,401);checks++
   const home = await (await fetch(origin)).text()
   assert.ok(!home.includes('Get started'), 'Marketing cards must not send every role to signup')
   checks++
@@ -62,4 +68,3 @@ try {
   server.kill()
   if (server.exitCode === null) await once(server, 'exit')
 }
-

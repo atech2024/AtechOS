@@ -1,3 +1,4 @@
+import { T } from '@/components/translation-provider'
 import Link from 'next/link'
 const modules = [
   ["Students", "Profiles, enrollment, classes, attendance and student records."],
@@ -13,14 +14,14 @@ export default function Home() {
     <main>
       <header className="topbar">
         <div className="container nav">
-          <Link href="/" className="brand">AtechOS</Link>
+          <Link href="/onboarding" className="brand">AtechOS</Link>
 
           <nav className="nav-links">
             <a href="#modules">Modules</a>
             <a href="#about">About</a>
-            <a href="/signin">Sign in</a>
+            <a href="/signin"><T text="Sign in"/></a>
             <a href="/signup" className="nav-signup">
-              Sign up
+              <T text="Sign up"/>
             </a>
           </nav>
         </div>
@@ -43,11 +44,11 @@ export default function Home() {
 
           <div className="actions">
             <a href="/signup" className="button primary">
-              Create your school
+              <T text="Create your school"/>
             </a>
 
             <a href="/signin" className="button">
-              Sign in
+              <T text="Sign in"/>
             </a>
           </div>
 
@@ -117,8 +118,8 @@ export default function Home() {
           </div>
 
           <div className="footer-links">
-            <a href="/signin">Sign in</a>
-            <a href="/signup">Create account</a>
+            <a href="/signin"><T text="Sign in"/></a>
+            <a href="/signup"><T text="Create account"/></a>
           </div>
         </div>
       </footer>

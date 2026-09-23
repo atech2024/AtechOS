@@ -9,3 +9,5 @@ npm-debug.log*
 
 .npm-cache/
 *.tsbuildinfo
+audit/
+supabase/.temp/

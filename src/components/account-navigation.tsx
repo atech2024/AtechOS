@@ -1,4 +1,5 @@
 'use client'
+import { T } from '@/components/translation-provider'
 
 import Link from 'next/link'
 import { useState } from 'react'
@@ -17,7 +18,7 @@ export default function AccountNavigation() {
     } catch { setError('Unable to sign out. Please try again.'); setBusy(false) }
   }
   return <nav aria-label="School navigation" className="border-b bg-white px-6 py-4 pr-36 print:hidden">
-    <div className="flex flex-wrap items-center gap-5"><Link href="/" className="text-xl font-bold text-blue-700" aria-label="AtechOS Home">AtechOS</Link><Link href="/dashboard">Dashboard</Link><button disabled={busy} onClick={logout} className="rounded-lg border px-4 py-2">{busy ? 'Signing out…' : 'Logout'}</button></div>
+    <div className="flex flex-wrap items-center gap-5"><Link href="/onboarding" className="text-xl font-bold text-blue-700" aria-label="AtechOS school selection">AtechOS</Link><Link href="/dashboard"><T text="Dashboard"/></Link><button disabled={busy} onClick={logout} className="rounded-lg border px-4 py-2"><T text={busy ? 'Signing out…' : 'Logout'}/></button></div>
     {error && <p role="alert" className="mt-2 text-red-700">{error}</p>}
   </nav>
 }

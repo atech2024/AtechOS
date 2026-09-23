@@ -1,4 +1,5 @@
 'use client'
+import { T } from '@/components/translation-provider'
 
 import Link from 'next/link'
 import { FormEvent, useState } from 'react'
@@ -40,25 +41,25 @@ export default function LoginPage() {
     <main className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm border border-slate-200">
         <div className="mb-8">
-          <Link href="/" className="text-sm font-semibold text-blue-600">AtechOS</Link>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Sign in</h1>
-          <p className="mt-2 text-slate-500">Access your school workspace securely.</p>
+          <Link href="/onboarding" className="text-sm font-semibold text-blue-600">AtechOS</Link>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900"><T text="Sign in"/></h1>
+          <p className="mt-2 text-slate-500"><T text="Access your school workspace securely."/></p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <Link href="/student/login" className="my-4 block text-blue-700"><T text="Student login with AtechOS ID"/></Link><form onSubmit={handleSubmit} className="space-y-5">
           <label className="block">
-            <span className="text-sm font-medium text-slate-700">Email</span>
+            <span className="text-sm font-medium text-slate-700"><T text="Email"/></span>
             <input value={email} onChange={(e) => setEmail(e.target.value)} name="email" type="email" autoComplete="email" required className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500" placeholder="you@school.com" />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-slate-700">Password</span>
+            <span className="text-sm font-medium text-slate-700"><T text="Password"/></span>
             <input value={password} onChange={(e) => setPassword(e.target.value)} name="password" type="password" autoComplete="current-password" required className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500" placeholder="••••••••" />
           </label>
           {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
           <button disabled={loading} type="submit" className="w-full rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
-            {loading ? 'Signing in…' : 'Continue'}
+            <T text={loading ? 'Signing in…' : 'Continue'}/>
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-slate-500"><Link href="/" className="text-blue-600 hover:underline">Back to AtechOS</Link></p>
+        <p className="mt-6 text-center text-sm text-slate-500"><Link href="/" className="text-blue-600 hover:underline"><T text="Back to AtechOS"/></Link></p>
       </section>
     </main>
   )

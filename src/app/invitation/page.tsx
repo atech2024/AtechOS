@@ -1,3 +1,4 @@
+import { T } from '@/components/translation-provider'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
@@ -16,9 +17,8 @@ export default async function InvitationPage() {
     email = user?.email
   }
   return <main className="min-h-screen bg-slate-50 p-8"><section className="mx-auto max-w-lg space-y-5 rounded-2xl border bg-white p-8">
-    <Link href="/">AtechOS</Link><h1 className="text-2xl font-bold">School invitation</h1>
-    {!token ? <p>Open the invitation link shared by your school.</p> : email ? <><p>Signed in as {email}. Your verified email must match the invitation.</p><AcceptButton /></> : <><p>Sign in or create an account using the email address your school invited. Then return here to accept.</p><div className="flex gap-6"><Link href="/login">Sign in</Link><Link href="/signup">Create account</Link></div></>}
+    <Link href="/onboarding">AtechOS</Link><h1 className="text-2xl font-bold">School invitation</h1>
+    {!token ? <p>Open the invitation link shared by your school.</p> : email ? <><p>Signed in as {email}. Your verified email must match the invitation.</p><AcceptButton /></> : <><p>Sign in or create an account using the email address your school invited. Then return here to accept.</p><div className="flex gap-6"><Link href="/login"><T text="Sign in"/></Link><Link href="/signup"><T text="Create account"/></Link></div></>}
     <form action={dismissInvitation}><button className="text-slate-600 underline">Continue without this invitation</button></form>
   </section></main>
 }
-

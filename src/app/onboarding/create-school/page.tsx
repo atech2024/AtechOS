@@ -1,4 +1,5 @@
 'use client'
+import { T } from '@/components/translation-provider'
 import Link from 'next/link'
 
 import { FormEvent, useState } from 'react'
@@ -47,8 +48,8 @@ export default function OnboardingPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10">
       <section className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <Link href="/" className="text-sm font-semibold text-blue-600">AtechOS</Link>
-        <h1 className="mt-2 text-3xl font-bold text-slate-900">Create your school</h1>
+        <Link href="/onboarding" className="text-sm font-semibold text-blue-600">AtechOS</Link>
+        <h1 className="mt-2 text-3xl font-bold text-slate-900"><T text="Create your school"/></h1>
         <p className="mt-2 text-slate-500">Set up the school workspace and make this account the first school administrator.</p>
 
         <form onSubmit={submit} className="mt-8 space-y-6">

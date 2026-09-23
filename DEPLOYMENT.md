@@ -39,3 +39,21 @@ References:
 - https://supabase.com/docs/guides/auth/server-side/creating-a-client
 - https://supabase.com/docs/guides/auth/redirect-urls
 - https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable
+# Student access and school workflows — September 23, 2026
+
+The student-access migration adds private hashed device sessions, one-use activation codes, optional hashed PINs, teacher requests, student departure records, and director-reviewed class progression. Existing student IDs and historical enrollments are preserved.
+
+- School administration opens a student profile and issues an activation code. Give it privately to that student. It expires in 2 days and is consumed once. Reissuing it resets the PIN and all device sessions.
+- Students use `/student/login` with AtechOS ID, full name, and either the activation code or their PIN. PINs have 6–12 digits. Five failed attempts lock that student login for 15 minutes. Browser sessions expire in 14 days; without a PIN, another device or a later login requires another school activation code.
+- AtechOS ID and name are public identifiers on the badge; they are deliberately insufficient to authenticate. Student session cookies are HttpOnly, Secure in production, SameSite=Lax and restricted to `/student`.
+- Family bulletins and parent activity use explicitly linked children even when a parent is also a teacher. Only published grades are returned. A departure preserves historical published bulletins through the chosen final academic year; it blocks new enrollment and current assignments.
+- Teachers may request access from `/onboarding` using the school code shown in Teacher requests. Only the school's administrator/director may approve. Existing invitation links remain supported. Subject/class assignment is still a separate administration action.
+- Create the next academic year, activate its classes, then open Academic progression. Suggestions require the configured number of published controls for each assigned subject and applicable period. Missing grades or multiple matching destination classes require manual review. No class changes occur until an administrator/director confirms. The full confirmed list is applied atomically.
+- Badges include the AtechOS ID and a QR encoding exactly that identifier. Authorized kiosk users choose a class, then use a QR reader, camera, or manual entry. Immediate repeated scans are ignored for 60 seconds. Physical camera scanning still needs a device test.
+- English, French and Haitian Creole translations are wired to the saved language selector for principal navigation, labels and the new workflows. School-entered names/content are kept as entered; some legacy explanatory text remains in its original language.
+
+Deploy the `student-assignment-link` Edge Function from `supabase/functions/student-assignment-link/index.ts`. Its platform JWT check is disabled intentionally: the handler validates the custom student session before authorizing an assignment and signing its stored attachment path for 60 seconds. It uses Supabase's built-in server environment keys; no service key is added to Vercel or browser code.
+
+Verification: `npm run build`, `npm test`, `node tests/student-edge.mjs`, and `supabase/access-verification.sql`. The SQL suite creates isolated fixtures and rolls them back; it checks family isolation, NISU privacy, teacher request review, student activation/PIN/session expiry, kiosk duplicates, promotion completeness/atomicity, and archive cutoffs. Never use real student records as fixtures.
+
+Supabase advisor notices for SECURITY DEFINER APIs are expected and must be reviewed against each function's explicit authorization. The two private credential/session tables intentionally have no API policies or direct grants. Leaked-password protection for ordinary Supabase email accounts remains disabled; see https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection. Resend email delivery still requires a verified sender; private invitation links remain available without one.

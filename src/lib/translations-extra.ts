@@ -1,4 +1,10 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Teacher':['Professeur','Pwofesè'],
+ 'Kiosk closed from 08:01 to 12:59. Contact school staff.':['Kiosque fermé de 08:01 à 12:59. Contactez l’administration.','Kiosk la fèmen soti 8:01 rive 12:59. Kontakte administrasyon an.'],
+ 'No check-in today. Contact school staff.':['Aucune entrée aujourd’hui. Contactez l’administration.','Pa gen antre anrejistre jodi a. Kontakte administrasyon an.'],
+ 'Already checked in. Check-out opens at 13:00.':['Entrée déjà enregistrée. La sortie ouvre à 13:00.','Antre a deja anrejistre. Sòti ouvri a 1è nan aprèmidi.'],
+ 'Haiti time: 00:00–07:45 check-in; 07:46–08:00 late; 08:01–12:59 closed; 13:00–23:59 check-out.':['Heure d’Haïti : 00:00–07:45 entrée ; 07:46–08:00 retard ; 08:01–12:59 fermé ; 13:00–23:59 sortie.','Lè Ayiti: minwi–7:45 antre; 7:46–8:00 reta; 8:01–12:59 fèmen; 13:00–23:59 sòti.'],
+ 'Manual attendance records include the staff account and role. Kiosk records identify the student.':['Les présences manuelles indiquent le compte et le rôle de l’agent. Le kiosque identifie l’élève.','Prezans manyèl yo montre kont ak wòl anplwaye a. Kiosk la idantifye elèv la.'],
 "Scan your badge or enter your AtechOS ID, then enter your PIN.":["Scannez votre badge ou saisissez votre AtechOS ID, puis votre PIN.", "Eskane badge ou oswa antre AtechOS ID ou, epi antre PIN ou."],
 "Confirm check-in / check-out":["Confirmer entrée / sortie", "Konfime antre / sòti"],
 "Checking…":["Vérification…", "Ap verifye…"],

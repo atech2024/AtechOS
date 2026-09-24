@@ -37,9 +37,13 @@ export function InviteForm({ owner, parents, students }: { owner: boolean; paren
   </form>
 }
 
-export function MemberAction({ id, enabled }: { id: string; enabled: boolean }) {
+export function MemberAction({ id, enabled, role, owner }: { id: string; enabled: boolean; role:string; owner:boolean }) {
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const router = useRouter()
-  return <div><button disabled={busy} className="text-blue-700" onClick={async () => { setBusy(true); try { const result = await changeMember(id, enabled ? 'disable' : 'enable'); setError(result.error || ''); if (!result.error) router.refresh() } catch { setError('Unable to update access.') } finally { setBusy(false) } }}>{enabled ? 'Disable access' : 'Enable access'}</button>{error && <p role="alert">{error}</p>}</div>
+  const [selected,setSelected]=useState(role)
+  async function update(action:string){setBusy(true);setError('');try{const result=await changeMember(id,action,action==='role'?selected:undefined);setError(result.error||'');if(!result.error)router.refresh()}catch{setError('Unable to update access.')}finally{setBusy(false)}}
+  const choices=['director','secretary','teacher','accountant','surveillant','parent','student']
+  if(owner)choices.unshift('school_admin')
+  return <div className="space-y-2 py-2"><label className="block"><T text="Change role"/><select disabled={busy} value={selected} onChange={e=>setSelected(e.target.value)} className="ml-2 rounded border p-2">{choices.map(r=><option key={r} value={r}>{r}</option>)}</select></label><button disabled={busy||selected===role} onClick={()=>update('role')} className="rounded border px-3 py-1 disabled:opacity-40"><T text="Save role"/></button><button disabled={busy} className="ml-3 text-blue-700" onClick={()=>update(enabled?'disable':'enable')}>{enabled ? 'Disable access' : 'Enable access'}</button>{selected==='parent'&&<p className="max-w-sm text-sm text-slate-600"><T text="After changing to parent, link their children in Parents. No unrelated student is linked automatically."/></p>}{error && <p role="alert" className="text-red-700">{error}</p>}</div>
 }
 
 export function CancelInvitation({ id }: { id: string }) {

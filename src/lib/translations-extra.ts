@@ -1,4 +1,6 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Change role':['Changer le rôle','Chanje wòl'],'Save role':['Enregistrer le rôle','Anrejistre wòl'],
+ 'After changing to parent, link their children in Parents. No unrelated student is linked automatically.':['Après le changement, liez ses enfants dans Parents. Aucun autre élève n’est lié automatiquement.','Apre chanjman an, lye pitit li yo nan Paran. Sistèm nan pa lye okenn lòt elèv otomatikman.'],
  'Language':['Langue','Lang'], 'Open module →':['Ouvrir →','Ouvri →'], '← Dashboard':['← Tableau de bord','← Tablo kontwòl'], '← Students':['← Élèves','← Elèv'],
  'Your modules are based on the access assigned by your school.':['Les modules correspondent aux accès accordés par votre école.','Modil yo depann de aksè lekòl la ba ou.'],
  'Access your school workspace securely.':['Accédez à votre espace scolaire.','Konekte ak espas lekòl ou.'],

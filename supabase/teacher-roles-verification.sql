@@ -130,14 +130,9 @@ begin
   perform public.review_teacher_request(request_id,true);
   if not exists(select 1 from public.school_members where user_id=learner and school_id=a and role='teacher' and enabled) then raise exception 'TEST director approval failed'; end if;
   perform set_config('request.jwt.claim.sub',owner_a::text,true);
-  -- QR/typed IDs use one server clock and ignore immediate duplicate scans.
-  payload:=public.scan_student_code(old_id,cls);
-  if payload->>'action'<>'check_in' then raise exception 'TEST code check-in'; end if;
-  payload:=public.scan_student_code(old_id,cls);
-  if payload->>'action'<>'duplicate_scan' then raise exception 'TEST duplicate scan checks out student'; end if;
-  update public.attendance set check_in_at=now()-interval '2 minutes' where student_id=child1;
-  payload:=public.scan_student_code(old_id,cls);
-  if payload->>'action'<>'check_out' then raise exception 'TEST code check-out'; end if;
+  -- Staff cannot use the superseded attendance endpoint.
+  failed:=false;begin perform public.scan_student_code(old_id,cls);exception when insufficient_privilege then failed:=true;end;
+  if not failed then raise exception 'TEST legacy attendance still allowed';end if;
   activation:=public.issue_student_activation(child1);
   set local role anon;
   payload:=public.student_device_login(old_id,'Corrected One','wrong',null);

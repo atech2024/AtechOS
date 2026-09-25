@@ -1,3 +1,10 @@
+do $$declare src text;begin
+ select pg_get_functiondef('private.class_period_report(uuid,uuid)'::regprocedure) into src;
+ if position('where e.class_id=p_class' in src)=0 then raise exception 'report source changed';end if;
+ src:=replace(src,'where e.class_id=p_class','where e.class_id=p_class and e.status<>''transferred''');
+ execute src;
+end $$;
+
 -- Isolated fixtures: the deliberate final exception rolls back this entire
 -- subtransaction. Any failed assertion propagates and aborts the migration.
 do $test$

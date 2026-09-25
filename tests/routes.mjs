@@ -33,7 +33,7 @@ try {
     assert.equal(html.includes('<form'), form, path)
     checks++
   }
-  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/onboarding/create-school', '/login'], ['/dashboard', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/dashboard/family-bulletins','/login'], ['/dashboard/progression','/login'], ['/dashboard/teacher-requests','/login'], ['/student','/student/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error']]) {
+  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/onboarding/create-school', '/login'], ['/dashboard', '/login'], ['/dashboard/publication', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/dashboard/family-bulletins','/login'], ['/dashboard/progression','/login'], ['/dashboard/teacher-requests','/login'], ['/student','/student/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error']]) {
     const response = await fetch(origin + path, { redirect: 'manual' })
     assert.equal(response.status, 307, path)
     assert.equal(new URL(response.headers.get('location'), origin).pathname, destination, path)
@@ -46,6 +46,7 @@ try {
   const student=await fetch(origin+'/student/login',{headers:{cookie:'atechos_locale=ht'}})
   assert.equal(student.status,200);assert.ok((await student.text()).includes('Pòtal elèv'));checks++
   assert.equal((await fetch(origin+'/student/attachment/invalid')).status,401);checks++
+  assert.equal((await fetch(origin+'/student/photo')).status,401);checks++
   const home = await (await fetch(origin)).text()
   assert.ok(!home.includes('Get started'), 'Marketing cards must not send every role to signup')
   checks++

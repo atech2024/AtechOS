@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
 const modules = [
+  ['Publication des bulletins', 'Réviser, filtrer, publier et fixer les dates limites.', '/dashboard/publication'],
   ['Academic progression', 'Review promotion and departures for a new academic year.', '/dashboard/progression'],
   ['Teacher requests', 'Review applications from teachers.', '/dashboard/teacher-requests'],
   ['Students', 'Manage student profiles, NISU, AtechOS IDs and badges.', '/dashboard/students'],
@@ -30,6 +31,7 @@ export default async function DashboardPage() {
   const admin = context?.owner || roles.includes('school_admin')
   const allowed = new Set<string>()
   if (roles.some(r => ['director', 'secretary'].includes(r))) ['Students','Classes','Subjects','Attendance','Attendance Kiosk','Student Badges','Grades','Grading periods','Grading settings','Bulletins','Parents','Assignments'].forEach(m => allowed.add(m))
+  if (roles.some(r=>['director','secretary','surveillant'].includes(r))) allowed.add('Publication des bulletins')
   if (roles.includes('director')) ['Academic progression','Teacher requests'].forEach(m=>allowed.add(m))
   if (roles.includes('teacher')) ['Students','Attendance','Grades','Assignments'].forEach(m => allowed.add(m))
   if (roles.includes('parent')) ['Parent Portal','Bulletins'].forEach(m => allowed.add(m))

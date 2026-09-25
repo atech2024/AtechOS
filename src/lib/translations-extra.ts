@@ -1,4 +1,14 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Daily attendance':['Présence journalière','Prezans chak jou'],
+ 'No attendance recorded for this selection.':['Aucune présence enregistrée pour cette sélection.','Pa gen prezans anrejistre pou seleksyon sa a.'],
+ 'Student record changes':['Historique des modifications de l’élève','Istorik chanjman nan dosye elèv la'],
+ 'No changes recorded since this history was enabled.':['Aucune modification enregistrée depuis l’activation de cet historique.','Pa gen chanjman anrejistre depi istorik sa a aktive.'],
+ 'Replace lost badge QR':['Remplacer le QR d’un badge perdu','Ranplase QR badge ki pèdi'],
+ 'Ask the school to issue your badge QR.':['Demandez à l’école de générer le QR de votre badge.','Mande lekòl la kreye QR badge ou.'],
+ 'Badge not accepted. Ask the school to replace it.':['Badge refusé. Demandez son remplacement à l’école.','Badge la pa aksepte. Mande lekòl la ranplase li.'],
+ 'Scan your private badge QR without a PIN, or enter your AtechOS ID and PIN.':['Scannez le QR privé du badge sans PIN, ou entrez votre AtechOS ID et votre PIN.','Eskane QR prive badge ou san PIN, oswa antre AtechOS ID ou ak PIN ou.'],
+ 'school_admin':['Administrateur','Administratè'],'director':['Directeur','Direktè'],'secretary':['Secrétaire','Sekretè'],'surveillant':['Surveillant','Sansè'],'teacher':['Professeur','Pwofesè'],'system':['Système','Sistèm'],
+
  'Teacher':['Professeur','Pwofesè'],
  'Kiosk closed from 08:01 to 12:59. Contact school staff.':['Kiosque fermé de 08:01 à 12:59. Contactez l’administration.','Kiosk la fèmen soti 8:01 rive 12:59. Kontakte administrasyon an.'],
  'No check-in today. Contact school staff.':['Aucune entrée aujourd’hui. Contactez l’administration.','Pa gen antre anrejistre jodi a. Kontakte administrasyon an.'],

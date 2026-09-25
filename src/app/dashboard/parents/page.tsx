@@ -33,7 +33,7 @@ export default function ParentsPage() {
     setLoading(true); setError('')
     const [p, s, l] = await Promise.all([
       getSupabase().from('parents').select('id,relationship,user_id,full_name,email').order('relationship'),
-      getSupabase().from('students').select('id,first_name,last_name,student_code').eq('active', true).order('last_name').order('first_name'),
+      getSupabase().from('students').select('id,first_name,last_name').eq('active', true).order('last_name').order('first_name'),
       getSupabase().from('student_parents').select('student_id,parent_id,is_primary'),
     ])
     if (p.error || s.error || l.error) setError((p.error || s.error || l.error)?.message || 'Could not load parent data.')

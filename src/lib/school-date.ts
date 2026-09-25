@@ -1,0 +1,8 @@
+export const SCHOOL_TIME_ZONE='America/Port-au-Prince'
+const months=['Janvye','Fevriye','Mas','Avril','Me','Jen','Jiyè','Out','Septanm','Oktòb','Novanm','Desanm']
+export function schoolDate(value:string|null|undefined){if(!value)return '—';const day=value.length===10?value:new Intl.DateTimeFormat('en-CA',{timeZone:SCHOOL_TIME_ZONE}).format(new Date(value));const [y,m,d]=day.split('-').map(Number);return `${d} ${months[m-1]} ${y}`}
+export function schoolTime(value:string|null|undefined){if(!value)return '—';return new Intl.DateTimeFormat('en-US',{timeZone:SCHOOL_TIME_ZONE,hour:'2-digit',minute:'2-digit',hour12:true}).format(new Date(value))}
+export function schoolDateTime(value:string|null|undefined){return value?`${schoolDate(value)} · ${schoolTime(value)}`:'—'}
+export function dateInputText(value:string){const [y,m,d]=value.split('T')[0].split('-');return y&&m&&d?`${d}/${m}/${y}`:''}
+export function parseDateInput(value:string){const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);if(!m)return '';const iso=`${m[3]}-${m[2]}-${m[1]}`;const d=new Date(iso+'T12:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===iso?iso:''}
+export function schoolDateTimeToISO(local:string){let ms=Date.parse(local+'Z');if(!Number.isFinite(ms))throw Error('Date invalide');for(let i=0;i<3;i++){const p=new Intl.DateTimeFormat('sv-SE',{timeZone:SCHOOL_TIME_ZONE,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(ms)).replace(' ','T');ms+=Date.parse(local+'Z')-Date.parse(p+'Z')}return new Date(ms).toISOString()}

@@ -27,7 +27,7 @@ export default function BadgesPage() {
       const { data: schoolId, error: idError } = await getSupabase().rpc('get_my_school_id')
       if (idError || !schoolId) { setError(idError?.message || 'No school found'); setLoading(false); return }
       const [sr, br, er, sch] = await Promise.all([
-        getSupabase().from('students').select('id,atechos_id,first_name,last_name,photo_url,active').eq('active', true).order('last_name').order('first_name'),
+        getSupabase().rpc('get_student_records'),
         getSupabase().from('student_badges').select('student_id,badge_uid,badge_type,active').eq('active', true),
         getSupabase().from('enrollments').select('student_id,class_id').eq('school_id', schoolId).eq('status', 'active'),
         getSupabase().from('schools').select('name,logo_url').eq('id', schoolId).single(),
@@ -42,9 +42,9 @@ export default function BadgesPage() {
       const normalizedEnrollments: Enrollment[] = enrollmentRows.sort((a,b)=>{const years=yearResult.data || [];const left=years.find(y=>y.id===classMap.get(a.class_id)?.academic_year_id)?.start_date || '';const right=years.find(y=>y.id===classMap.get(b.class_id)?.academic_year_id)?.start_date || '';return right.localeCompare(left)}).map(x => ({student_id:x.student_id,class_id:x.class_id,class_name:classMap.get(x.class_id)?.name || 'Class',academic_year_name:classMap.get(x.class_id)?.academic_year_id ? (yearMap.get(classMap.get(x.class_id)!.academic_year_id!) || null) : null}))
       const firstError = sr.error || br.error || er.error || sch.error || classResult.error || yearResult.error
       if (firstError) setError(firstError.message)
-      setStudents((sr.data || []) as Student[]); setBadges((br.data || []) as Badge[]); setEnrollments(normalizedEnrollments); setSchool((sch.data || null) as School | null)
+      setStudents(((sr.data || []) as Student[]).filter(s=>s.active&&Boolean(s.atechos_id))); setBadges((br.data || []) as Badge[]); setEnrollments(normalizedEnrollments); setSchool((sch.data || null) as School | null)
       const firstStudent = (sr.data || [])[0] as Student | undefined
-      const requested=new URLSearchParams(window.location.search).get('student');if(requested && sr.data?.some(s=>s.id===requested))setSelectedId(requested);else if(firstStudent)setSelectedId(firstStudent.id)
+      const requested=new URLSearchParams(window.location.search).get('student');if(requested && (sr.data as Student[]|null)?.some(s=>s.id===requested))setSelectedId(requested);else if(firstStudent)setSelectedId(firstStudent.id)
       setLoading(false)
     }
     load()

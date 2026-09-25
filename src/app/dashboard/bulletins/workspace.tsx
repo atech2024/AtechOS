@@ -68,7 +68,7 @@ export default function BulletinsPage() {
       const studentIds = (enrollmentResult.data || []).map(row => row.student_id)
       const subjectIds = (subjectResult.data || []).map(row => row.subject_id)
       const [studentResult, subjectDetailsResult] = await Promise.all([
-        studentIds.length ? getSupabase().from('students').select('id,first_name,last_name,student_code').in('id', studentIds) : Promise.resolve({ data: [], error: null }),
+        studentIds.length ? getSupabase().from('students').select('id,first_name,last_name').in('id', studentIds) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? getSupabase().from('subjects').select('id,name,code').in('id', subjectIds) : Promise.resolve({ data: [], error: null })
       ])
       if (studentResult.error || subjectDetailsResult.error) { setError((studentResult.error || subjectDetailsResult.error)?.message || 'Could not load class details.'); return }

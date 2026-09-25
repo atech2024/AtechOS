@@ -33,6 +33,7 @@ export default async function DashboardPage() {
   if (roles.some(r => ['director', 'secretary'].includes(r))) ['Students','Classes','Subjects','Attendance','Attendance Kiosk','Student Badges','Grades','Grading periods','Grading settings','Bulletins','Parents','Assignments'].forEach(m => allowed.add(m))
   if (roles.some(r=>['director','secretary','surveillant'].includes(r))) allowed.add('Publication des bulletins')
   if (roles.includes('director')) ['Academic progression','Teacher requests'].forEach(m=>allowed.add(m))
+  if (roles.includes('surveillant')) allowed.add('Bulletins')
   if (roles.includes('teacher')) ['Students','Attendance','Grades','Assignments'].forEach(m => allowed.add(m))
   if (roles.includes('parent')) ['Parent Portal','Bulletins'].forEach(m => allowed.add(m))
   const visibleModules = modules.filter(([title]) => admin || allowed.has(title))

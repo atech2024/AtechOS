@@ -10,6 +10,9 @@ begin
   set local role authenticated;
   a:=public.create_school_onboarding('Verification A',gen_random_uuid()::text);
   if not exists(select 1 from public.schools where id=a and owner_user_id=owner_a) then raise exception 'TEST owner creation'; end if;
+  reset role;
+  insert into public.school_grading_settings(school_id,passing_average) values(a,6) on conflict(school_id) do update set passing_average=6;
+  set local role authenticated;
   yr:=public.create_academic_year('Verification',date '2026-01-01',date '2026-12-31',true);
   perform public.activate_school_section(yr,'preschool');
   perform public.activate_school_section(yr,'preschool');
@@ -26,10 +29,10 @@ begin
   child2:=public.save_student_record(jsonb_build_object('first_name','Child','last_name','Two','class_id',cls,'guardian_name','Guardian','guardian_email',guardian::text||'@example.invalid'));
   other_child:=public.save_student_record(jsonb_build_object('first_name','Other','last_name','Child','class_id',other_cls));
   if (select count(*) from public.parents where school_id=a)<>1 then raise exception 'TEST guardian deduplication'; end if;
-  select atechos_id into old_id from public.students where id=child1;
+  select r->>'atechos_id' into old_id from public.get_student_records(child1) r;
   perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',cls,'date_of_birth','2013-02-10','place_of_birth','Verification city','address','Verification address','sex','F'),child1);
   if not exists(select 1 from public.students where id=child1 and date_of_birth='2013-02-10' and place_of_birth='Verification city' and address='Verification address' and sex='F') then raise exception 'TEST student demographics'; end if;
-  if not exists(select 1 from public.students where id=child1 and atechos_id=old_id and photo_url is null) then raise exception 'TEST stable ID and optional photo'; end if;
+  if not exists(select 1 from public.get_student_records(child1) r where r->>'atechos_id'=old_id and r->>'photo_url' is null) then raise exception 'TEST stable ID and optional photo'; end if;
   perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',other_cls),child1);
   if not exists(select 1 from public.enrollments where student_id=child1 and class_id=cls and status='transferred') or not exists(select 1 from public.enrollments where student_id=child1 and class_id=other_cls and status='active') then raise exception 'TEST transfer did not move active class'; end if;
   perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',cls,'date_of_birth','2013-02-10','place_of_birth','Verification city','address','Verification address','sex','F'),child1);
@@ -143,7 +146,7 @@ begin
   update public.grades set score=max_score*0.59 where student_id=child1 and class_id=cls;
   if public.get_report_card(child1)->'cards'->0->>'status'<>'not_passed' then raise exception 'TEST fail boundary';end if;
   update public.grades set score=max_score*0.3 where student_id=child1 and class_id=cls;
-  if public.get_report_card(child1)->'cards'->0->>'status'<>'parent_meeting' then raise exception 'TEST parent meeting boundary';end if;
+  if not coalesce((public.get_report_card(child1)->'cards'->0->>'parent_meeting')::boolean,false) then raise exception 'TEST parent meeting boundary';end if;
   update public.grades set score=max_score*0.9 where student_id=child1 and class_id=cls;
   if (public.get_report_card(child1)->'cards'->0->>'position')::int<>1 or (public.get_report_card(child2)->'cards'->0->>'position')::int<>1 then raise exception 'TEST tied rank';end if;
   spare:=public.create_subject('Missing active subject','MISSING');

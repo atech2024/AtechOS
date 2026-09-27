@@ -1,41 +1,17 @@
-import { T } from '@/components/translation-provider'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-
-const modules = [
-  ['Publication des bulletins', 'Réviser, filtrer, publier et fixer les dates limites.', '/dashboard/publication'],
-  ['Academic progression', 'Review promotion and departures for a new academic year.', '/dashboard/progression'],
-  ['Teacher requests', 'Review applications from teachers.', '/dashboard/teacher-requests'],
-  ['Students', 'Manage student profiles, NISU, AtechOS IDs and badges.', '/dashboard/students'],
-  ['Classes', 'Manage academic years, classes, rooms and grade levels.', '/dashboard/classes'],
-  ['Subjects', 'Manage subjects and assign teachers to classes.', '/dashboard/subjects'],
-  ['Attendance', 'Track check-in, check-out, lateness and absences.', '/dashboard/attendance'],
-  ['Attendance Kiosk', 'Scan the AtechOS ID or QR code for student check-in and check-out.', '/dashboard/attendance/kiosk'],
-  ['Student Badges', 'Print badges with the student AtechOS ID and QR code.', '/dashboard/badges'],
-  ['Grades', 'Enter and review grades by class, subject and grading period.', '/dashboard/grades'],
-  ['Grading periods', 'Create and review the periods used for grades and bulletins.', '/dashboard/grading-periods'],
-  ['Grading settings', 'Choose controls per grading period and the passing average.', '/dashboard/grading-settings'],
-  ['Bulletins', 'Generate printable student bulletins and save them as PDF.', '/dashboard/bulletins'],
-  ['Parents', 'Review parent accounts and student relationships.', '/dashboard/parents'],
-  ['Parent Portal', 'Parent-only view of linked children, attendance and grades.', '/dashboard/parent-portal'],
-  ['Assignments', 'Publish work, exams and learning documents.', '/dashboard/assignments'],
-  ['Staff', 'Invite teachers and manage school access.', '/dashboard/staff'],
-]
-
-export default async function DashboardPage() {
-  const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); if (!user) redirect('/login')
-  const { data: context, error } = await supabase.rpc('school_context')
-  if (error) throw new Error('Unable to load school access. Please try again.')
-  const roles: string[] = context?.roles || []
-  const admin = context?.owner || roles.includes('school_admin')
-  const allowed = new Set<string>()
-  if (roles.some(r => ['director', 'secretary'].includes(r))) ['Students','Classes','Subjects','Attendance','Attendance Kiosk','Student Badges','Grades','Grading periods','Grading settings','Bulletins','Parents','Assignments'].forEach(m => allowed.add(m))
-  if (roles.some(r=>['director','secretary','surveillant'].includes(r))) allowed.add('Publication des bulletins')
-  if (roles.includes('director')) ['Academic progression','Teacher requests'].forEach(m=>allowed.add(m))
-  if (roles.includes('surveillant')) allowed.add('Bulletins')
-  if (roles.includes('teacher')) ['Students','Attendance','Grades','Assignments'].forEach(m => allowed.add(m))
-  if (roles.includes('parent')) ['Parent Portal','Bulletins'].forEach(m => allowed.add(m))
-  const visibleModules = modules.filter(([title]) => admin || allowed.has(title))
-  return <main className="min-h-screen bg-slate-50 p-6 md:p-10"><div className="mx-auto max-w-7xl"><header className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between"><div><Link href="/onboarding" className="text-sm font-semibold text-blue-600">AtechOS</Link><h1 className="text-3xl font-bold text-slate-900">{context?.school_name || 'School Dashboard'}</h1><p className="mt-1 text-slate-500"><T text="Your modules are based on the access assigned by your school."/></p></div><span className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600">MVP</span></header><section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visibleModules.map(([title, description, href])=><article key={title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-lg font-semibold text-slate-900"><T text={title}/></h2><p className="mt-2 text-sm leading-6 text-slate-500"><T text={description}/></p>{href==='#'?<span className="mt-5 inline-block text-sm font-semibold text-slate-400">Coming next</span>:<Link href={title==='Bulletins' && roles.includes('parent') && !admin ? '/dashboard/family-bulletins' : href} className="mt-5 inline-block text-sm font-semibold text-blue-600 hover:underline"><T text="Open module →"/></Link>}</article>)}</section>{!visibleModules.length && <p className="mt-8 rounded-xl border bg-white p-6">Your school account is connected. Ask your administrator which services are available for your role.</p>}</div></main>
+import {redirect} from 'next/navigation'
+import {Users,UserCheck,Clock,UserX,ArrowUpRight,ClipboardList} from 'lucide-react'
+import {createClient} from '@/lib/supabase/server'
+import {permittedNavigation} from '@/lib/navigation'
+import {schoolDate} from '@/lib/school-date'
+import {T} from '@/components/translation-provider'
+export default async function DashboardPage(){
+ const db=await createClient();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login')
+ const [context,summary]=await Promise.all([db.rpc('school_context'),db.rpc('dashboard_summary')])
+ if(context.error)throw new Error('Unable to verify school access.')
+ const roles:string[]=context.data?.roles||[];const modules=permittedNavigation(roles,Boolean(context.data?.owner)).filter(m=>m.href!=='/dashboard')
+ const data=summary.data;const kpis=[['Students',data?.students,Users,'bg-blue-50 text-blue-700'],['Present today',data?.present,UserCheck,'bg-emerald-50 text-emerald-700'],['Late today',data?.late,Clock,'bg-amber-50 text-amber-700'],['Absent today',data?.absent,UserX,'bg-red-50 text-red-700']] as const
+ return <main className="mx-auto max-w-7xl space-y-7 p-5 md:p-8"><header><p className="text-sm font-medium text-blue-700">{context.data?.school_name}</p><h1 className="mt-1 text-3xl font-bold tracking-tight"><T text="Dashboard"/></h1><p className="mt-2 text-sm text-slate-500">{data?.date&&schoolDate(data.date)} · <T text={data?.school_scope?'School overview':'Your authorized records'}/></p></header>{summary.error?<p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4"><T text="Unable to load dashboard totals."/></p>:<section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{kpis.filter(([,value])=>value!==null&&value!==undefined).map(([label,value,Icon,color])=><article key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><p className="text-sm text-slate-500"><T text={label}/></p><span className={'rounded-xl p-3 '+color}><Icon size={21}/></span></div><p className="mt-3 text-3xl font-bold">{value}</p></article>)}</section>}
+ <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="flex items-center gap-2 text-lg font-semibold"><ClipboardList size={21} className="text-blue-600"/><T text="Actions required"/></h2>{data?.draft_grades>0?<Link href="/dashboard/grades" className="mt-4 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 p-4"><span><strong className="block"><T text="Unpublished grades"/> : {data.draft_grades}</strong><span className="text-sm text-slate-600"><T text="Open grade entry to verify the saved work."/></span></span><ArrowUpRight size={20}/></Link>:<p className="mt-3 text-sm text-slate-500"><T text="No grade-entry action in your current scope."/></p>}</section>
+ <section><h2 className="mb-4 text-lg font-semibold"><T text="Your modules"/></h2><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{modules.map(m=><Link key={m.href} href={m.href} className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md"><span className="font-medium"><T text={m.label}/></span><ArrowUpRight size={19} className="text-slate-400 group-hover:text-blue-600"/></Link>)}</div>{!modules.length&&<p><T text="No module assigned. Contact your school administrator."/></p>}</section></main>
 }

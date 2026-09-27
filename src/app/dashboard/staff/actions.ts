@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
 
-const roles = ['school_admin', 'director', 'secretary', 'teacher', 'accountant', 'surveillant', 'parent', 'student']
+const roles = ['school_admin', 'director', 'censeur', 'secretary', 'teacher', 'accountant', 'surveillant', 'parent', 'student']
 function escapeHtml(value: string) { return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character] || character)) }
 
 export async function inviteMember(form: FormData) {
@@ -53,4 +53,3 @@ export async function cancelInvitation(id: string) {
   const { error } = await supabase.rpc('cancel_school_invitation', { p_id: id })
   return { error: error?.message }
 }
-

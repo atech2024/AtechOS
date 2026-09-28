@@ -21,3 +21,7 @@ console.log('PASS app shell: real page targets, teacher/parent/director menus, a
 
 for(const role of ['censeur','director','school_admin'])assert.ok(nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/approvals'))
 for(const role of ['teacher','parent','secretary','student'])assert.ok(!nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/approvals'))
+const censeur=nav.permittedNavigation(['censeur']).map(x=>x.href)
+for(const item of nav.permittedNavigation(['surveillant']))assert.ok(censeur.includes(item.href),'Censeur must inherit '+item.href)
+for(const route of ['/dashboard/staff','/dashboard/progression','/dashboard/grading-settings'])assert.ok(!censeur.includes(route),'Censeur must not gain administration '+route)
+console.log('PASS Censeur supervision menus without administrator access.')

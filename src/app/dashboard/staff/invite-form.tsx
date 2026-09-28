@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { T } from '@/components/translation-provider'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -43,6 +44,7 @@ export function MemberAction({ id, enabled, role, owner }: { id: string; enabled
   async function update(action:string){setBusy(true);setError('');try{const result=await changeMember(id,action,action==='role'?selected:undefined);setError(result.error||'');if(!result.error)router.refresh()}catch{setError('Unable to update access.')}finally{setBusy(false)}}
   const choices=['director','censeur','secretary','teacher','accountant','surveillant','parent','student']
   if(owner)choices.unshift('school_admin')
+  if(role==='teacher')return <div className="space-y-2 py-2"><Link href="/dashboard/approvals" className="text-blue-700 underline"><T text="Request teacher access change"/></Link><p className="max-w-sm text-sm text-slate-600"><T text="Two different authorized approvers are required."/></p>{!enabled&&<button disabled={busy} className="text-blue-700" onClick={()=>update('enable')}><T text="Enable access"/></button>}{error&&<p role="alert" className="text-red-700">{error}</p>}</div>
   return <div className="space-y-2 py-2"><label className="block"><T text="Change role"/><select disabled={busy} value={selected} onChange={e=>setSelected(e.target.value)} className="ml-2 rounded border p-2">{choices.map(r=><option key={r} value={r}>{r === 'censeur' ? <T text="Academic reviewer"/> : r}</option>)}</select></label><button disabled={busy||selected===role} onClick={()=>update('role')} className="rounded border px-3 py-1 disabled:opacity-40"><T text="Save role"/></button><button disabled={busy} className="ml-3 text-blue-700" onClick={()=>update(enabled?'disable':'enable')}>{enabled ? 'Disable access' : 'Enable access'}</button>{selected==='parent'&&<p className="max-w-sm text-sm text-slate-600"><T text="After changing to parent, link their children in Parents. No unrelated student is linked automatically."/></p>}{error && <p role="alert" className="text-red-700">{error}</p>}</div>
 }
 

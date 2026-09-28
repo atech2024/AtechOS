@@ -33,7 +33,7 @@ try {
     assert.equal(html.includes('<form'), form, path)
     checks++
   }
-  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/onboarding/create-school', '/login'], ['/dashboard', '/login'], ['/dashboard/publication', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/dashboard/family-bulletins','/login'], ['/dashboard/progression','/login'], ['/dashboard/teacher-requests','/login'], ['/student','/student/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error']]) {
+  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/onboarding/create-school', '/login'], ['/dashboard', '/login'], ['/dashboard/publication', '/login'], ['/dashboard/approvals', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/dashboard/family-bulletins','/login'], ['/dashboard/progression','/login'], ['/dashboard/teacher-requests','/login'], ['/student','/student/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error']]) {
     const response = await fetch(origin + path, { redirect: 'manual' })
     assert.equal(response.status, 307, path)
     assert.equal(new URL(response.headers.get('location'), origin).pathname, destination, path)

@@ -11,7 +11,8 @@ begin begin
  denied:=false;begin perform public.manage_school_member(member_id,'role','director');exception when others then denied:=true;end;
  if not denied then raise exception 'TEST self elevation';end if;
  perform set_config('request.jwt.claim.sub',owner_id::text,true);
- perform public.manage_school_member(member_id,'role','teacher');
+ -- Teacher role removal now uses the two-approval fixture; keep this test on non-teacher role changes.
+ perform public.manage_school_member(member_id,'role','director');
  perform public.manage_school_member(member_id,'role','censeur');
  if not exists(select 1 from public.school_members where id=member_id and role='censeur') then raise exception 'TEST admin role change';end if;
  reset role;raise exception using errcode='ZX004',message='fixtures passed';exception when sqlstate 'ZX004' then null;end;

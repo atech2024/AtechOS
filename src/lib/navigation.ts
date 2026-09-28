@@ -14,6 +14,7 @@ export const navigation:NavigationItem[]=[
  {label:'Bulletins',href:'/dashboard/bulletins',icon:'reports',roles:[...administration,'surveillant']},
  {label:'Assignments',href:'/dashboard/assignments',icon:'assignments',roles:[...administration,'teacher']},
  {label:'Academic progression',href:'/dashboard/progression',icon:'progression',roles:['school_admin','director']},
+ {label:'Access approvals',href:'/dashboard/approvals',icon:'requests',roles:['school_admin','director','censeur']},
  {label:'Teacher requests',href:'/dashboard/teacher-requests',icon:'requests',roles:['school_admin','director']},
  {label:'Users & staff',href:'/dashboard/staff',icon:'users',roles:['school_admin']},
  {label:'Grading settings',href:'/dashboard/grading-settings',icon:'settings',roles:administration},

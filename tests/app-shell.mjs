@@ -18,3 +18,6 @@ const {default:AppShell}=compile('src/components/app-shell.tsx',{'next/link':{de
 const html=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual Fixture Teacher',school:'Fixture School',avatar:null,roles:['teacher'],owner:false},'Fixture content'))
 assert.ok(html.includes('Actual Fixture Teacher'));assert.ok(html.includes('Fixture School'));assert.ok(html.includes('aria-current="page"'));assert.ok(html.includes('Fixture content'));assert.ok(html.includes('Logout'));assert.ok(!html.includes('Jean Admin'));assert.ok(!html.includes('href="/dashboard/staff"'))
 console.log('PASS app shell: real page targets, teacher/parent/director menus, active route, actual identity, logout and content.')
+
+for(const role of ['censeur','director','school_admin'])assert.ok(nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/approvals'))
+for(const role of ['teacher','parent','secretary','student'])assert.ok(!nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/approvals'))

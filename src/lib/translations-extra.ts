@@ -1,4 +1,5 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Deactivate badge':['Désactiver le badge','Dezaktive badge la'],
  'Edit student':['Modifier l’élève','Modifye elèv'],
  'Student ID and class are read-only here.':['L’identifiant et la classe sont en lecture seule ici.','ID ak klas la pa modifyab isit la.'],
  'Initial enrollment selects a class. Existing students change class only through Academic progression; their AtechOS ID stays unchanged.':['La classe est choisie à la première inscription. Pour un élève existant, utilisez Passage de classe. Son identifiant AtechOS reste inchangé.','Chwazi klas nan premye enskripsyon. Pou yon elèv ki deja la, sèvi ak Pasaj klas. ID AtechOS li rete menm jan.'],

@@ -1,27 +1,19 @@
 'use client'
-import { T } from '@/components/translation-provider'
-import { QRCodeSVG } from 'qrcode.react'
-import Link from 'next/link'
-
-import { useEffect, useMemo, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-
-type Student = { atechos_id:string; id: string; first_name: string; last_name: string; photo_url: string | null; active: boolean }
-type Badge = { student_id: string; badge_uid: string; badge_type: string; active: boolean }
-type Enrollment = { student_id: string; class_id: string; class_name: string; academic_year_name: string | null }
-type School = { name: string; logo_url: string | null }
-
-export default function BadgesPage() {
-  let supabase: ReturnType<typeof createClient> | null = null
-  const getSupabase = () => {
-    if (!supabase) supabase = createClient()
-    return supabase
-  }
-  const [students, setStudents] = useState<Student[]>([]); const [badges, setBadges] = useState<Badge[]>([]); const [enrollments, setEnrollments] = useState<Enrollment[]>([])
-  const [school, setSchool] = useState<School | null>(null); const [selectedId, setSelectedId] = useState(''); const [photoSrc, setPhotoSrc] = useState(''); const [query, setQuery] = useState('')
-  const [qr,setQr]=useState('');const [qrStudentId,setQrStudentId]=useState('');const [qrBusy,setQrBusy]=useState(false)
-  const [loading, setLoading] = useState(true); const [error, setError] = useState('')
-
+import {useEffect,useMemo,useState} from 'react'
+import {createClient} from '@/lib/supabase/client'
+import {T} from '@/components/translation-provider'
+import {BadgeFront,BadgeBack} from '@/components/badge-card'
+import {BadgeHistory,type BadgeWorkspace} from '@/components/badge-history'
+type Student={atechos_id:string;id:string;first_name:string;last_name:string;photo_url:string|null;active:boolean}
+type Badge={student_id:string;badge_uid:string;badge_type:string;active:boolean}
+type Enrollment={student_id:string;class_id:string;class_name:string;academic_year_name:string|null}
+type School={name:string;logo_url:string|null}
+export default function BadgesPage(){
+ const [supabase]=useState(()=>createClient());const getSupabase=()=>supabase
+ const [students,setStudents]=useState<Student[]>([]),[,setBadges]=useState<Badge[]>([]),[enrollments,setEnrollments]=useState<Enrollment[]>([])
+ const [school,setSchool]=useState<School|null>(null),[selectedId,setSelectedId]=useState(''),[query,setQuery]=useState(''),[loading,setLoading]=useState(true),[error,setError]=useState('')
+ const [workspace,setWorkspace]=useState<BadgeWorkspace|null>(null),[workspaceId,setWorkspaceId]=useState(''),[photoSrc,setPhotoSrc]=useState(''),[photoId,setPhotoId]=useState(''),[busy,setBusy]=useState(false),[tab,setTab]=useState('front'),[origin,setOrigin]=useState(''),[reason,setReason]=useState('')
+ useEffect(()=>{const configured=process.env.NEXT_PUBLIC_APP_URL||window.location.origin;try{const url=new URL(configured);if(url.protocol==='https:'||url.protocol==='http:')setOrigin(url.origin)}catch{setOrigin(window.location.origin)}},[])
   useEffect(() => {
     async function load() {
       setLoading(true); setError('')
@@ -51,49 +43,12 @@ export default function BadgesPage() {
     load()
   }, [])
 
-  const filtered = useMemo(() => { const q = query.trim().toLowerCase(); return !q ? students : students.filter(s => `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)) }, [students, query])
-  const selected = students.find(s => s.id === selectedId) || null
-  useEffect(()=>{let live=true;setQr('');if(!selected?.id)return;setQrBusy(true);createClient().rpc('get_student_badge_qr',{p_student:selected.id}).then(({data,error})=>{if(!live)return;if(error)setError(error.message);else {setQr(data||'');setQrStudentId(selected.id)}setQrBusy(false)});return()=>{live=false}},[selected?.id])
-  async function replaceBadge(){if(!selected||!window.confirm('Remplacer le QR ? Le badge précédent ne fonctionnera plus.'))return;setQrBusy(true);const {data,error}=await createClient().rpc('get_student_badge_qr',{p_student:selected.id,p_rotate:true});if(error)setError(error.message);else {setQr(data||'');setQrStudentId(selected.id)}setQrBusy(false)}
-  const currentQr=qrStudentId===selected?.id?qr:''
-  const badge = badges.find(b => b.student_id === selectedId) || null
-  const enrollment = enrollments.find(e => e.student_id === selectedId) || null
 
-  useEffect(() => {
-    let cancelled = false
-    async function resolvePhoto() {
-      setPhotoSrc('')
-      const path = selected?.photo_url?.trim()
-      if (!path) return
-      if (/^https?:\/\//i.test(path)) { setPhotoSrc(path); return }
-      const { data, error } = await getSupabase().storage.from('student-photos').createSignedUrl(path, 60 * 60)
-      if (!cancelled && !error && data?.signedUrl) setPhotoSrc(data.signedUrl)
-    }
-    resolvePhoto()
-    return () => { cancelled = true }
-  }, [selected?.photo_url])
-
-  function printBadge() { window.print() }
-
-  return <main className="min-h-screen bg-slate-50 p-6 md:p-10">
-    <div className="mx-auto max-w-6xl print:hidden">
-      <a href="/dashboard" className="text-sm font-semibold text-blue-600"><T text="← Dashboard"/></a>
-      <header className="mt-2 flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><Link href="/onboarding" className="text-sm font-semibold text-blue-600">AtechOS</Link><h1 className="text-3xl font-bold text-slate-900"><T text="Student Badges"/></h1><p className="mt-1 text-slate-500">Prepare and print school identification badges. The AtechOS ID and its QR code identify the student at the school kiosk. NISU is never printed.</p></div><button onClick={printBadge} disabled={!selected||!currentQr||qrBusy} className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white disabled:opacity-40"><T text="Print badge"/></button></header>
-      {error && <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-      <section className="mt-8 grid gap-6 md:grid-cols-[320px_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search student..." className="w-full rounded-xl border border-slate-300 px-4 py-3"/><div className="mt-4 max-h-[520px] overflow-y-auto">{loading?<p className="py-8 text-center text-slate-500"><T text="Loading..."/></p>:filtered.map(s=><button key={s.id} onClick={()=>setSelectedId(s.id)} className={`mb-2 w-full rounded-xl border p-3 text-left ${selectedId===s.id?'border-blue-500 bg-blue-50':'border-slate-200 bg-white'}`}><p className="font-semibold text-slate-900">{s.first_name} {s.last_name}</p><p className="text-xs text-slate-500">{enrollments.find(e=>e.student_id===s.id)?.class_name || 'No active class'}</p></button>)}</div></div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="font-semibold text-slate-900"><T text="Badge preview"/></h2>{selected&&<button disabled={qrBusy} onClick={replaceBadge} className="my-3 rounded border p-2"><T text="Replace lost badge QR"/></button>}<p className="mt-1 text-sm text-slate-500">Only school-facing identification data appears on the printed badge.</p><div className="mt-6 flex justify-center"><BadgeCard school={school} student={selected} badge={badge} enrollment={enrollment} photoSrc={photoSrc} qr={currentQr}/></div>{selected && !photoSrc && <p className="mt-5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">No student photo is available. Upload one before printing the badge.</p>}</div>
-      </section>
-    </div>
-    <div className="hidden print:block"><BadgeCard school={school} student={selected} badge={badge} enrollment={enrollment} photoSrc={photoSrc} qr={currentQr}/></div>
-    <style jsx global>{`@media print { @page { size: 85.6mm 54mm; margin: 0; } body { margin: 0 !important; background: white !important; } .badge-card { width: 85.6mm !important; height: 54mm !important; } }`}</style>
-  </main>
-}
-
-function BadgeCard({ school, student, badge, enrollment, photoSrc, qr }: { school: School | null; student: Student | null; badge: Badge | null; enrollment: Enrollment | null; photoSrc: string;qr:string }) {
-  return <div data-badge-type={badge?.badge_type} className="badge-card relative h-[54mm] w-[85.6mm] overflow-hidden rounded-[4mm] border border-slate-300 bg-white shadow-lg print:rounded-none print:border-0 print:shadow-none">
-    <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2"><div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded bg-slate-100">{school?.logo_url ? <img src={school.logo_url} alt="" className="h-full w-full object-contain"/> : <span className="text-[9px] font-black text-blue-700">A</span>}</div><div className="min-w-0"><Link href="/onboarding" className="text-[10px] font-black tracking-wide text-blue-700">AtechOS</Link><p className="truncate text-[8px] font-semibold text-slate-600">{school?.name || 'School'}</p></div></div>
-    <div className="flex gap-3 px-4 py-3"><div className="h-[22mm] w-[18mm] shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-100">{photoSrc ? <img src={photoSrc} alt="Student" className="h-full w-full object-cover"/> : <div className="flex h-full items-center justify-center text-[8px] text-slate-400">PHOTO</div>}</div><div className="min-w-0 flex-1"><p className="text-[13px] font-black uppercase leading-tight text-slate-900">{student ? `${student.first_name} ${student.last_name}` : 'Student name'}</p><p className="mt-1 text-[10px] font-bold text-blue-700">{enrollment?.class_name || 'Class'}</p><p className="mt-1 text-[8px] text-slate-500">Année scolaire</p><p className="text-[10px] font-semibold text-slate-800">{enrollment?.academic_year_name || '—'}</p></div>{student && qr && <QRCodeSVG value={qr} size={64} marginSize={4} className="shrink-0" />}</div>
-    <div className="absolute bottom-0 left-0 right-0 border-t border-slate-200 bg-slate-50 px-4 py-2"><p className="text-[7px] uppercase tracking-wide text-slate-500">AtechOS ID</p><p className="font-mono text-[9px] font-bold text-slate-900">{student?.atechos_id || 'Not assigned'}</p></div>
-  </div>
+ const filtered=useMemo(()=>students.filter(s=>`${s.first_name} ${s.last_name} ${s.atechos_id}`.toLowerCase().includes(query.toLowerCase())),[students,query]);const selected=students.find(s=>s.id===selectedId);const enrollment=enrollments.find(e=>e.student_id===selectedId)
+ useEffect(()=>{let active=true;setWorkspace(null);setPhotoSrc('');setError('');if(!selectedId)return;supabase.rpc('badge_workspace',{p_student:selectedId}).then(({data,error})=>{if(!active)return;if(error)setError('Unable to load badge.');else{setWorkspace(data);setWorkspaceId(selectedId)}});const path=selected?.photo_url;if(path){if(/^https?:\/\//i.test(path)){setPhotoSrc(path);setPhotoId(selectedId)}else supabase.storage.from('student-photos').createSignedUrl(path,3600).then(({data})=>{if(active){setPhotoSrc(data?.signedUrl||'');setPhotoId(selectedId)}})}return()=>{active=false}},[selectedId,selected?.photo_url,supabase])
+ const current=workspaceId===selectedId?workspace:null;const qr=current?.qr||''
+ async function issue(){if(!selected||!window.confirm('Émettre un nouveau badge ? Le précédent sera désactivé. / Bay yon nouvo badge? Ansyen an pap mache ankò.'))return;const id=selected.id;setBusy(true);setError('');try{const {error}=await supabase.rpc('get_student_badge_qr',{p_student:id,p_rotate:true});if(error)throw error;const r=await supabase.rpc('badge_workspace',{p_student:id});if(r.error)throw r.error;setWorkspace(r.data);setWorkspaceId(id)}catch{setError('Unable to save. Please try again.')}finally{setBusy(false)}}
+ async function lost(revoke=false){if(!selected||!window.confirm(revoke?'Désactiver le badge ? / Dezaktive badge la?':'Déclarer le badge perdu ? / Deklare badge la pèdi?'))return;const id=selected.id;setBusy(true);setError('');try{const {error}=await supabase.rpc(revoke?'revoke_student_badge':'report_badge_lost',{p_student:id,p_reason:reason});if(error)throw error;const r=await supabase.rpc('badge_workspace',{p_student:id});if(r.error)throw r.error;setWorkspace(r.data);setWorkspaceId(id);setReason('')}catch{setError('Unable to save. Please try again.')}finally{setBusy(false)}}
+ const identity={name:selected?`${selected.first_name} ${selected.last_name}`:'',code:selected?.atechos_id||'',className:enrollment?.class_name||'—',photo:photoId===selectedId?photoSrc:'',school:school?.name||'',logo:school?.logo_url||null}
+ return <main className="mx-auto max-w-7xl space-y-6 p-5 md:p-8 print:p-0"><div className="print:hidden"><header className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-3xl font-bold"><T text="Student Badges"/></h1><p className="mt-2 text-slate-500"><T text="Permanent student identity, replaceable badge credential."/></p></div><button disabled={!selected||!qr||busy||!origin} onClick={()=>window.print()} className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white disabled:opacity-40"><T text="Print front and back"/></button></header>{error&&<p role="alert" className="my-4 rounded-xl bg-red-50 p-4 text-red-700"><T text={error}/></p>}<div className="mt-6 grid gap-6 xl:grid-cols-[320px_1fr]"><aside className="space-y-5"><section className="rounded-2xl border bg-white p-5 shadow-sm"><label className="block text-sm font-medium"><T text="Search student"/><input value={query} onChange={e=>setQuery(e.target.value)} className="my-2 block w-full rounded-xl border p-3"/></label><select value={selectedId} disabled={busy} onChange={e=>setSelectedId(e.target.value)} className="w-full rounded-xl border p-3"><option value=""><T text="Choose"/></option>{filtered.map(s=><option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}</select>{loading&&<p><T text="Loading..."/></p>}{selected&&<div className="mt-4 space-y-2"><p className="font-bold">{identity.name}</p><p className="text-sm text-slate-500">{identity.className}</p><p className="font-mono text-xs">{identity.code}</p><span className={`inline-block rounded-full px-3 py-1 text-xs ${qr?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-800'}`}><T text={qr?'Active badge':'No active private QR'}/></span></div>}</section>{current?.can_manage&&<section className="space-y-3 rounded-2xl border bg-white p-5 shadow-sm"><h2 className="font-bold"><T text="Badge actions"/></h2><button disabled={busy} onClick={issue} className="w-full rounded-xl border border-blue-200 bg-blue-50 p-3 font-semibold text-blue-700"><T text={current.badges.length?'Issue replacement badge':'Issue first badge'}/></button>{qr&&<><label className="block text-sm"><T text="Reason"/><input value={reason} maxLength={500} onChange={e=>setReason(e.target.value)} className="mt-1 block w-full rounded-lg border p-2"/></label><button disabled={busy||reason.trim().length<3} onClick={()=>lost()} className="w-full rounded-xl border border-red-200 p-3 text-red-700 disabled:opacity-40"><T text="Report lost badge"/></button><button disabled={busy||reason.trim().length<3} onClick={()=>lost(true)} className="w-full rounded-xl border border-red-200 p-3 text-red-700 disabled:opacity-40"><T text="Deactivate badge"/></button></>}<p className="text-xs text-slate-500"><T text="A lost badge stops working immediately. The school issues its replacement."/></p></section>}</aside><section className="rounded-2xl border bg-white p-6 shadow-sm"><div className="flex gap-3 border-b pb-4">{['front','back'].map(t=><button key={t} onClick={()=>setTab(t)} className={`rounded-lg px-4 py-2 ${tab===t?'bg-blue-600 text-white':'bg-slate-100'}`}><T text={t==='front'?'Front':'Back'}/></button>)}</div><div className="mt-6 flex min-h-96 items-center justify-center overflow-auto rounded-xl bg-slate-50 p-5">{selected?(tab==='front'?<BadgeFront identity={identity} qr={qr}/>:<BadgeBack origin={origin}/>):<p><T text="Choose a student to preview the badge."/></p>}</div><p className="mt-4 text-center text-xs text-slate-500">CR80 · 53.98 × 85.60 mm · Portrait</p></section></div>{current&&<div className="mt-6"><BadgeHistory data={current}/></div>}</div>{selected&&qr&&<div className="badge-print hidden print:block"><BadgeFront identity={identity} qr={qr}/><BadgeBack origin={origin}/></div>}<style jsx global>{`@media print { @page { size: 53.98mm 85.6mm; margin: 0; } body { print-color-adjust: exact; -webkit-print-color-adjust: exact; margin: 0 !important; background: white !important; } .badge-print .badge-card { width: 53.98mm !important; height: 85.6mm !important; break-after: page; } .badge-print .badge-card:last-child { break-after: auto; } }`}</style></main>
 }

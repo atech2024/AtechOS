@@ -10,7 +10,7 @@ export const navigation:NavigationItem[]=[
  {label:'Student Badges',href:'/dashboard/badges',icon:'badge',roles:[...administration,'surveillant']},
  {label:'Grading periods',href:'/dashboard/grading-periods',icon:'calendar',roles:administration},
  {label:'Grades',href:'/dashboard/grades',icon:'grades',roles:[...administration,'teacher']},
- {label:'Publication des bulletins',href:'/dashboard/publication',icon:'publication',roles:['school_admin','director']},
+ {label:'Publication des bulletins',href:'/dashboard/publication',icon:'publication',roles:['school_admin','director','censeur']},
  {label:'Bulletins',href:'/dashboard/bulletins',icon:'reports',roles:[...administration,'surveillant']},
  {label:'Assignments',href:'/dashboard/assignments',icon:'assignments',roles:[...administration,'teacher']},
  {label:'Academic progression',href:'/dashboard/progression',icon:'progression',roles:['school_admin','director']},

@@ -12,7 +12,7 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Ask the school to issue your badge QR.':['Demandez à l’école de générer le QR de votre badge.','Mande lekòl la kreye QR badge ou.'],
  'Badge not accepted. Ask the school to replace it.':['Badge refusé. Demandez son remplacement à l’école.','Badge la pa aksepte. Mande lekòl la ranplase li.'],
  'Scan your private badge QR without a PIN, or enter your AtechOS ID and PIN.':['Scannez le QR privé du badge sans PIN, ou entrez votre AtechOS ID et votre PIN.','Eskane QR prive badge ou san PIN, oswa antre AtechOS ID ou ak PIN ou.'],
- 'school_admin':['Administrateur','Administratè'],'director':['Directeur','Direktè'],'secretary':['Secrétaire','Sekretè'],'surveillant':['Surveillant','Sansè'],'teacher':['Professeur','Pwofesè'],'system':['Système','Sistèm'],
+ 'school_admin':['Administrateur','Administratè'],'director':['Directeur','Direktè'],'secretary':['Secrétaire','Sekretè'],'surveillant':['Surveillant','Siveyan'],'teacher':['Professeur','Pwofesè'],'system':['Système','Sistèm'],
 
  'Teacher':['Professeur','Pwofesè'],
  'Kiosk closed from 08:01 to 12:59. Contact school staff.':['Kiosque fermé de 08:01 à 12:59. Contactez l’administration.','Kiosk la fèmen soti 8:01 rive 12:59. Kontakte administrasyon an.'],

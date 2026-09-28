@@ -23,4 +23,4 @@ export const navigation:NavigationItem[]=[
  {label:'Parent Portal',href:'/dashboard/parent-portal',icon:'parents',roles:['parent']},
  {label:'Family bulletins',href:'/dashboard/family-bulletins',icon:'reports',roles:['parent']},
 ]
-export function permittedNavigation(roles:string[],owner=false){return navigation.filter(n=>n.roles.includes('*')||n.roles.some(r=>roles.includes(r))||(owner&&!n.roles.includes('parent')))}
+export function permittedNavigation(roles:string[],owner=false){const capabilities=roles.includes('censeur')?[...roles,'surveillant']:roles;return navigation.filter(n=>n.roles.includes('*')||n.roles.some(r=>capabilities.includes(r))||(owner&&!n.roles.includes('parent')))}

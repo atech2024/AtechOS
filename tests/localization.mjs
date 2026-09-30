@@ -5,10 +5,10 @@ const shell = readFileSync('src/components/app-shell.tsx', 'utf8')
 const grades = readFileSync('src/app/dashboard/grades/page.tsx', 'utf8')
 const periods = readFileSync('src/app/dashboard/grading-periods/page.tsx', 'utf8')
 const dictionary = readFileSync('src/lib/translations.ts', 'utf8') + '\n' + readFileSync('src/lib/translations-extra.ts', 'utf8')
-const translationKeys = new Set([...dictionary.matchAll(/(?:'([^'\\\\]+)'|"([^"\\\\]+)")\\s*:/g)].map(match => match[1] || match[2]))
+const translationKeys = new Set([...dictionary.matchAll(/(?:'([^'\\]+)'|"([^"\\]+)")\s*:/g)].map(match => match[1] || match[2]))
 
 for (const [name, source] of [['shared shell', shell], ['grade entry', grades], ['grading periods', periods]]) {
-  for (const [, key] of source.matchAll(/<T\\s+text="([^"]+)"/g)) {
+  for (const [, key] of source.matchAll(/<T\s+text="([^"]+)"/g)) {
     assert.ok(translationKeys.has(key), `Missing French/Haitian translation for ${name}: ${key}`)
   }
 }

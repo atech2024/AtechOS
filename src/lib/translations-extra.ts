@@ -302,4 +302,13 @@ export const extraTranslations:Record<string,[string,string]> = {
 "Published grade calculation; no archived official document.":["Calcul des notes publiées · document officiel non archivé.", "Kalkil nòt pibliye yo · dokiman ofisyèl poko achive."],
 "Bulletin version":["Version du bulletin", "Vèsyon biltin"],
 "Current official version":["Version officielle actuelle", "Vèsyon ofisyèl aktyèl"],
+"3D preview":["Aperçu 3D", "Apèsi 3D"],
+"Print preview":["Aperçu pour impression", "Apèsi pou enprime"],
+"Rotate badge":["Tourner le badge", "Vire badge la"],
+"Zoom out":["Zoom −", "Rale pi lwen"],
+"Zoom in":["Zoom +", "Rale pi pre"],
+"Reset preview":["Réinitialiser l’aperçu", "Reyinisyalize apèsi a"],
+"Close preview":["Fermer l’aperçu", "Fèmen apèsi a"],
+"Expand preview":["Agrandir l’aperçu", "Elaji apèsi a"],
+"Preview zoom does not change printed card dimensions. Print at 100% scale.":["Le zoom ne modifie pas les dimensions imprimées. Imprimez à l’échelle 100 %.", "Zoom pa chanje dimansyon badge enprime a. Enprime nan echèl 100%."],
 }

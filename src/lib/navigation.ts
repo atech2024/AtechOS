@@ -19,6 +19,7 @@ export const navigation:NavigationItem[]=[
  {label:'Teacher requests',href:'/dashboard/teacher-requests',icon:'requests',roles:['school_admin','director']},
  {label:'Users & staff',href:'/dashboard/staff',icon:'users',roles:['school_admin']},
  {label:'Grading settings',href:'/dashboard/grading-settings',icon:'settings',roles:administration},
+ {label:'GUARD cases',href:'/dashboard/guard',icon:'requests',roles:[...administration,'surveillant','parent']},
  {label:'Student Badges',href:'/dashboard/parent-badges',icon:'badge',roles:['parent']},
  {label:'Parent Portal',href:'/dashboard/parent-portal',icon:'parents',roles:['parent']},
  {label:'Family bulletins',href:'/dashboard/family-bulletins',icon:'reports',roles:['parent']},

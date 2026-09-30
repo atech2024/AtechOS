@@ -389,5 +389,6 @@ export const extraTranslations:Record<string,[string,string]> = {
 "Fondamentale · 3e cycle":["Fondamentale · 3e cycle","Fondamantal · 3yèm sik"],
 "Secondaire":["Secondaire","Segondè"],
 "Max score must be greater than 0.":["La note maximale doit être supérieure à 0.","Nòt maksimòm nan dwe plis pase 0."],
-"Assessment weight must be greater than 0.":["Le coefficient de l’évaluation doit être supérieur à 0.","Pwa evalyasyon an dwe plis pase 0."],
+"Assessment weight must be greater than 0.":["Le coefficient de l’évaluation doit être supérieur à 0.","Pwa evalyasyon an dwe plis pase 0."],"Official terms this year":["Nombre de trimestres officiels pour l’année scolaire","Kantite trimès ofisyèl pou ane lekòl la"],
+"Official term":["Trimestre officiel","Trimès ofisyèl"],
 }

@@ -6,7 +6,7 @@ import QRScanner from '@/components/qr-scanner'
 import { T } from '@/components/translation-provider'
 import { createClient } from '@/lib/supabase/client'
 
-type Result = { action:string; first_name:string; last_name:string; atechos_id:string; class_name:string; check_in_at:string|null; check_out_at:string|null }
+type Result = { action:string; first_name:string; last_name:string; atechos_id:string; class_name:string; check_in_at:string|null; check_out_at:string|null; guard_meeting_required?:boolean }
 const messages:Record<string,string> = { check_in:'Check-in recorded.',check_out:'Check-out recorded.',duplicate_scan:'Already checked in. Check-out opens at 13:00.',already_complete:'Attendance already complete for today.' }
 export default function StudentKiosk() {
  const [code,setCode]=useState(''),[pin,setPin]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[result,setResult]=useState<Result|null>(null)
@@ -16,7 +16,7 @@ export default function StudentKiosk() {
  async function record(scanned:string,secret=''){if(lock.current)return;lock.current=true;setBusy(true);setError('');setResult(null)
   try {const {data,error:failure}=await (scanned.startsWith('AOSQ1.')?createClient().rpc('student_kiosk_badge',{p_qr:scanned}):createClient().rpc('student_kiosk_scan',{p_code:scanned,p_pin:secret}));
    if(failure) setError('Unable to record attendance. Please try again.')
-   else if(data?.error) setError(data.error==='invalid_badge'?'Badge not accepted. Ask the school to replace it.':data.error==='kiosk_closed'?'Kiosk closed from 08:01 to 12:59. Contact school staff.':data.error==='check_in_required'?'No check-in today. Contact school staff.':data.error==='current_class_required'?'Ask the school to verify your current class.':'ID or PIN not accepted. After five failed attempts, wait 15 minutes.')
+   else if(data?.error) setError(data.error==='invalid_badge'?'Badge not accepted. Ask the school to replace it.':data.error==='kiosk_closed'?'Kiosk closed from 08:01 to 12:59. Contact school staff.':data.error==='check_in_required'?'No check-in today. Contact school staff.':data.error==='current_class_required'?'Ask the school to verify your current class.':data.error==='guard_account_suspended'?"Student access is temporarily inactive. Go to the Director's office with your parent or guardian.":'ID or PIN not accepted. After five failed attempts, wait 15 minutes.')
    else if(data?.action) {setResult(data as Result);setCode('')}
   } catch {setError('Unable to record attendance. Please try again.')}
   finally {setPin('');setBusy(false);lock.current=false;codeInput.current?.focus()}
@@ -27,6 +27,6 @@ export default function StudentKiosk() {
  {!code.startsWith('AOSQ1.')&&<label className="block font-semibold">PIN<input ref={pinInput} required type="password" inputMode="numeric" pattern="[0-9]{6,12}" minLength={6} maxLength={12} autoComplete="off" disabled={busy} value={pin} onChange={e=>setPin(e.target.value)} className="mt-2 w-full rounded border p-4"/></label>}
  <button disabled={busy} className="w-full rounded-xl bg-blue-600 p-4 font-bold text-white disabled:opacity-50"><T text={busy?'Checking…':'Confirm check-in / check-out'}/></button></form>
  {error&&<p role="alert" className="mt-4 text-red-700"><T text={error}/></p>}
- {result&&<div role="status" className="mt-5 rounded-xl bg-green-50 p-4"><p className="font-bold"><T text={messages[result.action]||'Attendance already complete for today.'}/></p><p>{result.first_name} {result.last_name} · {result.atechos_id}</p><p>{result.class_name}</p>{result.check_in_at&&<p><T text="Check-in"/>: {schoolTime(result.check_in_at)}</p>}{result.check_out_at&&<p><T text="Check-out"/>: {schoolTime(result.check_out_at)}</p>}</div>}
+ {result&&<div role="status" className="mt-5 rounded-xl bg-green-50 p-4"><p className="font-bold"><T text={messages[result.action]||'Attendance already complete for today.'}/></p><p>{result.first_name} {result.last_name} · {result.atechos_id}</p><p>{result.class_name}</p>{result.check_in_at&&<p><T text="Check-in"/>: {schoolTime(result.check_in_at)}</p>}{result.check_out_at&&<p><T text="Check-out"/>: {schoolTime(result.check_out_at)}</p>}{result.guard_meeting_required&&<p className="mt-3 rounded bg-amber-100 p-3 font-semibold text-amber-950"><T text="Please go to the Director's office with your parent or guardian for the required meeting."/></p>}</div>}
  </section><p className="text-sm text-slate-300"><T text="No PIN yet? Ask the school for a private activation code, then create a PIN in the student portal."/> <Link href="/student/login" className="underline"><T text="Student portal"/></Link></p><p className="text-sm text-slate-400"><T text="Haiti time: 00:00–07:45 check-in; 07:46–08:00 late; 08:01–12:59 closed; 13:00–23:59 check-out."/></p></div></main>
 }

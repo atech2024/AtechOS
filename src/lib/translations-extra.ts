@@ -357,8 +357,8 @@ export const extraTranslations:Record<string,[string,string]> = {
 "Student access is temporarily inactive. Go to the Director's office with your parent or guardian.":["L’accès de l’élève est temporairement suspendu. Rendez-vous à la direction avec votre parent ou tuteur.","Aksè elèv la sispann pou kounye a. Ale nan Direksyon ak paran oswa responsab ou."],
 "Please go to the Director's office with your parent or guardian for the required meeting.":["Veuillez vous présenter à la direction avec votre parent ou tuteur pour la réunion demandée.","Tanpri ale nan Direksyon ak paran oswa responsab ou pou reyinyon yo mande a."],
 "Meeting deadline passed; student access inactive":["Le délai de la réunion est dépassé ; l’accès de l’élève est suspendu.","Delè reyinyon an pase; aksè elèv la sispann."],
-"Confirm family meeting held and reactivate student":["Confirmer que la réunion familiale a eu lieu et réactiver l’accès de l’élève.","Konfime reyinyon fanmi an fèt epi remete aksè elèv la."],
+"Confirm family meeting held":["Confirmer que la réunion familiale a eu lieu.","Konfime reyinyon fanmi an fèt."],
 "Reschedule family meeting":["Reprogrammer la réunion familiale.","Pwograme reyinyon an ankò."],
-"Family meeting confirmed. Student access restored; they must sign in again.":["Réunion confirmée. L’accès de l’élève est rétabli ; il doit se reconnecter.","Reyinyon an konfime. Aksè elèv la retabli; li dwe konekte ankò."],
+"Family meeting recorded. Access is restored only after all required meetings are confirmed; the student must sign in again.":["Réunion enregistrée. L’accès est rétabli lorsque toutes les réunions requises sont confirmées ; l’élève doit ensuite se reconnecter.","Reyinyon an anrejistre. Aksè a retabli sèlman lè tout reyinyon ki obligatwa yo konfime; elèv la dwe konekte ankò."],
 "Family meeting rescheduled.":["Réunion familiale reprogrammée.","Reyinyon fanmi an repwograme."],
 }

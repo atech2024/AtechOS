@@ -21,6 +21,5 @@ export const subjectPresets = [
   ['PHY', 'Physique'], ['CHIM', 'Chimie'], ['BIO', 'Biologie'], ['PHILO', 'Philosophie'],
 ]
 export const periodPresets = [
-  ['T1', '1er trimestre'], ['T2', '2e trimestre'], ['T3', '3e trimestre'],
-  ['C1', '1er contrôle'], ['C2', '2e contrôle'], ['C3', '3e contrôle'], ['C4', '4e contrôle'],
+  ['T1', '1er trimestre'], ['T2', '2e trimestre'], ['T3', '3e trimestre'], ['T4', '4e trimestre'],
 ]

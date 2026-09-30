@@ -26,10 +26,10 @@ begin
   child2:=public.save_student_record(jsonb_build_object('first_name','Child','last_name','Two','class_id',cls,'guardian_name','Guardian','guardian_email',guardian::text||'@example.invalid'));
   other_child:=public.save_student_record(jsonb_build_object('first_name','Other','last_name','Child','class_id',other_cls));
   if (select count(*) from public.parents where school_id=a)<>1 then raise exception 'TEST guardian deduplication'; end if;
-  select atechos_id into old_id from public.students where id=child1;
+  select r->>'atechos_id' into old_id from public.get_student_records(child1) as records(r);
   perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',cls,'date_of_birth','2013-02-10','place_of_birth','Verification city','address','Verification address','sex','F'),child1);
   if not exists(select 1 from public.students where id=child1 and date_of_birth='2013-02-10' and place_of_birth='Verification city' and address='Verification address' and sex='F') then raise exception 'TEST student demographics'; end if;
-  if not exists(select 1 from public.students where id=child1 and atechos_id=old_id and photo_url is null) then raise exception 'TEST stable ID and optional photo'; end if;
+  if not exists(select 1 from public.get_student_records(child1) r where r->>'atechos_id'=old_id and r->>'photo_url' is null) then raise exception 'TEST stable ID and optional photo'; end if;
   perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',other_cls),child1);
   if not exists(select 1 from public.enrollments where student_id=child1 and class_id=cls and status='transferred') or not exists(select 1 from public.enrollments where student_id=child1 and class_id=other_cls and status='active') then raise exception 'TEST transfer did not move active class'; end if;
   perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',cls,'date_of_birth','2013-02-10','place_of_birth','Verification city','address','Verification address','sex','F'),child1);

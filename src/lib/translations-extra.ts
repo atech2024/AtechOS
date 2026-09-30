@@ -362,7 +362,6 @@ export const extraTranslations:Record<string,[string,string]> = {
 "Family meeting recorded. Access is restored only after all required meetings are confirmed; the student must sign in again.":["Réunion enregistrée. L’accès est rétabli lorsque toutes les réunions requises sont confirmées ; l’élève doit ensuite se reconnecter.","Reyinyon an anrejistre. Aksè a retabli sèlman lè tout reyinyon ki obligatwa yo konfime; elèv la dwe konekte ankò."],
 "Family meeting rescheduled.":["Réunion familiale reprogrammée.","Reyinyon fanmi an repwograme."],
 "Unable to sign out. Please try again.":["Impossible de se déconnecter. Veuillez réessayer.","Pa ka dekonekte. Eseye ankò, tanpri."],
-"School navigation":["Navigation de l’école","Navigasyon lekòl la"],
 "School modules":["Modules de l’école","Modil lekòl la"],
 "Search results":["Résultats de recherche","Rezilta rechèch"],
 "Close navigation":["Fermer le menu","Fèmen meni an"],

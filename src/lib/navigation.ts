@@ -7,6 +7,7 @@ export const navigation:NavigationItem[]=[
  {label:'Subjects & Teachers',href:'/dashboard/subjects',icon:'teachers',roles:administration},
  {label:'Classes',href:'/dashboard/classes',icon:'classes',roles:administration},
  {label:'Attendance',href:'/dashboard/attendance',icon:'attendance',roles:[...administration,'teacher','surveillant']},
+ {label:'Kindergarten pickup',href:'/dashboard/attendance/kindergarten-pickup',icon:'attendance',roles:[...administration,'surveillant','censeur']},
  {label:'Student Badges',href:'/dashboard/badges',icon:'badge',roles:[...administration,'surveillant']},
  {label:'Exams and school calendar',href:'/dashboard/calendar',icon:'calendar',roles:[...administration,'teacher','surveillant','censeur']},
  {label:'Grading periods',href:'/dashboard/grading-periods',icon:'calendar',roles:administration},

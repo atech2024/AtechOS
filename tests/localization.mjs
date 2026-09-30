@@ -15,7 +15,7 @@ for (const [key, french, haitian] of translations) {
   const entry = `${JSON.stringify(key)}:[${JSON.stringify(french)},${JSON.stringify(haitian)}]`
   assert.ok(dictionary.includes(entry), `Missing French/Haitian translation for: ${key}`)
 }
-assert.match(shell, /placeholder=\\{t\\('Search students, parents, teachers…'\\)\\}/)
+assert.ok(shell.includes("placeholder={t('Search students, parents, teachers…')}"))
 for (const key of ['School navigation', 'School modules', 'Search results', 'Close navigation', 'Open navigation', 'Notifications']) {
   assert.ok(shell.includes(`t('${key}')`), `Shared-shell label does not follow selected locale: ${key}`)
 }

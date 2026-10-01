@@ -23,8 +23,11 @@ export function haitiHolidaySuggestions(start:string,end:string):Holiday[]{
    {date:shift(easter,-2),name:'Good Friday'},
    fixed(year,5,1,'Labour and Agriculture Day'),
    fixed(year,5,18,'Flag and Universities Day'),
+   fixed(year,8,15,'Assumption Day'),
+   fixed(year,9,20,'Dessalines Day'),
    fixed(year,10,17,'Dessalines Commemoration'),
    fixed(year,11,1,'All Saints’ Day'),
+   fixed(year,11,2,'Day of the Dead'),
    fixed(year,11,18,'Vertières Day'),
    fixed(year,12,25,'Christmas Day'),
   )

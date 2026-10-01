@@ -1,0 +1,20 @@
+begin;
+insert into public.schools(id) values('71000000-0000-0000-0000-000000000001');
+insert into public.users(id,full_name) values('72000000-0000-0000-0000-000000000001','Calendar Director');
+insert into public.school_members(school_id,user_id,role) values('71000000-0000-0000-0000-000000000001','72000000-0000-0000-0000-000000000001','director');
+select set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000001',true);
+
+do $$
+declare first_year uuid; successor public.academic_years%rowtype; n integer;
+begin
+ first_year:=public.create_academic_year_with_successor('2026/2027',date '2026-09-01',date '2027-06-30',true);
+ select count(*) into n from public.academic_years where school_id='71000000-0000-0000-0000-000000000001';
+ if n<>2 then raise exception 'first academic year did not prepare one successor'; end if;
+ select * into successor from public.academic_years where school_id='71000000-0000-0000-0000-000000000001' and id<>first_year;
+ if successor.start_date<>date '2027-06-30' then raise exception 'successor does not begin at configured end date'; end if;
+ if (successor.end_date-successor.start_date)<>(date '2027-06-30'-date '2026-09-01') then raise exception 'successor duration was not carried forward'; end if;
+ if successor.is_current then raise exception 'successor must remain inactive until staff confirms it'; end if;
+ perform public.update_academic_year(successor.id,'2027/2028',date '2027-09-01',date '2028-06-30',true);
+ if not exists(select 1 from public.academic_years where id=successor.id and is_current and name='2027/2028') then raise exception 'staff could not review and activate the successor year'; end if;
+end $$;
+rollback;

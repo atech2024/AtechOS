@@ -1,4 +1,10 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Time in Haiti':['Heure en Haïti','Lè ann Ayiti'],
+ 'Hour':['Heure','Lè'],
+ 'Minute':['Minute','Minit'],
+ 'AM / PM':['AM / PM','AM / PM'],
+ 'Close calendar':['Fermer le calendrier','Fèmen kalandriye a'],
+ 'Dates are limited to the selected school year or period.':['Les dates sont limitées à l’année scolaire ou à la période sélectionnée.','Dat yo limite ak ane lekòl la oswa peryòd yo chwazi a.'],
  'Préscolaire':['Préscolaire','Preskolè'],
  'Language & Communication':['Langage & Communication','Langaj ak kominikasyon'],
  'Mathematics & Reasoning':['Mathématiques & Raisonnement','Matematik ak rezònman'],

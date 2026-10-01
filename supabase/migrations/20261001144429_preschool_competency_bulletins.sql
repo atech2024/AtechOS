@@ -140,7 +140,10 @@ end $$;
 
 create function public.save_preschool_class_staff(p_class uuid,p_role text,p_user uuid) returns void language plpgsql security definer set search_path='' as $$
 declare sid uuid:=public.get_my_school_id();begin
- if not private.can_manage_preschool(sid) or p_role not in ('titulaire','aide_educatrice') or not exists(select 1 from public.classes c left join public.grade_levels gl on gl.id=c.grade_level_id where c.id=p_class and c.school_id=sid and public.grade_section(coalesce(c.grade_level,gl.code))='preschool') or not exists(select 1 from public.school_members m where m.school_id=sid and m.user_id=p_user and m.enabled and m.role in ('teacher','school_admin','director','secretary')) then raise exception 'not_authorized';end if;
+ if not private.can_manage_preschool(sid) then raise exception 'not_authorized';end if;
+ if p_role not in ('titulaire','aide_educatrice') then raise exception 'invalid_preschool_class_role';end if;
+ if not exists(select 1 from public.classes c left join public.grade_levels gl on gl.id=c.grade_level_id where c.id=p_class and c.school_id=sid and public.grade_section(coalesce(c.grade_level,gl.code))='preschool') then raise exception 'preschool_class_not_found';end if;
+ if not exists(select 1 from public.school_members m where m.school_id=sid and m.user_id=p_user and m.enabled and m.role in ('teacher','school_admin','director','secretary')) then raise exception 'staff_member_not_found';end if;
  if exists(select 1 from public.preschool_class_staff where class_id=p_class and user_id=p_user and assignment_role<>p_role) then raise exception 'staff_cannot_hold_both_class_roles';end if;
  insert into public.preschool_class_staff(school_id,class_id,user_id,assignment_role,assigned_by) values(sid,p_class,p_user,p_role,auth.uid()) on conflict(class_id,assignment_role) do update set user_id=excluded.user_id,assigned_by=auth.uid(),assigned_at=now();
 end $$;

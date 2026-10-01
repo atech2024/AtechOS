@@ -94,6 +94,7 @@ begin
 
  insert into public.classes(id,school_id,grade_level,name,academic_year_id) values('40000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','PS2','Second preschool CI','11000000-0000-0000-0000-000000000001');
  insert into public.grading_periods(school_id,academic_year_id,name,code,start_date,end_date,sections,is_active) values('10000000-0000-0000-0000-000000000001',term_year,'1er Trimestre','T1','2026-08-01','2026-11-30',array['preschool'],true) returning id into ps_period;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  perform public.save_preschool_class_staff('40000000-0000-0000-0000-000000000001','titulaire','20000000-0000-0000-0000-000000000004');
  ps_workspace:=public.preschool_report_workspace('40000000-0000-0000-0000-000000000001',ps_period);
  if jsonb_array_length(ps_workspace->'competencies')<12 or jsonb_array_length(ps_workspace->'students')<>1 then raise exception 'preschool defaults/roster were not initialized'; end if;

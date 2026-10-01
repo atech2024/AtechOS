@@ -33,6 +33,7 @@ assert.match(lock,/update public\.students s set portal_enabled=false/,'missed m
 assert.match(lock,/delete from private\.student_sessions/,'existing student sessions are revoked')
 assert.match(lock,/if p_accept and not exists\(select 1 from public\.guard_cases/,'portal lock is restored only after all meetings are resolved')
 assert.match(lock,/update public\.students set portal_enabled=true/,'staff confirmation restores an eligible student account')
+assert.match(lock,/status in \('review','overdue'\) or \(status='meeting' and p_accept\)/,'staff can confirm a held meeting while only rescheduling is allowed for an existing meeting')
 assert.match(lock,/guard_account_suspended/,'KIOS and student sign-in enforce GUARD suspension')
 assert.match(lock,/guard_meeting_required/,'student kiosk can direct a student to the required family meeting')
 
@@ -45,5 +46,8 @@ const holidays=readFileSync('src/components/haiti-holiday-suggestions.tsx','utf8
 assert.match(holidays,/Suggestions only/,'national holiday candidates are not treated as confirmed closures')
 assert.match(holidays,/save_school_closure/,'staff approval is required to add a school closure')
 assert.match(holidays,/Approve as school closure/,'the calendar offers a deliberate staff approval action')
+const guardPage=readFileSync('src/app/dashboard/guard/page.tsx','utf8')
+assert.match(guardPage,/\['review','overdue','meeting'\]\.includes\(c\.status\)/,'staff can action an upcoming family meeting')
+assert.match(guardPage,/c\.meeting_due\?'Confirm family meeting held'/,'meeting status uses the meeting confirmation action')
 
 console.log('PASS GUARD contract: Haiti school days, 9AM absences, parent reasons, three-late threshold, meeting deadlines, student access lock/recovery, scoped notifications and staff-approved holidays.')

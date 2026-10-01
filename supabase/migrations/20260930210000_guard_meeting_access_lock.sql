@@ -45,7 +45,7 @@ begin
   update public.guard_cases set status=case when p_accept then 'resolved' else 'meeting' end,
     reviewed_by=auth.uid(),reviewed_at=now(),staff_note=nullif(trim(p_note),''),
     meeting_due=case when p_accept then null else private.guard_school_deadline(sid,now(),2) end
-  where id=p_case and status in ('review','overdue');
+  where id=p_case and (status in ('review','overdue') or (status='meeting' and p_accept));
   if not found then raise exception 'case_not_reviewable'; end if;
 
   if p_accept and not exists(select 1 from public.guard_cases

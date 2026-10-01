@@ -18,7 +18,7 @@ insert into public.students(id,school_id,first_name,last_name,atechos_id) values
 insert into public.student_badges(id,school_id,student_id,badge_uid) values
  ('51000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','CI-BADGE');
 insert into private.badge_token_history(token_hash,badge_id) values
- (encode(extensions.digest('CI-PRIVATE-PICKUP-TOKEN','sha256'),'hex'),'51000000-0000-0000-0000-000000000001');
+ (encode(extensions.digest(repeat('a',64),'sha256'),'hex'),'51000000-0000-0000-0000-000000000001');
 insert into public.enrollments(id,school_id,student_id,class_id,status) values
  ('60000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','active');
 insert into public.school_members(school_id,user_id,role) values
@@ -65,7 +65,7 @@ begin
  if jsonb_array_length(public.kindergarten_parent_relocation_status())<>0 then raise exception 'unrelated parent saw relocation'; end if;
 
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
- perform public.complete_kindergarten_pickup('AOSQ1.CI-PRIVATE-PICKUP-TOKEN',adult_id,'CI verified pickup');
+ perform public.complete_kindergarten_pickup('AOSQ1.'||repeat('a',64),adult_id,'CI verified pickup');
  if not exists(select 1 from public.kindergarten_relocation_cases where id=v_case_id and status='picked_up' and closed_by='20000000-0000-0000-0000-000000000001') then raise exception 'pickup did not close relocation with actor'; end if;
  if not exists(select 1 from public.attendance_events where attendance_id='80000000-0000-0000-0000-000000000001' and source='STAFF' and actor_role='director' and action='kindergarten_pickup_check_out') then raise exception 'pickup checkout attribution failed'; end if;
  if not exists(select 1 from public.badge_scans where badge_id='51000000-0000-0000-0000-000000000001' and source='PICKUP' and result='pickup_complete') then raise exception 'pickup badge audit failed'; end if;

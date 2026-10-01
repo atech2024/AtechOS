@@ -2,6 +2,7 @@
 -- This is deliberately separate from production migration history and contains
 -- no production data or credentials.
 create schema if not exists private;
+create extension if not exists pg_cron;
 
 create table public.schools (id uuid primary key);
 create table public.users (id uuid primary key, full_name text not null);

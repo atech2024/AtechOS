@@ -18,6 +18,7 @@ for (const migration of ['20260930120000_guard_cases_workflow','20260930121500_g
 assert.match(workflow, /< guard-verification\.sql/);
 assert.doesNotMatch(workflow, /SUPABASE_ACCESS_TOKEN|supabase link|db push|--linked/);
 assert.match(config, /project_id = "atechos-migration-check"/);
+assert.match(baseline, /create extension if not exists pg_cron/i, 'synthetic Supabase baseline must provide cron.schedule for GUARD jobs');
 
 for (const table of ['schools', 'users', 'students', 'attendance', 'attendance_events', 'classes', 'grade_levels', 'academic_years', 'school_closures', 'notifications', 'enrollments', 'parents', 'student_parents', 'school_members', 'kindergarten_pickups']) {
   assert.match(baseline, new RegExp(`create table public\\.${table}\\b`, 'i'), `missing synthetic ${table} table`);

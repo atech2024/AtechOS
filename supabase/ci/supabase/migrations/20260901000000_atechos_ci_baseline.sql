@@ -35,7 +35,7 @@ create table public.students (
  portal_enabled boolean not null default true
 );
 create table public.attendance (
- id uuid primary key,
+ id uuid primary key default gen_random_uuid(),
  school_id uuid not null references public.schools(id),
  student_id uuid not null references public.students(id),
  class_id uuid not null references public.classes(id),

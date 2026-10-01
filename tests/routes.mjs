@@ -47,6 +47,7 @@ try {
   assert.equal(student.status,200);assert.ok((await student.text()).includes('Pòtal elèv'));checks++
   assert.equal((await fetch(origin+'/student/attachment/invalid')).status,401);checks++
   assert.equal((await fetch(origin+'/student/photo')).status,401);checks++
+  assert.equal((await fetch(origin+'/api/cron/official-calendar-sources')).status,401,'scheduled calendar source check must reject unauthenticated requests');checks++
   const home = await (await fetch(origin)).text()
   assert.ok(!home.includes('Get started'), 'Marketing cards must not send every role to signup')
   checks++

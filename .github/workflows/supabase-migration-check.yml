@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/kindergarten-relocation
+      - feature/preschool-grade-labels
     paths:
       - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
       - "supabase/migrations/20260930121500_guard_deadline_processor.sql"

@@ -15,7 +15,10 @@ for(const text of [
 ])assert.ok(migration.includes(text),`missing preschool capability: ${text}`)
 assert.match(migration,/revoke all on public\.preschool_program_settings,[\s\S]*?from public,anon,authenticated/i)
 assert.match(migration,/private\.family_student\(s\.id\)/,'parent bulletin RPC must remain linked-child scoped')
-assert.match(migration,/alter function private\.student_report_cards\(uuid\) rename to calculated_student_report_cards/)
+assert.match(migration,/create or replace function private\.student_report_cards\(p_student uuid\)/)
+assert.match(migration,/private\.calculated_student_report_cards\(p_student\)/)
+assert.match(migration,/private\.bulletin_card\(v\)/)
+assert.match(migration,/'preschool_cards'/)
 assert.ok(existsSync('src/app/dashboard/preschool/page.tsx'))
 
 const navExports={}

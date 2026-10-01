@@ -156,9 +156,26 @@ create table private.student_sessions (
 create function private.family_student(p_student uuid) returns boolean language sql stable security definer set search_path='' as $$
  select exists(select 1 from public.student_parents sp join public.parents p on p.id=sp.parent_id join public.students s on s.id=sp.student_id where sp.student_id=p_student and p.user_id=auth.uid() and s.active)
 $$;
-create function private.student_report_cards(p_student uuid) returns jsonb language sql stable security definer set search_path='' as $$
+create table public.bulletin_versions (
+ id uuid primary key default gen_random_uuid(),school_id uuid not null references public.schools(id),student_id uuid not null references public.students(id),
+ class_id uuid not null references public.classes(id),period_id uuid not null references public.grading_periods(id),version integer not null,
+ payload jsonb not null,published_at timestamptz not null default now()
+);
+create function private.calculated_student_report_cards(p_student uuid) returns jsonb language sql stable security definer set search_path='' as $$
  select jsonb_build_object('student',jsonb_build_object('id',s.id,'first_name',s.first_name,'last_name',s.last_name),'cards','[]'::jsonb,'attendance','[]'::jsonb) from public.students s where s.id=p_student
 $$;
+create function private.bulletin_card(v public.bulletin_versions) returns jsonb language sql stable set search_path='' as $$
+ select coalesce(v.payload->'card','{}'::jsonb)||jsonb_build_object('document',jsonb_build_object('id',v.id,'version',v.version,'published_at',v.published_at))
+$$;
+create function private.student_report_cards(p_student uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare base jsonb;cards jsonb;history jsonb;begin
+ base:=private.calculated_student_report_cards(p_student);if base is null then return null;end if;
+ select coalesce(jsonb_agg(private.bulletin_card(v) order by v.published_at desc,v.version desc),'[]') into history from public.bulletin_versions v where v.student_id=p_student;
+ with latest as(select distinct on (c->>'class_id',c->>'period_id') c from jsonb_array_elements(history) c order by c->>'class_id',c->>'period_id',(c->'document'->>'version')::int desc),
+ visible as(select c from latest union all select c from jsonb_array_elements(base->'cards') c where not exists(select 1 from latest l where l.c->>'class_id'=c->>'class_id' and l.c->>'period_id'=c->>'period_id'))
+ select coalesce(jsonb_agg(c),'[]') into cards from visible;
+ return base||jsonb_build_object('cards',cards,'document_history',history);
+end $$;
 create function public.get_report_card(p_student uuid) returns jsonb language sql stable security definer set search_path='' as $$
  select private.student_report_cards(p_student)
 $$;

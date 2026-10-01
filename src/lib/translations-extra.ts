@@ -544,4 +544,7 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Grade level':['Niveau scolaire','Nivo klas'],
  'Select grade level...':['Choisir un niveau...','Chwazi nivo klas la...'],
  'students':['élèves','elèv'],
+ 'Official calendars detected automatically':['Calendriers officiels détectés automatiquement','Kalandriye ofisyèl yo detekte otomatikman'],
+ 'Detected documents are references only. Review their dates and approve closures individually.':['Les documents détectés sont des références. Vérifiez les dates et approuvez les fermetures une par une.','Dokiman yo detekte yo se referans sèlman. Verifye dat yo epi apwouve chak fèmti apa.'],
+ 'Automatic official calendar updates are not configured yet.':['La mise à jour automatique du calendrier officiel n’est pas encore configurée.','Mizajou otomatik kalandriye ofisyèl la poko konfigire.'],
 }

@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node tests/routes.mjs && node tests/localization.mjs && node tests/kindergarten-pickup.mjs",
+    "test": "node tests/routes.mjs && node tests/localization.mjs && node tests/kindergarten-pickup.mjs && node tests/kindergarten-relocation.mjs && node tests/student-identity-privacy.mjs && node tests/supabase-ci-contract.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -20,6 +20,7 @@ assert.match(migration,/private\.calculated_student_report_cards\(p_student\)/)
 assert.match(migration,/private\.bulletin_card\(v\)/)
 assert.match(migration,/'preschool_cards'/)
 assert.ok(existsSync('src/app/dashboard/preschool/page.tsx'))
+assert.match(readFileSync('src/components/preschool-workspace.tsx','utf8'),/months\.map\(\(m,i\)=>\s*<option[^>]*>\{t\(m\)\}<\/option>\)/,'examination months must follow the selected UI locale')
 
 const navExports={}
 vm.runInNewContext(ts.transpileModule(readFileSync('src/lib/navigation.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{exports:navExports})

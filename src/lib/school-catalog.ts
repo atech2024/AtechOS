@@ -1,6 +1,6 @@
 // Editable starting catalogue; schools may add subjects for their own programme.
 export const schoolSections = [
-  { code: 'preschool', name: 'Préscolaire', grades: 'PS1 – PS3' },
+  { code: 'preschool', name: 'Préscolaire', grades: 'Petite, Moyenne, Grande Section' },
   { code: 'primary', name: 'Primaire', grades: '1re – 6e AF' },
   { code: 'fundamental', name: 'Fondamentale · 3e cycle', grades: '7e – 9e AF' },
   { code: 'secondary', name: 'Secondaire', grades: 'NS1 – NS4' },
@@ -11,6 +11,14 @@ export function gradeSection(code: string | null | undefined) {
   if (/^AF[7-9]$/.test(code || '')) return 'fundamental'
   if (/^NS[1-4]$/.test(code || '')) return 'secondary'
   return ''
+}
+export function gradeDisplayName(code: string | null | undefined, fallback: string) {
+  const preschoolNames: Record<string, string> = {
+    PS1: 'Petite Section',
+    PS2: 'Moyenne Section',
+    PS3: 'Grande Section',
+  }
+  return preschoolNames[(code || '').toUpperCase()] || fallback
 }
 export const subjectPresets = [
   ['FR', 'Français'], ['KR', 'Créole'], ['MATH', 'Mathématiques'],

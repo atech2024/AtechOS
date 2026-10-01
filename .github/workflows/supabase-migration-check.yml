@@ -11,6 +11,9 @@ on:
       - "supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql"
       - "supabase/migrations/20260930210000_guard_meeting_access_lock.sql"
       - "supabase/migrations/20260930220000_guard_school_day_absence.sql"
+      - "supabase/migrations/20260930213000_official_school_terms.sql"
+      - "supabase/migrations/20260930232834_kindergarten_pickup_workflow.sql"
+      - "supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql"
       - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
       - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
       - "supabase/ci/**"
@@ -23,6 +26,9 @@ on:
       - "supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql"
       - "supabase/migrations/20260930210000_guard_meeting_access_lock.sql"
       - "supabase/migrations/20260930220000_guard_school_day_absence.sql"
+      - "supabase/migrations/20260930213000_official_school_terms.sql"
+      - "supabase/migrations/20260930232834_kindergarten_pickup_workflow.sql"
+      - "supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql"
       - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
       - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
       - "supabase/ci/**"
@@ -50,6 +56,9 @@ jobs:
           cp supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20260930210000_guard_meeting_access_lock.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20260930220000_guard_school_day_absence.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930213000_official_school_terms.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930232834_kindergarten_pickup_workflow.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001001600_kindergarten_private_relocation.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations

@@ -2,7 +2,9 @@
 -- This is deliberately separate from production migration history and contains
 -- no production data or credentials.
 create schema if not exists private;
+create schema if not exists extensions;
 create extension if not exists pg_cron;
+create extension if not exists pgcrypto with schema extensions;
 
 create table public.schools (id uuid primary key);
 create table public.users (id uuid primary key, full_name text not null);
@@ -24,6 +26,13 @@ create table public.academic_years (
  is_current boolean not null default false
 );
 alter table public.classes add constraint classes_academic_year_fk foreign key(academic_year_id) references public.academic_years(id);
+create table public.grading_periods (
+ id uuid primary key default gen_random_uuid(),
+ school_id uuid not null references public.schools(id),
+ academic_year_id uuid not null references public.academic_years(id),
+ code text not null,
+ is_active boolean not null default true
+);
 create table public.students (
  id uuid primary key,
  school_id uuid not null references public.schools(id),
@@ -44,6 +53,7 @@ create table public.attendance (
  check_out_at timestamptz,
  status text not null,
  recorded_by uuid references public.users(id),
+ updated_at timestamptz not null default now(),
  unique(student_id,attendance_date)
 );
 create table public.attendance_events (
@@ -57,6 +67,29 @@ create table public.attendance_events (
  action text not null,
  recorded_at timestamptz not null default now(),
  attendance_date date not null
+);
+create table public.student_badges (
+ id uuid primary key default gen_random_uuid(),
+ school_id uuid not null references public.schools(id),
+ student_id uuid not null references public.students(id),
+ badge_uid text not null,
+ badge_type text not null default 'qr',
+ active boolean not null default true,
+ state text not null default 'active',
+ issued_at timestamptz not null default now()
+);
+create table private.badge_token_history (
+ token_hash text primary key,
+ badge_id uuid not null references public.student_badges(id)
+);
+create table public.badge_scans (
+ id uuid primary key default gen_random_uuid(),
+ school_id uuid not null references public.schools(id),
+ student_id uuid not null references public.students(id),
+ badge_id uuid not null references public.student_badges(id),
+ source text not null default 'KIOS',
+ result text not null,
+ created_at timestamptz not null default now()
 );
 create table public.enrollments (
  id uuid primary key,
@@ -112,14 +145,6 @@ create table private.student_sessions (
  token_hash text not null unique,
  expires_at timestamptz not null
 );
-create table public.kindergarten_pickups (
- id uuid primary key,
- school_id uuid not null references public.schools(id),
- student_id uuid not null references public.students(id),
- pickup_date date not null,
- recorded_by uuid not null references public.users(id)
-);
-
 create or replace function public.get_my_school_id() returns uuid
 language sql stable security definer set search_path=''
 as $$ select m.school_id from public.school_members m where m.user_id=auth.uid() and m.enabled order by m.school_id limit 1 $$;

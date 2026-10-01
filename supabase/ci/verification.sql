@@ -4,6 +4,8 @@ begin;
 insert into public.schools(id) values
  ('10000000-0000-0000-0000-000000000001'),
  ('10000000-0000-0000-0000-000000000002');
+insert into public.academic_years(id,school_id,start_date,end_date,is_current) values
+ ('11000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','2026-08-01','2027-07-31',true);
 insert into public.users(id,full_name) values
  ('20000000-0000-0000-0000-000000000001','CI Director'),
  ('20000000-0000-0000-0000-000000000002','Linked Parent'),
@@ -13,6 +15,10 @@ insert into public.classes(id,school_id,grade_level_id,grade_level,name) values
  ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','PS1','Preschool CI');
 insert into public.students(id,school_id,first_name,last_name,atechos_id) values
  ('50000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','CI','Student','AOS-CI-0001');
+insert into public.student_badges(id,school_id,student_id,badge_uid) values
+ ('51000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','CI-BADGE');
+insert into private.badge_token_history(token_hash,badge_id) values
+ (encode(extensions.digest('CI-PRIVATE-PICKUP-TOKEN','sha256'),'hex'),'51000000-0000-0000-0000-000000000001');
 insert into public.enrollments(id,school_id,student_id,class_id,status) values
  ('60000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','active');
 insert into public.school_members(school_id,user_id,role) values
@@ -28,9 +34,26 @@ insert into public.attendance(id,school_id,student_id,class_id,attendance_date,c
  ('80000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date,now(),'present','20000000-0000-0000-0000-000000000001');
 
 do $test$
-declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false;
+declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false; adult_id uuid; term_year uuid:='11000000-0000-0000-0000-000000000001';
 begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+ if (select term_count from public.academic_years where id=term_year)<>3 then raise exception 'official term default must be three'; end if;
+ failed:=false;
+ begin
+  insert into public.grading_periods(school_id,academic_year_id,code,is_active) values('10000000-0000-0000-0000-000000000001',term_year,'T4',true);
+ exception when others then failed:=sqlerrm='fourth_term_not_enabled';
+ end;
+ if not failed then raise exception 'fourth term was accepted before enabling'; end if;
+ perform public.set_academic_year_term_count(term_year,4);
+ insert into public.grading_periods(school_id,academic_year_id,code,is_active) values('10000000-0000-0000-0000-000000000001',term_year,'T4',true);
+ failed:=false;
+ begin
+  insert into public.grading_periods(school_id,academic_year_id,code,is_active) values('10000000-0000-0000-0000-000000000001',term_year,'C1',true);
+ exception when others then failed:=sqlerrm='assessment_is_not_a_grading_period';
+ end;
+ if not failed then raise exception 'assessment code was accepted as active grading period'; end if;
+ insert into public.kindergarten_pickup_authorizations(school_id,student_id,full_name,relationship,created_by)
+ values('10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','Authorized Adult','guardian','20000000-0000-0000-0000-000000000001') returning id into adult_id;
  v_case_id:=public.start_kindergarten_relocation('50000000-0000-0000-0000-000000000001','needs_support','PRIVATE-CI-NOTE');
  perform public.record_kindergarten_parent_contact(v_case_id,'no_answer','PRIVATE-CI-CONTACT');
 
@@ -42,10 +65,16 @@ begin
  if jsonb_array_length(public.kindergarten_parent_relocation_status())<>0 then raise exception 'unrelated parent saw relocation'; end if;
 
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
- insert into public.kindergarten_pickups(id,school_id,student_id,pickup_date,recorded_by) values
-  ('90000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date,'20000000-0000-0000-0000-000000000001');
- update public.attendance set check_out_at=now() where id='80000000-0000-0000-0000-000000000001';
+ perform public.complete_kindergarten_pickup('AOSQ1.CI-PRIVATE-PICKUP-TOKEN',adult_id,'CI verified pickup');
  if not exists(select 1 from public.kindergarten_relocation_cases where id=v_case_id and status='picked_up' and closed_by='20000000-0000-0000-0000-000000000001') then raise exception 'pickup did not close relocation with actor'; end if;
+ if not exists(select 1 from public.attendance_events where attendance_id='80000000-0000-0000-0000-000000000001' and source='STAFF' and actor_role='director' and action='kindergarten_pickup_check_out') then raise exception 'pickup checkout attribution failed'; end if;
+ if not exists(select 1 from public.badge_scans where badge_id='51000000-0000-0000-0000-000000000001' and source='PICKUP' and result='pickup_complete') then raise exception 'pickup badge audit failed'; end if;
+ failed:=false;
+ begin
+  update public.kindergarten_pickups set reason='mutated' where student_id='50000000-0000-0000-0000-000000000001';
+ exception when others then failed:=sqlerrm='pickup_history_immutable';
+ end;
+ if not failed then raise exception 'pickup history was mutable'; end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
  if jsonb_array_length(public.kindergarten_parent_relocation_status())<>0 then raise exception 'family notice remained after pickup'; end if;
  begin

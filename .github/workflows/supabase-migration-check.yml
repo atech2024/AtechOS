@@ -1,8 +1,28 @@
 name: Supabase migration checks (free local stack)
 
 on:
+  push:
+    branches:
+      - feature/kindergarten-relocation
+    paths:
+      - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
+      - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
+      - "supabase/migrations/20260930123000_weekly_lateness_guard.sql"
+      - "supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql"
+      - "supabase/migrations/20260930210000_guard_meeting_access_lock.sql"
+      - "supabase/migrations/20260930220000_guard_school_day_absence.sql"
+      - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
+      - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
+      - "supabase/ci/**"
+      - ".github/workflows/supabase-migration-check.yml"
   pull_request:
     paths:
+      - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
+      - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
+      - "supabase/migrations/20260930123000_weekly_lateness_guard.sql"
+      - "supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql"
+      - "supabase/migrations/20260930210000_guard_meeting_access_lock.sql"
+      - "supabase/migrations/20260930220000_guard_school_day_absence.sql"
       - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
       - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
       - "supabase/ci/**"

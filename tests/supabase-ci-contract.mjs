@@ -8,6 +8,7 @@ const verification = readFileSync('supabase/ci/verification.sql', 'utf8');
 const guardVerification = readFileSync('supabase/ci/guard-verification.sql', 'utf8');
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
+assert.match(workflow, /push:\s+branches:\s+- feature\/kindergarten-relocation/);
 assert.match(workflow, /supabase start/);
 assert.match(workflow, /supabase db reset --local --no-seed/);
 assert.match(workflow, /docker exec -i .* psql .*ON_ERROR_STOP=1/);

@@ -52,6 +52,9 @@ begin
  perform public.review_guard_case(v_reason_case,false,'Meeting requested');
  select meeting_due into v_meeting from public.guard_cases where id=v_reason_case and status='meeting';
  if v_meeting is null or v_meeting<=now() then raise exception 'rejected reason did not schedule a future meeting';end if;
+ perform public.review_guard_case(v_reason_case,false,'Meeting rescheduled');
+ if not exists(select 1 from public.guard_cases where id=v_reason_case and status='meeting' and meeting_due>v_meeting and staff_note='Meeting rescheduled') then raise exception 'existing family meeting could not be rescheduled';end if;
+ select meeting_due into v_meeting from public.guard_cases where id=v_reason_case;
  if not exists(select 1 from public.notifications where recipient_id='21000000-0000-0000-0000-000000000001' and type='guard' and priority='high') then raise exception 'staff did not receive the meeting alert';end if;
  perform public.review_guard_case(v_reason_case,true,'Meeting fixture resolved');
  if (select status from public.guard_cases where id=v_reason_case)<>'resolved' then raise exception 'staff confirmation did not resolve the meeting case';end if;

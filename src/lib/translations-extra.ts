@@ -81,6 +81,7 @@ export const extraTranslations:Record<string,[string,string]> = {
 
  'GUARD cases':['Dossiers GUARD','Ka GUARD yo'],
  'Review attendance reasons and manage family meetings.':['Examiner les motifs de présence et gérer les réunions avec les familles.','Revize motif prezans yo epi jere reyinyon ak fanmi yo.'],
+ 'This GUARD case changed. The list has been refreshed; review its current status and try again.':['Ce dossier GUARD a changé. La liste a été actualisée ; vérifiez son statut actuel et réessayez.','Dosye GUARD sa a chanje. Lis la rafrechi; verifye estati li kounye a epi eseye ankò.'],
  'See attendance cases for your children and submit a reason before the school-day deadline.':['Consultez les dossiers de vos enfants et soumettez un motif avant le délai scolaire.','Gade ka pitit ou yo epi voye motif anvan delè jou lekòl la.'],
  'No GUARD cases.':['Aucun dossier GUARD.','Pa gen ka GUARD.'],
  'Waiting for family reason':['En attente du motif familial','Ap tann motif fanmi an'],

@@ -18,6 +18,8 @@ on:
       - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
       - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
       - "supabase/migrations/20261001144429_preschool_competency_bulletins.sql"
+      - "supabase/migrations/20261001222000_school_calendar_year_successor.sql"
+      - "supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
   pull_request:
@@ -34,6 +36,8 @@ on:
       - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
       - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
       - "supabase/migrations/20261001144429_preschool_competency_bulletins.sql"
+      - "supabase/migrations/20261001222000_school_calendar_year_successor.sql"
+      - "supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
   workflow_dispatch:
@@ -65,6 +69,8 @@ jobs:
           cp supabase/migrations/20261001001600_kindergarten_private_relocation.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001144429_preschool_competency_bulletins.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261001222000_school_calendar_year_successor.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |
@@ -78,6 +84,7 @@ jobs:
           test -n "$db_container"
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < guard-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < school-calendar-verification.sql
       - name: Stop local Supabase
         if: always()
         working-directory: supabase/ci

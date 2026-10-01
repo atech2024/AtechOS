@@ -7,6 +7,7 @@ const processor=read('20260930121500_guard_deadline_processor.sql')
 const weekly=read('20260930123000_weekly_lateness_guard.sql')
 const weekdays=read('20260930194459_guard_school_day_deadlines_notifications.sql')
 const lock=read('20260930210000_guard_meeting_access_lock.sql')
+const meetingFix=read('20261001222100_guard_meeting_reschedule_fix.sql')
 const absence=read('20260930220000_guard_school_day_absence.sql')
 
 assert.match(weekdays,/extract\(isodow from p_day\) between 1 and 5/,'GUARD deadlines count Monday through Friday only')
@@ -33,7 +34,8 @@ assert.match(lock,/update public\.students s set portal_enabled=false/,'missed m
 assert.match(lock,/delete from private\.student_sessions/,'existing student sessions are revoked')
 assert.match(lock,/if p_accept and not exists\(select 1 from public\.guard_cases/,'portal lock is restored only after all meetings are resolved')
 assert.match(lock,/update public\.students set portal_enabled=true/,'staff confirmation restores an eligible student account')
-assert.match(lock,/status in \('review','overdue'\) or \(status='meeting' and p_accept\)/,'staff can confirm a held meeting while only rescheduling is allowed for an existing meeting')
+assert.match(meetingFix,/where id=p_case and status in \('review','overdue','meeting'\)/,'staff can schedule or reschedule a family meeting that remains reviewable')
+assert.match(meetingFix,/old_status='meeting' and old_meeting_due is not null then greatest\(now\(\),old_meeting_due\) else now\(\) end,2/,'rescheduling extends the current meeting deadline by two open school days')
 assert.match(lock,/guard_account_suspended/,'KIOS and student sign-in enforce GUARD suspension')
 assert.match(lock,/guard_meeting_required/,'student kiosk can direct a student to the required family meeting')
 
@@ -50,5 +52,7 @@ assert.match(holidays,/Approve as school closure/,'the calendar offers a deliber
 const guardPage=readFileSync('src/app/dashboard/guard/page.tsx','utf8')
 assert.match(guardPage,/\['review','overdue','meeting'\]\.includes\(c\.status\)/,'staff can action an upcoming family meeting')
 assert.match(guardPage,/c\.meeting_due\?'Confirm family meeting held'/,'meeting status uses the meeting confirmation action')
+const guardVerification=readFileSync('supabase/ci/guard-verification.sql','utf8')
+assert.match(guardVerification,/perform public\.review_guard_case\(v_reason_case,false,'Meeting rescheduled'\)/,'database integration fixture exercises meeting rescheduling')
 
 console.log('PASS GUARD contract: Haiti school days, 9AM absences, parent reasons, three-late threshold, meeting deadlines, student access lock/recovery, scoped notifications and staff-approved holidays.')

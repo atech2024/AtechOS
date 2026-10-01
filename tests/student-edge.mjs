@@ -2,9 +2,9 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
-const source=readFileSync('supabase/functions/student-assignment-link/index.ts','utf8').replace(/^import .*\n/,'')
+const source=readFileSync('supabase/functions/student-assignment-link/index.ts','utf8').replace(/^\uFEFF?import[^\r\n]*[\r\n]+/gm,'')
 let handler,authorized=null,signed=[],rpcError=null
-const context={Request,Response,createClient:()=>({rpc:async()=>({data:authorized,error:rpcError}),storage:{from:bucket=>({createSignedUrl:async(path,ttl)=>{signed.push({bucket,path,ttl});return {data:{signedUrl:'https://files.example.test/authorized'}}}})}}),Deno:{env:{get:()=>''},serve:fn=>handler=fn}}
+const context={exports:{},Request,Response,createClient:()=>({rpc:async()=>({data:authorized,error:rpcError}),storage:{from:bucket=>({createSignedUrl:async(path,ttl)=>{signed.push({bucket,path,ttl});return {data:{signedUrl:'https://files.example.test/authorized'}}}})}}),Deno:{env:{get:()=>''},serve:fn=>handler=fn}}
 vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}}).outputText,context)
 const id='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',token='ab'.repeat(32)
 const call=body=>handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify(body)}))

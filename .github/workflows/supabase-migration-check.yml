@@ -21,9 +21,15 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Stage the two pending migrations in an isolated local Supabase project
+      - name: Stage selected pending migrations in an isolated local Supabase project
         shell: bash
         run: |
+          cp supabase/migrations/20260930120000_guard_cases_workflow.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930121500_guard_deadline_processor.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930123000_weekly_lateness_guard.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930210000_guard_meeting_access_lock.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930220000_guard_school_day_absence.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001001600_kindergarten_private_relocation.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
@@ -38,6 +44,7 @@ jobs:
           db_container="$(docker ps --filter 'name=supabase_db_atechos-migration-check' --format '{{.Names}}' | head -n 1)"
           test -n "$db_container"
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < guard-verification.sql
       - name: Stop local Supabase
         if: always()
         working-directory: supabase/ci

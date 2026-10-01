@@ -29,7 +29,7 @@ jobs:
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |
-          supabase start
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
           supabase db reset --local --no-seed
       - name: Run rollback-only migration integration checks
         working-directory: supabase/ci

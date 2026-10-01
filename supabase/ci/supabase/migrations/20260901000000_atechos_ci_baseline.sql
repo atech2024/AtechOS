@@ -70,10 +70,6 @@ create table public.kindergarten_pickups (
  recorded_by uuid not null references public.users(id)
 );
 
-create or replace function auth.uid() returns uuid
-language sql stable
-as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-
 create or replace function public.get_my_school_id() returns uuid
 language sql stable security definer set search_path=''
 as $$ select m.school_id from public.school_members m where m.user_id=auth.uid() and m.enabled order by m.school_id limit 1 $$;

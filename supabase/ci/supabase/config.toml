@@ -15,5 +15,5 @@ major_version = 15
 [studio]
 enabled = false
 
-[inbucket]
+[local_smtp]
 enabled = false

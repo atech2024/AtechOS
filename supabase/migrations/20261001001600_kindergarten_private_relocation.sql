@@ -128,17 +128,17 @@ end $$;
 create or replace function private.close_kindergarten_relocation_after_pickup()
 returns trigger language plpgsql security definer set search_path=''
 as $$
-declare actor_name text;actor_role text;pickup public.kindergarten_pickups;rc record;
+declare actor_name text;actor_role text;pickup public.kindergarten_pickups;v_case public.kindergarten_relocation_cases%rowtype;
 begin
  if new.check_out_at is null or old.check_out_at is not null then return new;end if;
  select * into pickup from public.kindergarten_pickups p where p.student_id=new.student_id and p.school_id=new.school_id and p.pickup_date=new.attendance_date;
  if pickup.id is null then return new;end if;
  select full_name into actor_name from public.users where id=pickup.recorded_by;
  select role::text into actor_role from public.school_members where school_id=pickup.school_id and user_id=pickup.recorded_by and enabled order by case role::text when 'school_admin' then 0 when 'director' then 1 when 'secretary' then 2 when 'censeur' then 3 else 4 end limit 1;
- for rc in select rc.* from public.kindergarten_relocation_cases rc where rc.attendance_id=new.id and rc.student_id=new.student_id and rc.school_id=new.school_id and rc.status='active' for update loop
-  update public.kindergarten_relocation_cases set status='picked_up',closed_by=pickup.recorded_by,closed_name=coalesce(actor_name,'Staff'),closed_role=coalesce(actor_role,'staff'),closed_at=new.check_out_at where id=rc.id;
+ for v_case in select cases.* from public.kindergarten_relocation_cases cases where cases.attendance_id=new.id and cases.student_id=new.student_id and cases.school_id=new.school_id and cases.status='active' for update loop
+  update public.kindergarten_relocation_cases set status='picked_up',closed_by=pickup.recorded_by,closed_name=coalesce(actor_name,'Staff'),closed_role=coalesce(actor_role,'staff'),closed_at=new.check_out_at where id=v_case.id;
   insert into public.kindergarten_relocation_events(school_id,case_id,student_id,event_type,actor_id,actor_name,actor_role,created_at)
-  values(new.school_id,rc.id,new.student_id,'picked_up',pickup.recorded_by,coalesce(actor_name,'Staff'),coalesce(actor_role,'staff'),new.check_out_at);
+  values(new.school_id,v_case.id,new.student_id,'picked_up',pickup.recorded_by,coalesce(actor_name,'Staff'),coalesce(actor_role,'staff'),new.check_out_at);
  end loop;
  return new;
 end $$;

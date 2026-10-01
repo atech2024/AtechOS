@@ -20,6 +20,8 @@ on:
       - "supabase/migrations/20261001144429_preschool_competency_bulletins.sql"
       - "supabase/migrations/20261001222000_school_calendar_year_successor.sql"
       - "supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql"
+      - "supabase/migrations/20261002100000_official_calendar_sources.sql"
+      - "vercel.json"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
   pull_request:
@@ -38,6 +40,8 @@ on:
       - "supabase/migrations/20261001144429_preschool_competency_bulletins.sql"
       - "supabase/migrations/20261001222000_school_calendar_year_successor.sql"
       - "supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql"
+      - "supabase/migrations/20261002100000_official_calendar_sources.sql"
+      - "vercel.json"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
   workflow_dispatch:
@@ -71,6 +75,7 @@ jobs:
           cp supabase/migrations/20261001144429_preschool_competency_bulletins.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001222000_school_calendar_year_successor.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002100000_official_calendar_sources.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

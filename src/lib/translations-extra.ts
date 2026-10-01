@@ -539,4 +539,8 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Unable to close the relocation.':['Impossible de clôturer le déplacement.','Nou pa kapab fèmen dosye relocation an.'],
  'A relocation is already active.':['Un déplacement est déjà en cours.','Gen yon relocation ki deja aktif.'],
  'Please contact the school regarding your child.':['Veuillez contacter l’école au sujet de votre enfant.','Tanpri kontakte lekòl la konsènan pitit ou.'],
+ 'Search student':['Rechercher un élève','Chèche yon elèv'],
+ 'Grade level':['Niveau scolaire','Nivo klas'],
+ 'Select grade level...':['Choisir un niveau...','Chwazi nivo klas la...'],
+ 'students':['élèves','elèv'],
 }

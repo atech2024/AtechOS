@@ -12,8 +12,8 @@ insert into public.users(id,full_name) values
  ('20000000-0000-0000-0000-000000000003','Unrelated Parent'),
  ('20000000-0000-0000-0000-000000000004','CI Preschool Teacher');
 insert into public.grade_levels(id,code) values('30000000-0000-0000-0000-000000000001','PS1');
-insert into public.classes(id,school_id,grade_level_id,grade_level,name) values
- ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','PS1','Preschool CI');
+insert into public.classes(id,school_id,grade_level_id,grade_level,name,academic_year_id) values
+ ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','PS1','Preschool CI','11000000-0000-0000-0000-000000000001');
 insert into public.students(id,school_id,first_name,last_name,atechos_id) values
  ('50000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','CI','Student','AOS-CI-0001');
 insert into public.student_badges(id,school_id,student_id,badge_uid) values

@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node tests/routes.mjs && node tests/localization.mjs",
+    "test": "node tests/routes.mjs && node tests/localization.mjs && node tests/kindergarten-pickup.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

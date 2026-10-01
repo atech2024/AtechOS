@@ -123,7 +123,7 @@ as $$
 declare sid uuid:=public.get_my_school_id();staff boolean;
 begin
   staff:=private.has_role(sid,array['school_admin','director','secretary','surveillant']);
-  if not staff and not exists(select 1 from public.student_parents sp join public.parents p on p.id=sp.parent_id where p.user_id=auth.uid()) then raise exception 'not_authorized'; end if;
+  if not staff and not exists(select 1 from public.students s where private.guard_can_read(s.id)) then raise exception 'not_authorized'; end if;
   return jsonb_build_object('can_manage',staff,'cases',coalesce((select jsonb_agg(jsonb_build_object('id',g.id,'student',s.first_name||' '||s.last_name,'kind',g.kind,'event_date',g.event_date,'status',g.status,'reason',g.reason,'reason_due',g.reason_due,'meeting_due',g.meeting_due,'staff_note',g.staff_note) order by g.event_date desc,g.created_at desc)
     from public.guard_cases g join public.students s on s.id=g.student_id
     where (staff and g.school_id=sid) or (not staff and private.guard_can_read(g.student_id))),'[]'));

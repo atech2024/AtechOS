@@ -41,7 +41,7 @@ assert.match(verification, /has_table_privilege\('authenticated'/);
 assert.doesNotMatch(verification, /https:\/\/[^\s]*supabase\.co/);
 assert.match(guardVerification.trim(), /^begin;/i);
 assert.match(guardVerification, /rollback;\s*$/i);
-for (const assertion of ['GUARD deadline did not skip closure/weekend','unrelated parent submitted a reason','three weekly lates did not create one case','open-school-day absence was not created at 09:00','missed meeting did not suspend student portal','KIOS did not enforce GUARD suspension','student portal login did not enforce GUARD suspension','confirmed meeting did not restore student portal','unrelated family saw GUARD history']) assert.ok(guardVerification.includes(assertion), `GUARD database fixture must check: ${assertion}`);
+for (const assertion of ['GUARD deadline did not skip closure/weekend','unrelated parent submitted a reason','three weekly lates did not create one case','open-school-day absence was not created at 09:00','missed meeting did not suspend student portal','KIOS did not enforce GUARD suspension','student portal login did not enforce GUARD suspension','confirmed meeting did not restore student portal','unrelated family accessed GUARD workspace']) assert.ok(guardVerification.includes(assertion), `GUARD database fixture must check: ${assertion}`);
 assert.doesNotMatch(guardVerification, /https:\/\/[^\s]*supabase\.co/);
 
 console.log('PASS free, isolated Supabase CI contract: synthetic baseline, only targeted migrations, rollback-only data checks, no production credentials or remote database commands.');

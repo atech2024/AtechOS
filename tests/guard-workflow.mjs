@@ -40,6 +40,7 @@ assert.match(lock,/guard_meeting_required/,'student kiosk can direct a student t
 assert.match(weekdays,/from public\.student_parents sp join public\.parents p/,'family notices route through linked parent records')
 assert.match(weekdays,/from public\.school_members m where m\.school_id=new\.school_id and m\.enabled/,'staff notices stay within the school')
 assert.match(weekdays,/private\.guard_can_read\(g\.student_id\)/,'parent case access is restricted to their linked children')
+assert.match(weekdays,/if not staff and not exists\(select 1 from public\.students s where private\.guard_can_read\(s\.id\)\)/,'GUARD workspace admits parents only when linked to a student')
 assert.match(weekdays,/event_key/,'GUARD notifications have deduplication keys')
 
 const holidays=readFileSync('src/components/haiti-holiday-suggestions.tsx','utf8')

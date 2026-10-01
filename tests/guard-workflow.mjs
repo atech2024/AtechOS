@@ -1,0 +1,49 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+
+const read=name=>readFileSync(`supabase/migrations/${name}`,'utf8')
+const foundations=read('20260930120000_guard_cases_workflow.sql')
+const processor=read('20260930121500_guard_deadline_processor.sql')
+const weekly=read('20260930123000_weekly_lateness_guard.sql')
+const weekdays=read('20260930194459_guard_school_day_deadlines_notifications.sql')
+const lock=read('20260930210000_guard_meeting_access_lock.sql')
+const absence=read('20260930220000_guard_school_day_absence.sql')
+
+assert.match(weekdays,/extract\(isodow from p_day\) between 1 and 5/,'GUARD deadlines count Monday through Friday only')
+assert.match(weekdays,/y\.is_current and p_day between y\.start_date and y\.end_date/,'GUARD runs within the current school year')
+assert.match(weekdays,/not exists\(select 1 from public\.school_closures c where c\.school_id=p_school and c\.day=p_day\)/,'approved closures do not count as school days')
+assert.match(weekdays,/p_start at time zone 'America\/Port-au-Prince'/,'deadlines use Haiti local date/time')
+assert.match(weekdays,/if private\.guard_school_day\(p_school,d\) then n:=n\+1/,'school-day deadline skips weekends and closures')
+
+assert.match(weekdays,/p\.user_id=auth\.uid\(\)/,'only a linked parent can submit a reason')
+assert.match(weekdays,/if due is not null and now\(\)>due then raise exception 'reason_deadline_passed'/,'late family reasons are rejected')
+assert.match(weekdays,/private\.guard_school_deadline\(sid,now\(\),2\)/,'rejected reasons get a two-open-school-day meeting deadline')
+assert.match(weekdays,/having count\(\*\)>=3/,'three weekly late arrivals create a GUARD case')
+assert.match(weekdays,/private\.guard_school_day\(a\.school_id,a\.attendance_date\)/,'lateness counts exclude closed/non-school days')
+assert.match(weekdays,/week_start date:=date_trunc\('week',d::timestamp\)::date/,'weekly lateness window starts Monday')
+
+assert.match(absence,/time < time '09:00'/,'absence processing waits until 9:00 AM')
+assert.match(absence,/private\.guard_school_day\(s\.school_id,d\)/,'automatic absence only runs on an open school day')
+assert.match(absence,/on conflict\(student_id,attendance_date\) do nothing/,'automatic absence never overwrites an attendance decision')
+assert.match(absence,/source,actor_id,actor_name,actor_role,action/,'automatic absence records a SYSTEM audit event')
+
+assert.match(processor,/status='awaiting_reason' and reason_due < p_now/,'expired reason deadlines are processed')
+assert.match(lock,/status='meeting' and meeting_due is not null and meeting_due<=p_now/,'missed meeting deadlines are processed')
+assert.match(lock,/update public\.students s set portal_enabled=false/,'missed meetings suspend student portal access')
+assert.match(lock,/delete from private\.student_sessions/,'existing student sessions are revoked')
+assert.match(lock,/if p_accept and not exists\(select 1 from public\.guard_cases/,'portal lock is restored only after all meetings are resolved')
+assert.match(lock,/update public\.students set portal_enabled=true/,'staff confirmation restores an eligible student account')
+assert.match(lock,/guard_account_suspended/,'KIOS and student sign-in enforce GUARD suspension')
+assert.match(lock,/guard_meeting_required/,'student kiosk can direct a student to the required family meeting')
+
+assert.match(weekdays,/from public\.student_parents sp join public\.parents p/,'family notices route through linked parent records')
+assert.match(weekdays,/from public\.school_members m where m\.school_id=new\.school_id and m\.enabled/,'staff notices stay within the school')
+assert.match(weekdays,/private\.guard_can_read\(g\.student_id\)/,'parent case access is restricted to their linked children')
+assert.match(weekdays,/event_key/,'GUARD notifications have deduplication keys')
+
+const holidays=readFileSync('src/components/haiti-holiday-suggestions.tsx','utf8')
+assert.match(holidays,/Suggestions only/,'national holiday candidates are not treated as confirmed closures')
+assert.match(holidays,/save_school_closure/,'staff approval is required to add a school closure')
+assert.match(holidays,/Approve as school closure/,'the calendar offers a deliberate staff approval action')
+
+console.log('PASS GUARD contract: Haiti school days, 9AM absences, parent reasons, three-late threshold, meeting deadlines, student access lock/recovery, scoped notifications and staff-approved holidays.')

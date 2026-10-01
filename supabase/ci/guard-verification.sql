@@ -91,6 +91,7 @@ begin
  if v_result->>'error'='guard_account_suspended' then raise exception 'confirmed meeting did not restore portal sign-in';end if;
 
  perform set_config('request.jwt.claim.sub','21000000-0000-0000-0000-000000000002',true);
+ raise notice 'GUARD workspace identity: uid=%, school=%, staff=%, parent=%',auth.uid(),public.get_my_school_id(),private.has_role(public.get_my_school_id(),array['school_admin','director','secretary','surveillant']),exists(select 1 from public.student_parents sp join public.parents p on p.id=sp.parent_id where p.user_id=auth.uid());
  if auth.uid()<>'21000000-0000-0000-0000-000000000002'::uuid then raise exception 'linked parent JWT claim was not set: %',auth.uid();end if;
  if not exists(select 1 from public.student_parents sp join public.parents p on p.id=sp.parent_id where sp.student_id=v_student and p.user_id=auth.uid()) then raise exception 'linked parent relationship disappeared before workspace read';end if;
  v_payload:=public.guard_workspace();

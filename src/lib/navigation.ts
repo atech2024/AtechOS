@@ -14,6 +14,7 @@ export const navigation:NavigationItem[]=[
  {label:'Grades',href:'/dashboard/grades',icon:'grades',roles:[...administration,'teacher']},
  {label:'Publication des bulletins',href:'/dashboard/publication',icon:'publication',roles:['school_admin','director','censeur']},
  {label:'Bulletins',href:'/dashboard/bulletins',icon:'reports',roles:[...administration,'surveillant']},
+ {label:'Preschool competency bulletins',href:'/dashboard/preschool',icon:'reports',roles:[...administration,'teacher','censeur']},
  {label:'Assignments',href:'/dashboard/assignments',icon:'assignments',roles:[...administration,'teacher']},
  {label:'Academic progression',href:'/dashboard/progression',icon:'progression',roles:['school_admin','director']},
  {label:'Access approvals',href:'/dashboard/approvals',icon:'requests',roles:['school_admin','director','censeur']},

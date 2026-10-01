@@ -1,0 +1,80 @@
+name: Supabase migration checks (free local stack)
+
+on:
+  push:
+    branches:
+      - feature/kindergarten-relocation
+    paths:
+      - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
+      - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
+      - "supabase/migrations/20260930123000_weekly_lateness_guard.sql"
+      - "supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql"
+      - "supabase/migrations/20260930210000_guard_meeting_access_lock.sql"
+      - "supabase/migrations/20260930220000_guard_school_day_absence.sql"
+      - "supabase/migrations/20260930213000_official_school_terms.sql"
+      - "supabase/migrations/20260930232834_kindergarten_pickup_workflow.sql"
+      - "supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql"
+      - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
+      - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
+      - "supabase/ci/**"
+      - ".github/workflows/supabase-migration-check.yml"
+  pull_request:
+    paths:
+      - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
+      - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
+      - "supabase/migrations/20260930123000_weekly_lateness_guard.sql"
+      - "supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql"
+      - "supabase/migrations/20260930210000_guard_meeting_access_lock.sql"
+      - "supabase/migrations/20260930220000_guard_school_day_absence.sql"
+      - "supabase/migrations/20260930213000_official_school_terms.sql"
+      - "supabase/migrations/20260930232834_kindergarten_pickup_workflow.sql"
+      - "supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql"
+      - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
+      - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
+      - "supabase/ci/**"
+      - ".github/workflows/supabase-migration-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Stage selected pending migrations in an isolated local Supabase project
+        shell: bash
+        run: |
+          cp supabase/migrations/20260930120000_guard_cases_workflow.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930121500_guard_deadline_processor.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930123000_weekly_lateness_guard.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930210000_guard_meeting_access_lock.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930220000_guard_school_day_absence.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930213000_official_school_terms.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930232834_kindergarten_pickup_workflow.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261001001600_kindergarten_private_relocation.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql supabase/ci/supabase/migrations/
+      - name: Start local Supabase and apply migrations
+        working-directory: supabase/ci
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Run rollback-only migration integration checks
+        working-directory: supabase/ci
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-migration-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < guard-verification.sql
+      - name: Stop local Supabase
+        if: always()
+        working-directory: supabase/ci
+        run: supabase stop --no-backup

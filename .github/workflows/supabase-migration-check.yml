@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/kindergarten-relocation
+      - feature/preschool-grade-labels
     paths:
       - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
       - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
@@ -16,6 +17,7 @@ on:
       - "supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql"
       - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
       - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
+      - "supabase/migrations/20261001144429_preschool_competency_bulletins.sql"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
   pull_request:
@@ -31,6 +33,7 @@ on:
       - "supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql"
       - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
       - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
+      - "supabase/migrations/20261001144429_preschool_competency_bulletins.sql"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
   workflow_dispatch:
@@ -61,6 +64,7 @@ jobs:
           cp supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001001600_kindergarten_private_relocation.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261001144429_preschool_competency_bulletins.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

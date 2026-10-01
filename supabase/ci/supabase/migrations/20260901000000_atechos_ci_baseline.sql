@@ -6,8 +6,8 @@ create schema if not exists extensions;
 create extension if not exists pg_cron;
 create extension if not exists pgcrypto with schema extensions;
 
-create table public.schools (id uuid primary key);
-create table public.users (id uuid primary key, full_name text not null);
+create table public.schools (id uuid primary key, name text not null default 'CI School', code text, address text, phone text, logo_url text);
+create table public.users (id uuid primary key, full_name text not null, email text);
 create table public.grade_levels (id uuid primary key, code text not null);
 create table public.classes (
  id uuid primary key,
@@ -15,12 +15,14 @@ create table public.classes (
  grade_level_id uuid references public.grade_levels(id),
  academic_year_id uuid,
  grade_level text,
+ homeroom_teacher_id uuid references public.users(id),
  name text not null,
  enabled boolean not null default true
 );
 create table public.academic_years (
  id uuid primary key,
  school_id uuid not null references public.schools(id),
+ name text not null default 'CI Year',
  start_date date not null,
  end_date date not null,
  is_current boolean not null default false
@@ -30,7 +32,11 @@ create table public.grading_periods (
  id uuid primary key default gen_random_uuid(),
  school_id uuid not null references public.schools(id),
  academic_year_id uuid not null references public.academic_years(id),
+ name text not null default 'P1',
  code text not null,
+ start_date date not null default current_date,
+ end_date date not null default current_date,
+ sections text[] not null default array['preschool']::text[],
  is_active boolean not null default true
 );
 create table public.students (
@@ -41,7 +47,9 @@ create table public.students (
  atechos_id text,
  active boolean not null default true,
  school_status text not null default 'active',
- portal_enabled boolean not null default true
+ portal_enabled boolean not null default true,
+ photo_url text,
+ departure_year_id uuid references public.academic_years(id)
 );
 create table public.attendance (
  id uuid primary key default gen_random_uuid(),
@@ -145,6 +153,32 @@ create table private.student_sessions (
  token_hash text not null unique,
  expires_at timestamptz not null
 );
+create function private.family_student(p_student uuid) returns boolean language sql stable security definer set search_path='' as $$
+ select exists(select 1 from public.student_parents sp join public.parents p on p.id=sp.parent_id join public.students s on s.id=sp.student_id where sp.student_id=p_student and p.user_id=auth.uid() and s.active)
+$$;
+create table public.bulletin_versions (
+ id uuid primary key default gen_random_uuid(),school_id uuid not null references public.schools(id),student_id uuid not null references public.students(id),
+ class_id uuid not null references public.classes(id),period_id uuid not null references public.grading_periods(id),version integer not null,
+ payload jsonb not null,published_at timestamptz not null default now()
+);
+create function private.calculated_student_report_cards(p_student uuid) returns jsonb language sql stable security definer set search_path='' as $$
+ select jsonb_build_object('student',jsonb_build_object('id',s.id,'first_name',s.first_name,'last_name',s.last_name),'cards','[]'::jsonb,'attendance','[]'::jsonb) from public.students s where s.id=p_student
+$$;
+create function private.bulletin_card(v public.bulletin_versions) returns jsonb language sql stable set search_path='' as $$
+ select coalesce(v.payload->'card','{}'::jsonb)||jsonb_build_object('document',jsonb_build_object('id',v.id,'version',v.version,'published_at',v.published_at))
+$$;
+create function private.student_report_cards(p_student uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare base jsonb;cards jsonb;history jsonb;begin
+ base:=private.calculated_student_report_cards(p_student);if base is null then return null;end if;
+ select coalesce(jsonb_agg(private.bulletin_card(v) order by v.published_at desc,v.version desc),'[]') into history from public.bulletin_versions v where v.student_id=p_student;
+ with latest as(select distinct on (c->>'class_id',c->>'period_id') c from jsonb_array_elements(history) c order by c->>'class_id',c->>'period_id',(c->'document'->>'version')::int desc),
+ visible as(select c from latest union all select c from jsonb_array_elements(base->'cards') c where not exists(select 1 from latest l where l.c->>'class_id'=c->>'class_id' and l.c->>'period_id'=c->>'period_id'))
+ select coalesce(jsonb_agg(c),'[]') into cards from visible;
+ return base||jsonb_build_object('cards',cards,'document_history',history);
+end $$;
+create function public.get_report_card(p_student uuid) returns jsonb language sql stable security definer set search_path='' as $$
+ select private.student_report_cards(p_student)
+$$;
 create or replace function public.get_my_school_id() returns uuid
 language sql stable security definer set search_path=''
 as $$ select m.school_id from public.school_members m where m.user_id=auth.uid() and m.enabled order by m.school_id limit 1 $$;

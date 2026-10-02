@@ -1,6 +1,8 @@
 export const extraTranslations:Record<string,[string,string]> = {
  'Create a class first for the selected academic year.':['Créez d’abord une classe pour l’année scolaire sélectionnée.','Kreye yon klas pou ane lekòl ou chwazi a dabò.'],
  'No classes are configured for this academic year.':['Aucune classe n’est configurée pour cette année scolaire.','Pa gen klas ki konfigire pou ane lekòl sa a.'],
+ 'No class subject assignments for this academic year.':['Aucune matière n’est attribuée à une classe pour cette année scolaire.','Pa gen matyè ki asiyen ak klas pou ane lekòl sa a.'],
+ 'No enabled classes are configured for this academic year.':['Aucune classe active n’est configurée pour cette année scolaire.','Pa gen klas aktif ki konfigire pou ane lekòl sa a.'],
  'Settings center':['Centre des paramètres','Sant paramèt yo'],
  'School-wide configuration, organized by the settings that are available to your role.':['Configuration de l’école, organisée selon les paramètres accessibles à votre rôle.','Konfigirasyon lekòl la, òganize selon paramèt wòl ou gen dwa itilize.'],
  'You do not have permission to manage school settings.':['Vous n’avez pas l’autorisation de gérer les paramètres de l’école.','Ou pa gen pèmisyon pou jere paramèt lekòl la.'],

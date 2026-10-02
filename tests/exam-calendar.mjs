@@ -25,4 +25,8 @@ const selectedYearHtml=renderToStaticMarkup(React.createElement(CalendarView,{da
 assert.ok(selectedYearHtml.includes('Class A'));assert.ok(!selectedYearHtml.includes('Class B'),'The shared academic year must scope the published exam list.')
 const publication=readFileSync('src/app/dashboard/publication/page.tsx','utf8')
 assert.ok(publication.includes('const yearRows=rows.filter(r=>!academicYearId||r.year_id===academicYearId)'),'Publication review must limit batch actions to the selected academic year.')
+assert.ok(publication.includes("select('id,start_date,end_date,academic_year_id')")&&publication.includes('yearPeriods=periods.filter(p=>!academicYearId||p.year_id===academicYearId)'),'grade deadlines are tied to the selected year by period ID')
+assert.ok(publication.includes("!periods.some(p=>p.id===period&&(!academicYearId||p.year_id===academicYearId))")&&publication.includes("yearDeadlines=deadlines.filter(d=>yearPeriodIds.has(d.period_id))"),'deadline form resets stale year selections and only lists current-year deadlines')
+const bulletinPublication=readFileSync('src/components/bulletin-publication.tsx','utf8')
+assert.ok(bulletinPublication.includes("year_id===academicYearId")&&bulletinPublication.includes('classes.map(c=>'),'bulletin publishing and archived versions use the selected academic year class set')
 console.log('PASS calendar UI: official version, Haiti date/time, revision week, kiosk arrival and no family edit controls; scoped staff menu.')

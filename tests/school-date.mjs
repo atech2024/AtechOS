@@ -29,7 +29,7 @@ assert.ok(periods.includes('min={selectedYear?.start_date} max={selectedYear?.en
 assert.ok(assignments.includes('min={selectedPeriod?.start_date||selectedClass?.year_start}')&&assignments.includes('schoolDateTimeToISO(dueAt)'),'assignment deadlines use school-year limits and Haiti local time')
 assert.ok(assignments.includes("from('grading_periods').select('id,academic_year_id,name,code,start_date,end_date,weight')")&&assignments.includes('yearPeriods=periods.filter(p=>p.academic_year_id===selectedClass?.academic_year_id)'),'assignment periods are scoped by academic-year ID, including overlapping boundary dates')
 assert.ok(assignments.includes('!visibleRows.length')&&assignments.includes('No assignments for this academic year.'),'an empty selected-year assignment list has a clear message')
-assert.ok(publication.includes('min={periods.find(p=>p.id===period)?.start_date}'),'grade-entry deadlines are limited to their selected period')
+assert.ok(publication.includes('min={yearPeriods.find(p=>p.id===period)?.start_date}')&&publication.includes('yearPeriods=periods.filter(p=>!academicYearId||p.year_id===academicYearId)'),'grade-entry deadline periods are scoped to the selected academic year')
 assert.ok(attendance.includes('min={selectedClass?.year_start} max={selectedClass?.year_end}'),'attendance date selection follows its class academic year')
 assert.equal(exports.schoolDateTimeToISO('2026-09-25T09:00'),'2026-09-25T13:00:00.000Z')
 assert.equal(exports.schoolDateTimeToISO('2026-12-25T09:00'),'2026-12-25T14:00:00.000Z')

@@ -73,7 +73,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pin the CLI so setup does not need GitHub's rate-limited latest-release lookup.
+          version: 2.119.0
       - name: Stage selected pending migrations in an isolated local Supabase project
         shell: bash
         run: |

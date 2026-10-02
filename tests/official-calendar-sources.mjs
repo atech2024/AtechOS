@@ -14,6 +14,14 @@ const articles=parser.discoverHaitiLibreCalendarArticles(archive)
 assert.equal(articles.length,1,'accept only Haitian school-calendar articles on HaitiLibre hosts')
 assert.equal(articles[0].school_year,'2026/2027')
 assert.match(articles[0].label,/copie publiée par HaitiLibre/)
+const examArticles=parser.discoverHaitiLibreCalendarArticles('<a href="/article-50000-calendrier-examens-2026-2027.html">Périodes d\'examens officiels</a>')
+assert.equal(examArticles[0]?.kind,'exam_calendar','official exam schedule references are categorized separately')
+assert.match(examArticles[0]?.label||'',/Examens et périodes/)
+const examNotice=parser.discoverHaitiLibreCalendarArticles('<a href="/article-47860-haiti-education-examens-officiels-2026.html">Examens officiels 2026</a>')
+assert.equal(examNotice[0]?.school_year,null,'do not guess the academic year from a single exam year')
+assert.equal(examNotice[0]?.kind,'exam_calendar')
+const recentFirst=parser.discoverHaitiLibreCalendarArticles('<a href="/article-48357-calendrier-scolaire-2026-2027.html">Calendrier scolaire</a><a href="/article-50000-examens-officiels-2027.html">Examens officiels</a>')
+assert.equal(recentFirst[0]?.url.endsWith('article-50000-examens-officiels-2027.html'),true,'new exam notices are not hidden behind school-year PDFs')
 
 const article=`
  <a href="/docs/Calendrier-scolaire-2026-2027.pdf">Calendrier scolaire officiel</a>
@@ -23,6 +31,7 @@ const article=`
 const pdf=parser.discoverHaitiLibreCalendarPdf(article,articles[0].url,articles[0].school_year)
 assert.equal(pdf?.url,'https://www.haitilibre.com/docs/Calendrier-scolaire-2026-2027.pdf')
 assert.equal(pdf?.source,'HaitiLibre')
+assert.equal(pdf?.kind,'school_calendar')
 assert.equal(parser.discoverHaitiLibreCalendarPdf('<a href="/docs/Calendrier-scolaire-2026-2027.pdf">Calendar</a>',articles[0].url,'2025/2026'),null,'PDF must match the year of its source article')
 
 const official=parser.discoverOfficialCalendarLinks('<a href="https://communication.gouv.ht/docs/calendrier-scolaire-2026-2027.pdf">MENFP calendar</a><a href="https://evil.example/calendrier-2026-2027.pdf">Not official</a>','https://communication.gouv.ht/ds/circulaire/','Haitian Government')

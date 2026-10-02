@@ -3,8 +3,8 @@ export type CalendarSourceResult={
  sources_checked:number
  sources_reachable:number
  documents_found:number
- latest_calendar:{url:string;source:string;label:string;school_year:string|null}|null
- candidates:{url:string;source:string;label:string;school_year:string|null}[]
+ latest_calendar:{url:string;source:string;label:string;school_year:string|null;kind:'school_calendar'|'exam_calendar'}|null
+ candidates:{url:string;source:string;label:string;school_year:string|null;kind:'school_calendar'|'exam_calendar'}[]
  warning:string|null
 }
 

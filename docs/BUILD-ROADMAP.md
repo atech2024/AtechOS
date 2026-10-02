@@ -39,7 +39,7 @@ Statuses use only `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`. A build is
 
 - Found an access gap: GUARD family checks followed the student-parent link but did not require the parent's `school_members` account to remain enabled. This allowed a disabled parent account to submit an absence reason or retain access to GUARD cases, and generated notices could still be delivered to that account.
 - Added migration `20261002233000_guard_active_parent_membership.sql` to require an enabled `parent` membership when reading or submitting GUARD family cases and when sending case notifications. Existing authorized staff access and other linked family accounts remain unchanged.
-- Added rollback-only synthetic database checks for a disabled linked parent's denied workspace/reason access and suppressed notification. Migration has been wired into the isolated Supabase workflow. Local `npm test`, `npm run typecheck`, and `npm run build` pass; hosted SQL execution is pending. This does not modify production Supabase.
+- Added rollback-only synthetic database checks for a disabled linked parent's denied workspace/reason access and suppressed notification. Migration has been wired into the isolated Supabase workflow. Local `npm test`, `npm run typecheck`, and `npm run build` pass; hosted isolated Supabase run 37074000961 passed both migration and badge-lifecycle jobs, and Vercel Preview passed for implementation commit `737486d`. This does not modify production Supabase.
 
 ### BUILD 05 — Preschool role-audit progress (2026-10-02)
 

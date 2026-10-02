@@ -5,7 +5,7 @@ insert into public.school_members(school_id,user_id,role) values('71000000-0000-
 select set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000001',true);
 
 do $$
-declare first_year uuid; successor public.academic_years%rowtype; n integer;
+declare first_year uuid; successor public.academic_years%rowtype; n integer; duplicate_rejected boolean := false;
 begin
  if not has_table_privilege('authenticated','public.official_calendar_sources','select') then raise exception 'staff cannot read detected official calendar sources'; end if;
  if has_table_privilege('authenticated','public.official_calendar_sources','insert') then raise exception 'authenticated staff can forge the global official source registry'; end if;
@@ -20,5 +20,16 @@ begin
  if successor.is_current then raise exception 'successor must remain inactive until staff confirms it'; end if;
  perform public.update_academic_year(successor.id,'2027/2028',date '2027-09-01',date '2028-06-30',true);
  if not exists(select 1 from public.academic_years where id=successor.id and is_current and name='2027/2028') then raise exception 'staff could not review and activate the successor year'; end if;
+ begin
+  update public.academic_years set is_current=true where id=first_year;
+ exception when unique_violation then
+  duplicate_rejected:=true;
+ end;
+ if not duplicate_rejected then raise exception 'a school could activate two academic years'; end if;
+ if not exists(select 1 from public.academic_years where id=successor.id and is_current) then raise exception 'failed activation changed the existing current year'; end if;
+ insert into public.schools(id) values('71000000-0000-0000-0000-000000000002');
+ insert into public.academic_years(school_id,name,start_date,end_date,is_current)
+ values('71000000-0000-0000-0000-000000000002','2026/2027',date '2026-09-01',date '2027-06-30',true);
+ if (select count(*) from public.academic_years where is_current)<>2 then raise exception 'separate schools cannot each have a current year'; end if;
 end $$;
 rollback;

@@ -6,4 +6,6 @@ The GitHub Actions workflow runs an isolated Supabase stack on a hosted runner. 
 
 `class-section-verification.sql` applies the selected class-section migration over the synthetic baseline, activates Haitian school levels, creates extra classes only inside sections enabled for the chosen year, rejects inactive sections and unauthorized teacher calls, and confirms deactivation/re-activation behavior. The fixture rolls back and uses no Supabase production branch or credentials.
 
+`school-calendar-verification.sql` also checks the partial unique index migration: one current year is allowed per school, a second current year for that same school is rejected without changing the existing current year, and a separate school can have its own current year.
+
 No Supabase project ref, access token, database password, `supabase link`, or remote push is used. On GitHub's standard hosted runners this does not create a hosted Supabase branch or incur Supabase branch compute charges.

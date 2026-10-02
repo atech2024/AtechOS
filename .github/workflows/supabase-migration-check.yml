@@ -27,6 +27,7 @@ on:
       - "supabase/migrations/20261002150000_calendar_document_kinds.sql"
       - "supabase/migrations/20261002151000_official_exam_date_proposals.sql"
       - "supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql"
+      - "supabase/migrations/20261002153945_enforce_single_current_academic_year_per_school.sql"
       - "vercel.json"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
@@ -53,6 +54,7 @@ on:
       - "supabase/migrations/20261002150000_calendar_document_kinds.sql"
       - "supabase/migrations/20261002151000_official_exam_date_proposals.sql"
       - "supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql"
+      - "supabase/migrations/20261002153945_enforce_single_current_academic_year_per_school.sql"
       - "vercel.json"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
@@ -94,6 +96,7 @@ jobs:
           cp supabase/migrations/20261002150000_calendar_document_kinds.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261002151000_official_exam_date_proposals.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002153945_enforce_single_current_academic_year_per_school.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

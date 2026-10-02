@@ -31,4 +31,6 @@ assert.match(page,/disabled=\{saving \|\| !availableGrades\.length\}/,'class cre
 assert.match(page,/gradeDisplayName\(g\.code, g\.short_name\)/)
 assert.match(page,/gradeDisplayName\(g\.code,g\.short_name\)/)
 assert.match(page,/gradeDisplayName\(grade\.code,grade\.name\)/)
+assert.match(page,/visible\.length===0 \? <p role="status"[^>]*><T text="No classes are configured for this academic year\."\/>/,'class list has an announced empty state for the selected year')
+assert.match(dictionary,/No classes are configured for this academic year\./,'the selected-year class empty state is translated')
 console.log('PASS Haitian preschool sections use Petite/Moyenne/Grande Section labels while preserving PS codes and translations.')

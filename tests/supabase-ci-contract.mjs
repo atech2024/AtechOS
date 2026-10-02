@@ -11,6 +11,7 @@ const classMigration = readFileSync('supabase/migrations/20261002151506_enforce_
 const preschoolRoleMigration = readFileSync('supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql', 'utf8');
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
+assert.match(workflow, /version:\s*2\.119\.0/);
 assert.match(workflow, /push:\s+branches:\s+- feature\/kindergarten-relocation/);
 assert.match(workflow, /supabase start/);
 assert.match(workflow, /supabase db reset --local --no-seed/);
@@ -21,6 +22,7 @@ assert.match(workflow, /20261001010212_student_kiosk_hide_student_id\.sql/);
 assert.match(workflow, /20261001144429_preschool_competency_bulletins\.sql/);
 assert.match(workflow, /20261002151506_enforce_enabled_school_section_for_classes\.sql/);
 assert.match(workflow, /20261002200218_preschool_active_staff_role_scope\.sql/);
+assert.match(workflow, /20261002210335_allow_secretary_to_publish_preschool_bulletins\.sql/);
 for (const migration of ['20260930120000_guard_cases_workflow','20260930121500_guard_deadline_processor','20260930123000_weekly_lateness_guard','20260930194459_guard_school_day_deadlines_notifications','20260930210000_guard_meeting_access_lock','20260930213000_official_school_terms','20260930220000_guard_school_day_absence','20260930232834_kindergarten_pickup_workflow','20260930233211_kindergarten_pickup_audit_source']) assert.ok(workflow.includes(migration+'.sql'), `workflow must apply ${migration}`);
 assert.match(workflow, /< guard-verification\.sql/);
 assert.match(workflow, /< class-section-verification\.sql/);
@@ -50,7 +52,7 @@ assert.match(verification, /assessment_is_not_a_grading_period/);
 assert.match(verification, /relocation event history was mutable/);
 assert.match(verification, /kiosk result contract failed/);
 assert.match(verification, /staff scan result contract failed/);
-for(const requirement of ['preschool defaults/roster were not initialized','preschool class teacher scope mismatch','preschool teacher accessed unassigned class','expected one preschool bulletin','preschool bulletin snapshot was mutable','linked parent missed preschool bulletin','unrelated parent saw preschool bulletin','authenticated can bypass preschool RPC security']) assert.ok(verification.includes(requirement), `preschool SQL fixture must check: ${requirement}`);
+for(const requirement of ['preschool defaults/roster were not initialized','preschool class teacher scope mismatch','preschool teacher accessed unassigned class','expected one preschool bulletin','secretary could not publish Preschool bulletin','school administrator could not publish Preschool bulletin','Censeur could not publish Preschool bulletin','teacher published Preschool bulletin','surveillant published Preschool bulletin','preschool bulletin snapshot was mutable','linked parent missed preschool bulletin','unrelated parent saw preschool bulletin','authenticated can bypass preschool RPC security']) assert.ok(verification.includes(requirement), `preschool SQL fixture must check: ${requirement}`);
 assert.match(verification, /has_table_privilege\('authenticated'/);
 assert.doesNotMatch(verification, /https:\/\/[^\s]*supabase\.co/);
 assert.match(guardVerification.trim(), /^begin;/i);

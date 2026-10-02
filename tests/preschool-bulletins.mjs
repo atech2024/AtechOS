@@ -9,6 +9,7 @@ import {renderToStaticMarkup} from 'react-dom/server'
 const migration=readFileSync('supabase/migrations/20261001144429_preschool_competency_bulletins.sql','utf8')
 const activeRoleMigration=readFileSync('supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql','utf8')
 const secretaryPublishMigration=readFileSync('supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql','utf8')
+const workspace=readFileSync('src/components/preschool-workspace.tsx','utf8')
 for(const text of [
  'create table public.preschool_competencies','create table public.preschool_class_staff','create table public.preschool_evaluations','create table public.preschool_evaluation_events','create table public.preschool_bulletin_versions',
  'alter table public.preschool_bulletin_versions enable row level security','preschool_bulletin_immutable','not_observed','optional_english','optional_religion',
@@ -24,6 +25,8 @@ assert.match(migration,/create or replace function private\.student_report_cards
 assert.match(migration,/private\.calculated_student_report_cards\(p_student\)/)
 assert.match(migration,/private\.bulletin_card\(v\)/)
 assert.match(migration,/'preschool_cards'/)
+assert.match(migration,/'students',[\s\S]*?jsonb_build_object\('id',s\.id,'name',s\.first_name\|\|' '\|\|s\.last_name,'photo_url',s\.photo_url\)/,'Preschool teacher roster must not return student codes or national identifiers')
+assert.doesNotMatch(workspace,/atechos_id|nisu/i,'Preschool teacher roster must not display AtechOS IDs or NISU')
 assert.ok(existsSync('src/app/dashboard/preschool/page.tsx'))
 assert.match(readFileSync('src/components/preschool-workspace.tsx','utf8'),/months\.map\(\(m,i\)=>\s*<option[^>]*>\{t\(m\)\}<\/option>\)/,'examination months must follow the selected UI locale')
 

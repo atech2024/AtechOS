@@ -62,7 +62,7 @@ begin
  workspace:=public.badge_workspace('50000000-0000-0000-0000-000000000001');
  if workspace->>'qr'<>replacement or (select count(*) from public.student_badges where student_id='50000000-0000-0000-0000-000000000001' and active and state='active')<>1 then raise exception 'replacement must leave exactly one active badge'; end if;
  if not exists(select 1 from jsonb_array_elements(workspace->'events') event where event->>'action'='lost' and event->>'actor_role'='parent') then raise exception 'lost action must be attributed to linked parent'; end if;
- if has_table_privilege('authenticated','private.badge_token_history','select') or has_table_privilege('authenticated','private.student_badge_credentials','select') then raise exception 'authenticated users can read private badge credential tables'; end if;
+ if has_table_privilege('authenticated',(select c.oid from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and c.relname='badge_token_history'),'select') or has_table_privilege('authenticated',(select c.oid from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and c.relname='student_badge_credentials'),'select') then raise exception 'authenticated users can read private badge credential tables'; end if;
  if has_table_privilege('authenticated','public.student_badges','update') then raise exception 'authenticated users can reactivate badges directly'; end if;
  failed:=false; begin update public.student_badges set active=true where student_id='50000000-0000-0000-0000-000000000001'; exception when insufficient_privilege then failed:=true; end;
  if not failed then raise exception 'direct badge reactivation bypassed lifecycle RPC'; end if;

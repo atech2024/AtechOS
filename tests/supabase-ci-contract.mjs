@@ -9,6 +9,9 @@ const guardVerification = readFileSync('supabase/ci/guard-verification.sql', 'ut
 const classVerification = readFileSync('supabase/ci/class-section-verification.sql', 'utf8');
 const classMigration = readFileSync('supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql', 'utf8');
 const preschoolRoleMigration = readFileSync('supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql', 'utf8');
+const badgeBaseline = readFileSync('supabase/ci-badge/supabase/migrations/20260901000000_badge_pre_lifecycle_baseline.sql', 'utf8');
+const badgeVerification = readFileSync('supabase/ci-badge/badge-verification.sql', 'utf8');
+const badgeLifecycleMigration = readFileSync('supabase/migrations/20260928004221_badge_lifecycle_history.sql', 'utf8');
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
 assert.match(workflow, /version:\s*2\.119\.0/);
@@ -23,6 +26,10 @@ assert.match(workflow, /20261001144429_preschool_competency_bulletins\.sql/);
 assert.match(workflow, /20261002151506_enforce_enabled_school_section_for_classes\.sql/);
 assert.match(workflow, /20261002200218_preschool_active_staff_role_scope\.sql/);
 assert.match(workflow, /20261002210335_allow_secretary_to_publish_preschool_bulletins\.sql/);
+assert.match(workflow, /supabase\/migrations\/20260928004221_badge_lifecycle_history\.sql/);
+assert.match(workflow, /badge-lifecycle:/);
+assert.match(workflow, /cp \.\.\/migrations\/20260928004221_badge_lifecycle_history\.sql supabase\/migrations\//);
+assert.match(workflow, /< badge-verification\.sql/);
 for (const migration of ['20260930120000_guard_cases_workflow','20260930121500_guard_deadline_processor','20260930123000_weekly_lateness_guard','20260930194459_guard_school_day_deadlines_notifications','20260930210000_guard_meeting_access_lock','20260930213000_official_school_terms','20260930220000_guard_school_day_absence','20260930232834_kindergarten_pickup_workflow','20260930233211_kindergarten_pickup_audit_source']) assert.ok(workflow.includes(migration+'.sql'), `workflow must apply ${migration}`);
 assert.match(workflow, /< guard-verification\.sql/);
 assert.match(workflow, /< class-section-verification\.sql/);
@@ -67,5 +74,15 @@ assert.match(classMigration, /pg_advisory_xact_lock/);
 assert.doesNotMatch(classMigration, /SECURITY DEFINER/i);
 assert.match(preschoolRoleMigration, /private\.can_edit_preschool_class\(p_class uuid\)[\s\S]*?select private\.can_access_preschool_class\(p_class\)/);
 for(const assertion of ['preschool coordinator retained access after role change','preschool coordinator retained edit access after role change','preschool homeroom teacher retained access after role change','active homeroom teacher lost Preschool access']) assert.ok(verification.includes(assertion), `Preschool stale-role fixture must check: ${assertion}`);
+
+assert.match(badgeBaseline, /create table private\.student_badge_credentials\([\s\S]*?token text not null unique[\s\S]*?updated_at timestamptz/i);
+assert.doesNotMatch(badgeBaseline.match(/create table public\.student_badges\([\s\S]*?\);/i)?.[0] || '', /\bstate\s+text/i, 'badge baseline must be pre-lifecycle so the real migration is applied');
+assert.match(badgeLifecycleMigration, /alter table public\.student_badges add column state/i);
+assert.match(badgeLifecycleMigration, /create or replace function public\.student_kiosk_badge\(p_qr text\)/i);
+assert.match(badgeLifecycleMigration, /create function public\.report_badge_lost\(p_student uuid,p_reason text\)/i);
+assert.match(badgeVerification.trim(), /^begin;/i);
+assert.match(badgeVerification, /rollback;\s*$/i);
+for(const assertion of ['active badge QR must be stable for physical reprint','parent received private operational QR','lost badge QR must stop working immediately','unrelated parent accessed badge workspace','teacher accessed badge workspace','replacement must rotate private QR','old QR accepted after replacement','duplicate scan toggled a KIOS checkout','direct badge reactivation bypassed lifecycle RPC']) assert.ok(badgeVerification.includes(assertion), `badge lifecycle SQL fixture must check: ${assertion}`);
+assert.doesNotMatch(badgeVerification, /https:\/\/[^\s]*supabase\.co/);
 
 console.log('PASS free, isolated Supabase CI contract: synthetic baseline, only targeted migrations, rollback-only data checks, no production credentials or remote database commands.');

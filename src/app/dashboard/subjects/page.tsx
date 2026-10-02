@@ -3,7 +3,7 @@ import { T } from '@/components/translation-provider'
 import { subjectPresets } from '@/lib/school-catalog'
 import Link from 'next/link'
 
-import { FormEvent, useEffect, useState, type ReactNode } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAcademicYear } from '@/components/academic-year-context'
 
@@ -14,11 +14,7 @@ type Assignment = { id: string; class_id: string; subject_id: string; teacher_id
 
 export default function SubjectsPage() {
   const academicYear = useAcademicYear()
-  let supabase: ReturnType<typeof createClient> | null = null
-  const getSupabase = () => {
-    if (!supabase) supabase = createClient()
-    return supabase
-  }
+  const supabase = useMemo(() => createClient(), [])
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [classes, setClasses] = useState<ClassItem[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -30,13 +26,13 @@ export default function SubjectsPage() {
   const [subjectOpen, setSubjectOpen] = useState(false)
   const [assignmentOpen, setAssignmentOpen] = useState(false)
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true); setError('')
     const [s, c, t, a] = await Promise.all([
-      getSupabase().from('subjects').select('id,name,code').order('name'),
-      getSupabase().from('classes').select('id,name,academic_year_id,enabled').order('name'),
-      getSupabase().from('school_members').select('user_id').eq('role', 'teacher'),
-      getSupabase().from('class_subjects').select('id,class_id,subject_id,teacher_id').order('id')
+      supabase.from('subjects').select('id,name,code').order('name'),
+      supabase.from('classes').select('id,name,academic_year_id,enabled').order('name'),
+      supabase.from('school_members').select('user_id').eq('role', 'teacher'),
+      supabase.from('class_subjects').select('id,class_id,subject_id,teacher_id').order('id')
     ])
     const firstError = s.error || c.error || t.error || a.error
     if (firstError) setError(firstError.message)
@@ -44,7 +40,7 @@ export default function SubjectsPage() {
     setClasses((c.data || []) as ClassItem[])
     const teacherIds = ((t.data || []) as Array<{user_id:string}>).map(x => x.user_id)
     if (teacherIds.length) {
-      const { data: teacherUsers, error: teacherError } = await getSupabase().from('users').select('id,full_name').in('id', teacherIds)
+      const { data: teacherUsers, error: teacherError } = await supabase.from('users').select('id,full_name').in('id', teacherIds)
       if (teacherError) setError(teacherError.message)
       setTeachers(((teacherUsers || []) as Array<{id:string;full_name:string}>).map(x => ({ id: x.id, full_name: x.full_name || 'Teacher' })))
     } else {
@@ -52,9 +48,9 @@ export default function SubjectsPage() {
     }
     setAssignments((a.data || []) as Assignment[])
     setLoading(false)
-  }
+  }, [supabase])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { void load() }, [load])
 
   const yearClasses = classes.filter(c => c.academic_year_id === academicYear.yearId)
   const assignableClasses = yearClasses.filter(c => c.enabled)
@@ -64,7 +60,7 @@ export default function SubjectsPage() {
   async function createSubject(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setSaving(true); setError('')
     const formElement = e.currentTarget; const f = new FormData(formElement)
-    const { error } = await getSupabase().rpc('create_subject', { p_name: preset === 'custom' ? String(f.get('name') || '') : subjectPresets.find(s => s[0] === preset)![1], p_code: preset === 'custom' ? String(f.get('code') || '') : preset })
+    const { error } = await supabase.rpc('create_subject', { p_name: preset === 'custom' ? String(f.get('name') || '') : subjectPresets.find(s => s[0] === preset)![1], p_code: preset === 'custom' ? String(f.get('code') || '') : preset })
     if (error) setError(error.message); else { setSubjectOpen(false); formElement.reset(); await load() }
     setSaving(false)
   }
@@ -72,14 +68,14 @@ export default function SubjectsPage() {
   async function assign(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setSaving(true); setError('')
     const formElement = e.currentTarget; const f = new FormData(formElement)
-    const { error } = await getSupabase().rpc('assign_subject_to_class', { p_class_id: String(f.get('class_id')), p_subject_id: String(f.get('subject_id')), p_teacher_id: String(f.get('teacher_id') || '') || null })
+    const { error } = await supabase.rpc('assign_subject_to_class', { p_class_id: String(f.get('class_id')), p_subject_id: String(f.get('subject_id')), p_teacher_id: String(f.get('teacher_id') || '') || null })
     if (error) setError(error.message); else { setAssignmentOpen(false); formElement.reset(); await load() }
     setSaving(false)
   }
 
   async function changeTeacher(id: string, teacherId: string) {
     setError('')
-    const { error } = await getSupabase().rpc('update_class_subject_teacher', { p_class_subject_id: id, p_teacher_id: teacherId || null })
+    const { error } = await supabase.rpc('update_class_subject_teacher', { p_class_subject_id: id, p_teacher_id: teacherId || null })
     if (error) setError(error.message); else await load()
   }
 

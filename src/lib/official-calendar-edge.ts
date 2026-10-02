@@ -3,10 +3,12 @@ export type CalendarSourceResult={
  sources_checked:number
  sources_reachable:number
  documents_found:number
- latest_calendar:{url:string;source:string;label:string;school_year:string|null;kind:'school_calendar'|'exam_calendar'}|null
- candidates:{url:string;source:string;label:string;school_year:string|null;kind:'school_calendar'|'exam_calendar'}[]
+ latest_calendar:{url:string;source:string;label:string;school_year:string|null;kind:'school_calendar'|'exam_calendar';suggested_dates?:ExamDateProposal[]}|null
+ candidates:{url:string;source:string;label:string;school_year:string|null;kind:'school_calendar'|'exam_calendar';suggested_dates?:ExamDateProposal[]}[]
  warning:string|null
 }
+
+export type ExamDateProposal={date_text:string;start_date:string|null;end_date:string|null;category:'exam_period'|'official_exam';context:string;status:'needs_review'}
 
 export async function checkOfficialCalendarSources(persist=false):Promise<CalendarSourceResult>{
  const supabaseUrl=process.env.NEXT_PUBLIC_SUPABASE_URL

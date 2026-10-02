@@ -10,6 +10,7 @@ begin
  if not has_table_privilege('authenticated','public.official_calendar_sources','select') then raise exception 'staff cannot read detected official calendar sources'; end if;
  if has_table_privilege('authenticated','public.official_calendar_sources','insert') then raise exception 'authenticated staff can forge the global official source registry'; end if;
  if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='official_calendar_sources' and column_name='document_kind') then raise exception 'calendar documents do not distinguish exam references'; end if;
+ if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='official_calendar_sources' and column_name='suggested_dates' and data_type='jsonb') then raise exception 'exam date proposals are not persisted for review'; end if;
  first_year:=public.create_academic_year_with_successor('2026/2027',date '2026-09-01',date '2027-06-30',true);
  select count(*) into n from public.academic_years where school_id='71000000-0000-0000-0000-000000000001';
  if n<>2 then raise exception 'first academic year did not prepare one successor'; end if;

@@ -25,6 +25,7 @@ on:
       - "supabase/migrations/20261002121500_allow_secondary_calendar_source.sql"
       - "supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql"
       - "supabase/migrations/20261002150000_calendar_document_kinds.sql"
+      - "supabase/migrations/20261002151000_official_exam_date_proposals.sql"
       - "vercel.json"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
@@ -49,6 +50,7 @@ on:
       - "supabase/migrations/20261002121500_allow_secondary_calendar_source.sql"
       - "supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql"
       - "supabase/migrations/20261002150000_calendar_document_kinds.sql"
+      - "supabase/migrations/20261002151000_official_exam_date_proposals.sql"
       - "vercel.json"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
@@ -88,6 +90,7 @@ jobs:
           cp supabase/migrations/20261002121500_allow_secondary_calendar_source.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261002150000_calendar_document_kinds.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002151000_official_exam_date_proposals.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

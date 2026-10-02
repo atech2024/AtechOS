@@ -5,6 +5,9 @@ import ts from 'typescript'
 const source=readFileSync('src/lib/official-calendar-sources.ts','utf8')
 const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
 const parser=await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`)
+const proposalSource=readFileSync('supabase/functions/official-calendar-sources/exam-date-proposals.ts','utf8')
+const proposalCompiled=ts.transpileModule(proposalSource,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
+const proposals=await import(`data:text/javascript;base64,${Buffer.from(proposalCompiled).toString('base64')}`)
 
 const archive=`
  <a href="/article-48357-haiti-flash-calendrier-scolaire-2026-2027-officiel.html">Lire la suite...</a>
@@ -37,4 +40,24 @@ assert.equal(parser.discoverHaitiLibreCalendarPdf('<a href="/docs/Calendrier-sco
 const official=parser.discoverOfficialCalendarLinks('<a href="https://communication.gouv.ht/docs/calendrier-scolaire-2026-2027.pdf">MENFP calendar</a><a href="https://evil.example/calendrier-2026-2027.pdf">Not official</a>','https://communication.gouv.ht/ds/circulaire/','Haitian Government')
 assert.equal(official.length,1,'official-site parser keeps its exact government host allowlist')
 assert.equal(official[0].source,'Haitian Government')
+const extracted=proposals.extractExamDateProposals('<p>Les examens officiels se dérouleront du 31 mai au 1er juillet. Les contrôles auront lieu du 9 au 13 novembre 2026.</p>','2026/2027')
+assert.equal(extracted.length,2,'extract both official exam and school control date ranges from article text')
+assert.equal(extracted[0].category,'official_exam')
+assert.equal(extracted[0].start_date,'2027-05-31','map May to the second year in a known academic year')
+assert.equal(extracted[0].end_date,'2027-07-01','map cross-month range with the academic year')
+assert.equal(extracted[0].status,'needs_review','all scraped exam dates remain unapproved proposals')
+assert.equal(extracted[1].category,'exam_period')
+assert.equal(extracted[1].start_date,'2026-11-09','map autumn exam dates to the first school-year year')
+const sameMonth=proposals.extractExamDateProposals('<p>Contrôle en mathématiques du 9 au 13 novembre.</p>','2026/2027')
+assert.equal(sameMonth[0]?.start_date,'2026-11-09','extract ranges with a shared month')
+assert.equal(sameMonth[0]?.end_date,'2026-11-13')
+const uncertainYear=proposals.extractExamDateProposals('<p>Examens du 9 au 13 novembre.</p>',null)
+assert.equal(uncertainYear[0]?.start_date,null,'leave concrete dates unresolved when a source has no academic year')
+const officialSchedule=proposals.extractExamDateProposals('<p>EXAMENS OFFICIELS : 14 au 17 juin 2027 : 9e AF.</p><p>28 juin au 1er juillet 2027 : NS4 et Bac permanent.</p>','2026/2027')
+assert.equal(officialSchedule.length,2,'capture official exam ranges where the first date has no repeated month')
+assert.equal(officialSchedule[0].category,'official_exam')
+assert.equal(officialSchedule[0].start_date,'2027-06-14')
+assert.equal(officialSchedule[0].end_date,'2027-06-17')
+assert.equal(officialSchedule[1].start_date,'2027-06-28')
+assert.equal(officialSchedule[1].end_date,'2027-07-01')
 console.log('Official and secondary calendar source parsing checks passed.')

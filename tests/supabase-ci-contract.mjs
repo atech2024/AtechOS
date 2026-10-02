@@ -8,6 +8,7 @@ const verification = readFileSync('supabase/ci/verification.sql', 'utf8');
 const guardVerification = readFileSync('supabase/ci/guard-verification.sql', 'utf8');
 const classVerification = readFileSync('supabase/ci/class-section-verification.sql', 'utf8');
 const classMigration = readFileSync('supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql', 'utf8');
+const preschoolRoleMigration = readFileSync('supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql', 'utf8');
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
 assert.match(workflow, /push:\s+branches:\s+- feature\/kindergarten-relocation/);
@@ -19,6 +20,7 @@ assert.match(workflow, /20261001001600_kindergarten_private_relocation\.sql/);
 assert.match(workflow, /20261001010212_student_kiosk_hide_student_id\.sql/);
 assert.match(workflow, /20261001144429_preschool_competency_bulletins\.sql/);
 assert.match(workflow, /20261002151506_enforce_enabled_school_section_for_classes\.sql/);
+assert.match(workflow, /20261002200218_preschool_active_staff_role_scope\.sql/);
 for (const migration of ['20260930120000_guard_cases_workflow','20260930121500_guard_deadline_processor','20260930123000_weekly_lateness_guard','20260930194459_guard_school_day_deadlines_notifications','20260930210000_guard_meeting_access_lock','20260930213000_official_school_terms','20260930220000_guard_school_day_absence','20260930232834_kindergarten_pickup_workflow','20260930233211_kindergarten_pickup_audit_source']) assert.ok(workflow.includes(migration+'.sql'), `workflow must apply ${migration}`);
 assert.match(workflow, /< guard-verification\.sql/);
 assert.match(workflow, /< class-section-verification\.sql/);
@@ -61,5 +63,7 @@ for(const assertion of ['activation did not seed and enable all six primary grad
 assert.match(classMigration, /school_section_not_enabled/);
 assert.match(classMigration, /pg_advisory_xact_lock/);
 assert.doesNotMatch(classMigration, /SECURITY DEFINER/i);
+assert.match(preschoolRoleMigration, /private\.can_edit_preschool_class\(p_class uuid\)[\s\S]*?select private\.can_access_preschool_class\(p_class\)/);
+for(const assertion of ['preschool coordinator retained access after role change','preschool coordinator retained edit access after role change','preschool homeroom teacher retained access after role change','active homeroom teacher lost Preschool access']) assert.ok(verification.includes(assertion), `Preschool stale-role fixture must check: ${assertion}`);
 
 console.log('PASS free, isolated Supabase CI contract: synthetic baseline, only targeted migrations, rollback-only data checks, no production credentials or remote database commands.');

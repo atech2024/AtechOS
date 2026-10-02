@@ -39,6 +39,7 @@ Statuses use only `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`. A build is
 
 - Added rollback-only Supabase CI assertions for pickup permissions: director, school administrator, and secretary may manage pickup authorizations; surveillant and Censeur may view/preview QR pickup records but may not change the authorized-adult list; teachers are denied the pickup workspace. The existing pickup workflow continues to enforce a preschool-only QR scope and one pickup per student per Haiti-local day.
 - The fixture and its JavaScript contract passed the full local application test suite. Isolated hosted Supabase CI run 37056484032 succeeded for commit `58e7e92`, exercising these SQL role assertions; no production schema or records were changed.
+- Found and fixed stale Preschool class access after a staff member's role changes: coordinator and homeroom-teacher assignments now require an enabled school membership with an eligible current role. A generated migration and rollback-only cases cover coordinator view/edit denial after changing to parent, homeroom-teacher denial after the same change, and continued access for an active homeroom teacher. Hosted SQL CI is pending for this follow-up.
 - BUILD 05 remains IN PROGRESS. Remaining scope includes the full preschool acceptance audit, pickup/relocation behavior in hosted SQL verification, student badge/portal linkage, and authenticated role-by-role product review.
 
 ## BUILD 01 — Navigation & App Shell

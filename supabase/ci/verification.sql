@@ -186,8 +186,8 @@ begin
  failed:=false;begin update public.preschool_bulletin_versions set exam_month=7 where id=ps_version;exception when others then failed:=sqlerrm='preschool_bulletin_immutable';end;
  if not failed then raise exception 'preschool bulletin snapshot was mutable';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
- family:=public.family_preschool_bulletins();if jsonb_array_length(family)<>1 or family->0->'payload'->'student'->>'name'<>'CI Student' then raise exception 'linked parent missed preschool bulletin';end if;
- ps_report:=private.student_report_cards('50000000-0000-0000-0000-000000000001');if jsonb_array_length(ps_report->'preschool_cards')<>1 then raise exception 'parent report-card RPC wrapper missed preschool bulletin';end if;
+ family:=public.family_preschool_bulletins();if jsonb_array_length(family)<>4 or family->0->'payload'->'student'->>'name'<>'CI Student' then raise exception 'linked parent missed preschool bulletin history';end if;
+ ps_report:=private.student_report_cards('50000000-0000-0000-0000-000000000001');if jsonb_array_length(ps_report->'preschool_cards')<>4 then raise exception 'parent report-card RPC wrapper missed preschool bulletin history';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000003',true);
  if jsonb_array_length(public.family_preschool_bulletins())<>0 then raise exception 'unrelated parent saw preschool bulletin';end if;
  if has_table_privilege('authenticated','public.preschool_bulletin_versions','select') or has_table_privilege('authenticated','public.preschool_evaluations','select') then raise exception 'authenticated can bypass preschool RPC security';end if;

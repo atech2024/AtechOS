@@ -2,7 +2,7 @@
 export const schoolSections = [
   { code: 'preschool', name: 'Préscolaire', grades: 'Petite, Moyenne, Grande Section' },
   { code: 'primary', name: 'Primaire', grades: '1re – 6e AF' },
-  { code: 'fundamental', name: 'Fondamentale · 3e cycle', grades: '7e – 9e AF' },
+  { code: 'fundamental', name: 'Fondamental', grades: '7e – 9e AF' },
   { code: 'secondary', name: 'Secondaire', grades: 'NS1 – NS4' },
 ]
 export function gradeSection(code: string | null | undefined) {

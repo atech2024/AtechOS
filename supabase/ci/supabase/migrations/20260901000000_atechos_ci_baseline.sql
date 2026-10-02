@@ -8,13 +8,20 @@ create extension if not exists pgcrypto with schema extensions;
 
 create table public.schools (id uuid primary key, name text not null default 'CI School', code text, address text, phone text, logo_url text);
 create table public.users (id uuid primary key, full_name text not null, email text);
-create table public.grade_levels (id uuid primary key, code text not null);
-create table public.classes (
+create table public.grade_levels (
  id uuid primary key,
+ code text not null,
+ name text not null default 'CI grade',
+ is_active boolean not null default true,
+ sort_order integer not null default 0
+);
+create table public.classes (
+ id uuid primary key default gen_random_uuid(),
  school_id uuid not null references public.schools(id),
  grade_level_id uuid references public.grade_levels(id),
  academic_year_id uuid,
  grade_level text,
+ room text,
  homeroom_teacher_id uuid references public.users(id),
  name text not null,
  enabled boolean not null default true
@@ -200,7 +207,54 @@ end $$;
 
 create or replace function public.grade_section(p_code text) returns text
 language sql immutable
-as $$ select case when upper(coalesce(p_code,'')) like 'PS%' then 'preschool' else lower(coalesce(p_code,'')) end $$;
+as $$
+ select case
+  when upper(coalesce(p_code,'')) in ('PS1','PS2','PS3') then 'preschool'
+  when upper(coalesce(p_code,'')) in ('AF1','AF2','AF3','AF4','AF5','AF6') then 'primary'
+  when upper(coalesce(p_code,'')) in ('AF7','AF8','AF9') then 'fundamental'
+  when upper(coalesce(p_code,'')) in ('NS1','NS2','NS3','NS4') then 'secondary'
+ end
+$$;
+
+-- Match the pre-change production RPCs so the selected migration replaces and
+-- exercises the real behavior against this synthetic baseline.
+create or replace function public.create_class(
+ p_academic_year_id uuid,p_name text,p_grade_level text default null,p_room text default null,p_homeroom_teacher_id uuid default null
+) returns uuid language plpgsql security invoker set search_path='public','pg_temp' as $$
+declare v_school_id uuid;v_id uuid;v_grade_level_id uuid;
+begin
+ select school_id into v_school_id from public.school_members where user_id=auth.uid() and enabled and school_id=public.get_my_school_id() order by case when role='school_admin' then 0 when role='director' then 1 when role='secretary' then 2 else 3 end limit 1;
+ if v_school_id is null then raise exception 'school_membership_required'; end if;
+ if nullif(trim(p_name),'') is null then raise exception 'class_name_required'; end if;
+ if not exists(select 1 from public.academic_years where id=p_academic_year_id and school_id=v_school_id) then raise exception 'academic_year_access_denied'; end if;
+ if p_homeroom_teacher_id is not null and not exists(select 1 from public.school_members where school_id=v_school_id and user_id=p_homeroom_teacher_id and role='teacher') then raise exception 'teacher_access_denied'; end if;
+ if nullif(trim(p_grade_level),'') is not null then
+  select id into v_grade_level_id from public.grade_levels where code=upper(trim(p_grade_level)) and is_active=true;
+  if v_grade_level_id is null then raise exception 'invalid_grade_level'; end if;
+ end if;
+ insert into public.classes(school_id,academic_year_id,name,grade_level,grade_level_id,room,homeroom_teacher_id)
+ values(v_school_id,p_academic_year_id,trim(p_name),nullif(trim(p_grade_level),''),v_grade_level_id,nullif(trim(p_room),''),p_homeroom_teacher_id)
+ returning id into v_id;
+ return v_id;
+end $$;
+
+create or replace function public.activate_school_section(p_year uuid,p_section text,p_enabled boolean default true)
+returns void language plpgsql security invoker set search_path='' as $$
+declare sid uuid:=public.get_my_school_id();g record;
+begin
+ if not private.has_role(sid,array['school_admin','director','secretary']) then raise exception 'not_authorized'; end if;
+ if p_section not in ('preschool','primary','fundamental','secondary') or p_section is null or p_enabled is null then raise exception 'invalid_section'; end if;
+ if not exists(select 1 from public.academic_years where id=p_year and school_id=sid) then raise exception 'invalid_year'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(sid::text||p_year::text||p_section,0));
+ if p_enabled then
+  for g in select * from public.grade_levels where is_active and public.grade_section(code)=p_section order by sort_order loop
+   if not exists(select 1 from public.classes where school_id=sid and academic_year_id=p_year and (grade_level_id=g.id or grade_level=g.code)) then
+    perform public.create_class(p_year,g.name,g.code);
+   end if;
+  end loop;
+ end if;
+ update public.classes c set enabled=p_enabled where c.school_id=sid and c.academic_year_id=p_year and public.grade_section(coalesce((select code from public.grade_levels where id=c.grade_level_id),c.grade_level))=p_section;
+end $$;
 
 create or replace function private.is_preschool_student(p_student uuid) returns boolean
 language sql stable security definer set search_path=''

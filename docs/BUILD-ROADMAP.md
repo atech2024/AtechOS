@@ -1,0 +1,101 @@
+# AtechOS / KIOS build roadmap
+
+Updated: 2026-10-02
+
+Statuses use only `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`. A build is not done until its acceptance criteria and relevant tests pass. Existing code is not proof that a build meets the product requirements; unreviewed areas remain explicitly unaudited.
+
+## Current state
+
+- Current work branch: `feature/build01-navigation-shell`, based on `origin/main` at `18731749431fae7464404fda9c60622fe0e48210`.
+- The separate documentation PR branch `docs/current-workflows-deployment` remains unchanged; its PR is not part of this implementation branch.
+- Live review: `https://atech-os-kog7.vercel.app/dashboard` was accessible in the authenticated browser on 2026-10-02. It showed a flat sidebar, a duplicate “Vos modules” dashboard catalog, no breadcrumb or academic-year control, and a Haitian-Creole date in a French UI. This records the observed page only; it does not identify the live deployment's source commit.
+- No database or RLS changes are in scope for BUILD 01. The topbar reads the existing current academic-year label when available; year selection and applying a selected year across domains belong to BUILD 03.
+- Supabase schema, RLS, functions, and migrations must be re-audited before builds that change or depend on them. Build 01 does not write school data.
+
+### UX research applied
+
+- Observed pattern: the Fluent 2 navigation guidance groups sub-items by related app sections and keeps long navigation content in a scrollable region; the Atlassian navigation system separates persistent header, scrollable body, and footer, and overlays the side navigation below desktop widths. Why it helps: staff can find a work area without scanning one long undifferentiated list, while identity and sign-out remain in stable locations. KIOS implementation: use capability-filtered domain groups, a scrollable nav body, fixed brand/logout areas, and a responsive overlay, while retaining AtechOS colors, labels, and icons. References: [Fluent 2 Nav usage](https://fluent2.microsoft.design/components/web/react/core/nav/usage), [Atlassian navigation layout](https://atlassian.design/components/navigation-system/layout).
+
+## Build order and status
+
+| Build | Status | Started | Completed | Dependencies | Relevant tests | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| 01 — Navigation & App Shell | DONE | 2026-10-02 | 2026-10-02 | Existing authenticated dashboard, role/capability visibility, locale preferences | `npm test`, `npm run typecheck`, `npm run build`, `npm run lint`; visual desktop/tablet/mobile review | Role-filtered grouped navigation, persistent collapse, breadcrumbs, active-year label, responsive drawer, duplicate dashboard catalog removed, French default and localized school dates. Functional global year selector remains in BUILD 03. |
+| 02 — Settings Center | DONE | 2026-10-02 | 2026-10-02 | BUILD 01 | `npm test`, localization audit, permission/RPC review, typecheck, build, lint | Added the central settings entry and moved the existing grading-rules link under it. Narrowed it to `school_admin` and `director`, matching the existing Supabase RPC. No duplicate or placeholder settings were added. |
+| 03 — Academic Year | IN PROGRESS | 2026-10-02 | — | BUILD 02 | Academic-year, school-calendar, date-picker, progression, RLS tests | URL-backed school-scoped selector is implemented in the shell and consumed by Classes, Attendance, Assignments, Grades, Grading Periods, Exam Calendar, Publication review, closure management, and holiday suggestions. Database single-current-year invariant and real role-by-role verification remain open. |
+| 04 — School Structure | IN PROGRESS | 2026-10-02 | — | BUILD 03 | School-catalog, class, route, authorization tests | User confirmed Primaire = AF1–AF6 and Fondamental = AF7–AF9. The class page presents those four product groups and filters class creation to enabled sections for the selected year. A timestamped Supabase-generated migration now adds the same section/year check to `create_class`, seeds levels directly during first activation, and shares an advisory lock across activation and class creation. A rollback-only synthetic CI fixture checks activation, creation, deactivation, reactivation, year isolation, and teacher authorization. Remaining: execute that fixture on the GitHub hosted local-Supabase runner, then finish route/empty-state and visual review. No production database was changed. |
+| 05 — Preschool | IN PROGRESS | — | — | BUILD 04 | Kindergarten pickup/relocation, badge, preschool bulletin, RLS tests | Preschool attendance, pickup, authorized adults, relocation, and competency bulletins exist; full requirement and role audit is pending. |
+| 06 — Students & Families | IN PROGRESS | — | — | BUILD 05 | Student-edge/privacy/photo, badge, guardian and portal isolation tests | Student identities, guardians, badges, enrollment and history exist; live production RPC inspection confirms existing class changes require Academic progression and AtechOS ID is not accepted by the student-save RPC. UI edits keep ID/class read-only, and new enrollments now only offer enabled classes for the selected academic year. Full product and security audit remains pending. |
+| 07 — Pedagogical Organization | IN PROGRESS | — | — | BUILD 04 | Catalog, assignment, role isolation, RLS tests | Classes, subjects, and teacher links exist; audit level/program/class assignment boundaries and avoid duplicate curriculum data. |
+| 08 — Evaluations & Results | IN PROGRESS | — | — | BUILDS 03, 07 | Grade workflow, report card, exam calendar, bulletin publication, teacher-isolation tests | Grade entry, review, publication, report cards, settings, and progression exist; audit calculation and role/privacy criteria end-to-end. |
+| 09 — Finance & Accounting | NOT STARTED | — | — | BUILD 10 | Permission/RLS tests plus finance-specific tests after scope audit | Accountant role exists. Search existing requirements and schema before proposing payments, fees, receipts, balances, due dates, or reports. |
+| 10 — Administration & Access | IN PROGRESS | — | — | BUILDS 02, 06 | Navigation, approvals, personnel/role capability, RLS tests | Membership, staff, roles, and access approval flows exist; centralized capability and personnel-versus-system-user audit is pending. |
+| 11 — Student Follow-up | IN PROGRESS | — | — | BUILDS 03, 06, 10, 12 | GUARD workflow, calendar and notification/RLS tests | Attendance-reason, meeting, and access restriction workflow exists. Public wording should be “Suivi des élèves”; retain internal `guard_*` identifiers unless a safe migration is necessary. |
+| 12 — Student Life & Calendar | IN PROGRESS | — | — | BUILDS 03, 04 | School-calendar, official-calendar-sources, kiosk/attendance, date tests | Calendar and official-source proposal workflows exist; audit annual setup, closures, holidays, suggested official exam dates, and staff confirmation. |
+| 13 — Parent/Student Portals | IN PROGRESS | — | — | BUILDS 05, 06, 08, 12 | Student-edge/privacy, report-card, assignment, portal and attendance tests | Student and parent views exist; audit identity, published-only bulletins, linked-child isolation, assignments, and attendance visibility. |
+| 14 — Premium Polish | NOT STARTED | — | — | BUILDS 01–13 | Full product test suite, localization audit, desktop/tablet/mobile review, production build | Final consistency, loading/error/empty states, responsive behavior, and accessible interaction audit. |
+
+## BUILD 01 — Navigation & App Shell
+
+### Requirement classification
+
+| Requirement / current behavior | Classification | Decision |
+| --- | --- | --- |
+| Role-filtered route navigation and Censeur/surveillant visibility | KEEP / ALREADY COMPLETED | Keep `permittedNavigation` as the source for visible destinations; UI filtering does not replace server authorization. |
+| Search, notifications, identity, language control, logout, mobile drawer | KEEP | Preserve their existing actions while improving shell structure. |
+| Flat sidebar with every route in one list | REFACTOR | Group permitted links by people, preschool, school life, teaching, results, follow-up, administration, and family portals. |
+| Collapsible sidebar domain groups | ADD | Accessible group controls with persisted per-browser collapse preferences and no role bypass. |
+| Breadcrumbs | ADD | Add a shared dashboard → current permitted destination breadcrumb on dashboard routes. |
+| Current academic year in topbar | ADD | Read the active year label using the existing school-scoped table and tolerate an unavailable label. |
+| Functional global academic-year selector and cross-module filtering | MOVE → BUILD 03 | Existing modules maintain independent year selection; a shell-only dropdown would be misleading until selection is consumed by data queries. |
+| Duplicate “Your modules” grid on dashboard | REFACTOR | Remove the copied navigation catalog; keep summary metrics and operational actions. |
+| French default with complete Haitian Creole support | REFACTOR | Make absent/invalid locale cookies resolve to French; retain explicit HT and EN preferences. Localize the date formatter used by the dashboard and shell. |
+| Unsupported navigation destinations in the requested future map | KEEP / MOVE | Keep links to existing routes only. Create no placeholder links; introduce new destinations in their owning builds. |
+
+### Acceptance criteria
+
+- [x] Sidebar renders only destinations permitted by existing role/capability logic.
+- [x] Destinations are grouped, groups can collapse/expand accessibly, and preferences survive reloads.
+- [x] Active routes remain identified; the mobile drawer retains its open/close/navigation controls.
+- [x] Shared breadcrumbs identify dashboard and current destination.
+- [x] Current academic-year label is read from the active school data when configured; no selector claims to filter modules before BUILD 03.
+- [x] Search, notifications, account identity, language switcher, and logout controls are retained.
+- [x] Dashboard no longer repeats all navigation links as a module-card catalog.
+- [x] French is the default when no language is selected; shell, dashboard, calendar, and bulletins format month names for French/HT.
+- [x] Navigation, routes, localization, typecheck, and production build pass.
+- [x] Visually verify the changed shell at desktop, tablet, and mobile widths for overflow and drawer interaction.
+
+Validation on 2026-10-02: `npm test` passed; `npm run typecheck` passed; `npm run build` passed; `npm run lint` passed with 0 errors and 28 warnings. Local visual preview was checked at desktop, tablet (900×800), and mobile (390×844); tablet/mobile drawer open and close worked, and no horizontal overflow appeared in the visible layouts. The live Vercel URL still showed the pre-branch UI during the earlier read-only review; these changes remain local to this branch and have not been deployed.
+
+### Current implementation and remaining work
+
+- Existing work retained: `permittedNavigation`, route access boundaries, search RPC, notification read RPC, local logout, account identity, language selector, and mobile drawer.
+- Implemented in this branch: grouped capability-filtered links, persistent collapsible groups, shared breadcrumbs, topbar active-year label, removal of duplicate dashboard catalog, French default, localized school month names in shell/dashboard, and focused tests.
+- Remaining in BUILD 01: none. Implement the functional global year selector only in BUILD 03.
+
+BUILD 02 validation on 2026-10-02: full `npm test` passed (35 HTTP route checks and all module contracts, including role visibility); translation audit scanned 79 TSX files with 0 untranslated static labels; `npm run typecheck` and `npm run build` passed; `npm run lint` passed with 0 errors and the same 28 pre-existing warnings. `git diff --check` passed.
+- No data-writing or RLS change made in this build.
+
+## BUILD 02 — Settings Center
+
+### Audit findings and decisions
+
+- Existing school-wide configuration surface: `/dashboard/grading-settings` only. It controls assessments per grading period and the passing average; it remains a real settings page, reachable from the center.
+- `/dashboard/grading-periods` is an operational Results workflow for activating exam periods and dates; it stays in Results rather than Settings.
+- Preschool configuration is embedded in the preschool operational workspace and is class/pedagogy-specific. Do not duplicate it into a generic index without a deliberate settings migration.
+- The database RPC `update_grading_settings` allows only `school_admin` and `director`. The navigation previously included `secretary`; that mismatch is being corrected and the settings index mirrors the RPC roles. No database/RLS change is needed.
+- Completed on 2026-10-02: settings index, role visibility matching the Supabase update RPC, French/HT translations, route/build checks, typecheck and lint. Only the existing grading rules surface is included; academic periods remain in Results.
+
+## BUILD 03 — Academic Year (initial audit)
+
+- `academic_years` is tenant-scoped and read/write access is based on school membership and the `school_admin`/`director` roles in the baseline policies; year creation/update use Supabase RPCs. The successor migration adds a second RPC and reviewable, inactive next-year row.
+- The configured successor starts on the exact first-year `end_date`. Tests and UI copy codify this boundary. Do not change it without updating its policy and checking attendance/exam dates that use inclusive `BETWEEN` semantics.
+- The repository's isolated academic-year schema has no unique partial index or constraint limiting `is_current=true` to one row per school. A read-only inspection of the live AtechOS production schema on 2026-10-02 confirmed its `academic_years` indexes enforce unique IDs/names only and do not enforce one current year. The creation RPC clears the existing flag before inserting, but the database does not prevent all other write paths or concurrent activation. This needs a safely generated migration and a preflight for existing duplicate current years; do not silently pick one in production.
+- The Supabase CLI was invoked through `npx` for supported migration generation, but Docker is not available in this workspace and the linked AtechOS project has no Supabase development branches. Isolated database testing must therefore run through the free synthetic GitHub Actions workflow. No Supabase branch was created and no production schema/data was changed.
+- A read-only production RLS policy inspection on 2026-10-02 confirmed `academic_years` SELECT is school-member scoped and writes require `school_admin` or `director`; `classes` reads use `private.read_class` and writes require `school_admin`, `director`, or `secretary`. The UI selector is shown to owner, school_admin, director, secretary, teacher, surveillant, censeur, and parent. These policy definitions are verified, but live user-by-user tests for each role are still pending; shell visibility does not replace RLS.
+- The shell selector is URL-backed (`?year=...`), validates the ID against the active school's academic-year list, falls back to the configured current year, and preserves the year while navigating dashboard modules. The selector is available on mobile and desktop.
+- Classes, Attendance, Assignments, Grades, Grading Periods, Exam Calendar, Publication review, and initial student enrollment now consume the shared selection. Attendance only loads classes from that year; assignments and exam schedules are filtered to that year's classes; grade entry and period configuration constrain year-scoped choices; publication actions are limited to the selected year; the student roster shows classes for the selected year (preferring an active enrollment and retaining transferred enrollment for history); new student enrollment only offers enabled classes for the selected year. Existing student edits keep ID/class read-only; progression retains explicit source and destination years, and historic bulletins retain their own year/class workflow.
+- Calendar closure management and Haiti/MENFP suggestions now follow the selected year and its date bounds; closure approval remains an explicit staff action, and source discovery still never activates closures automatically. Final domain audit remains: verify year-dependent views for roles and safe empty states. Database single-current-year integrity still requires a generated migration and CI proof.
+- The functional selector must therefore distinguish current workspace filtering from deliberate historic/compare workflows, and every affected read/create form must agree on the selected year. Persist selection in the URL so reload/navigation is deterministic, validate it against this school's year list, and never let it replace the explicit source/target selectors in progression.
+- Audit sites: `/dashboard/calendar`, `AcademicYearCalendar`, classes, attendance, assignments, grades, bulletins, exams, publication and progression; `tests/school-calendar.mjs`, `tests/school-date.mjs`, and Supabase CI fixtures.
+- No production Supabase data or schema was changed. Calendar, exam, publication, and year-selection integrations now have contract coverage. A Vercel project deployment-list request was denied (403) for the available connector session; this branch also has uncommitted local changes and no matching open PR, so there is no verified Preview deployment for these changes. Next: establish the database invariant using the skill-required Supabase CLI migration workflow and isolated CI, then perform role-by-role review before marking BUILD 03 complete. Do not hand-author the migration or alter live Supabase data.

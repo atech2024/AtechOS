@@ -6,6 +6,7 @@ import {haitiHolidaySuggestions} from '@/lib/haiti-holidays'
 import {T,useLocale} from '@/components/translation-provider'
 import {translate} from '@/lib/translations'
 import {RefreshCw} from 'lucide-react'
+import {useAcademicYear} from '@/components/academic-year-context'
 
 type Year={id:string;name:string;start_date:string;end_date:string}
 type Closure={day:string;title:string}
@@ -14,6 +15,7 @@ type OfficialCalendar={url:string;label:string;year:string|null;kind:'school_cal
 type StoredCalendar={url:string;source:string;label:string;school_year:string|null;document_kind:'school_calendar'|'exam_calendar';last_seen_at:string;suggested_dates:ExamDateProposal[]}
 type DiscoveredCalendar={url:string;source:string;label:string;school_year:string|null;kind:'school_calendar'|'exam_calendar';suggested_dates?:ExamDateProposal[]}
 export default function HaitiHolidaySuggestions(){
+ const {yearId}=useAcademicYear()
  const locale=useLocale(),t=(text:string)=>translate(text,locale)
  const [year,setYear]=useState<Year|null>(null),[closures,setClosures]=useState<Closure[]>([]),[sources,setSources]=useState<StoredCalendar[]>([]),[discovered,setDiscovered]=useState<DiscoveredCalendar[]>([]),[visible,setVisible]=useState(false),[busy,setBusy]=useState(''),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[online,setOnline]=useState<OfficialCalendar|null>(null),[checkedAt,setCheckedAt]=useState(''),[sourceWarning,setSourceWarning]=useState('')
  const load=useCallback(async()=>{
@@ -22,12 +24,15 @@ export default function HaitiHolidaySuggestions(){
   const roles:string[]=context.data?.roles||[]
   if(!roles.some(r=>['school_admin','director','secretary','surveillant','censeur'].includes(r))){setVisible(false);return}
   setVisible(true)
-  const [y,c,o]=await Promise.all([db.from('academic_years').select('id,name,start_date,end_date').eq('is_current',true).maybeSingle(),db.rpc('school_calendar',{p_student:null}),db.from('official_calendar_sources').select('url,source,label,school_year,document_kind,last_seen_at,suggested_dates').order('last_seen_at',{ascending:false}).limit(10)])
+  if(!yearId){setYear(null);setClosures([]);return}
+  const [y,c,o]=await Promise.all([db.from('academic_years').select('id,name,start_date,end_date').eq('id',yearId).maybeSingle(),db.rpc('school_calendar',{p_student:null}),db.from('official_calendar_sources').select('url,source,label,school_year,document_kind,last_seen_at,suggested_dates').order('last_seen_at',{ascending:false}).limit(10)])
   if(y.error||c.error)throw y.error||c.error
-  setYear(y.data as Year|null);setClosures((c.data?.closures||[]) as Closure[])
+  const selectedYear=y.data
+  if(!selectedYear){setYear(null);setClosures([]);return}
+  setYear(selectedYear as Year);setClosures(((c.data?.closures||[]) as Closure[]).filter(item=>item.day>=selectedYear.start_date&&item.day<=selectedYear.end_date))
   if(o.error)setSourceWarning('Automatic official calendar updates are not configured yet.')
   else setSources((o.data||[]) as StoredCalendar[])
- },[])
+ },[yearId])
  useEffect(()=>{let active=true;load().catch(()=>{if(active)setError('Unable to load holiday suggestions.')});return()=>{active=false}},[load])
  async function approve(date:string,name:string){
   if(!window.confirm(`${t(name)} · ${schoolDate(date)}\n\n${t('Add this suggested date as a school closure?')}`))return

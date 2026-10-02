@@ -9,6 +9,7 @@ function walk(dir){for(const item of readdirSync(dir,{withFileTypes:true})){cons
 walk('src')
 const missing=[]
 for(const file of files){const source=readFileSync(file,'utf8');for(const [,key] of source.matchAll(/<T\s+text="([^"]+)"/g)){if(!known.has(key))missing.push({file,key})}}
+for(const key of ['Students & families','Preschool','School life','Teaching','Evaluation & results','Requests & follow-up','Administration','Family portals','Breadcrumb','Student follow-up cases'])if(!known.has(key))missing.push({file:'src/lib/navigation.ts',key})
 for(const row of missing)console.log(`${row.file}: ${row.key}`)
 assert.equal(missing.length,0,'Every static <T text="..."> label needs French and Haitian Creole translations.')
 console.log(`Scanned ${files.length} TSX files; ${missing.length} static labels lack translations.`)

@@ -4,8 +4,10 @@ import vm from 'node:vm'
 import ts from 'typescript'
 const exports={}
 vm.runInNewContext(ts.transpileModule(readFileSync('src/lib/school-date.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{exports,Intl,Date})
-assert.equal(exports.schoolDate('2026-09-25'),'25 Septanm 2026')
-assert.equal(exports.schoolDate('2026-09-25T02:00:00Z'),'24 Septanm 2026')
+assert.equal(exports.schoolDate('2026-09-25'),'25 septembre 2026')
+assert.equal(exports.schoolDate('2026-09-25','ht'),'25 Septanm 2026')
+assert.equal(exports.schoolDate('2026-09-25T02:00:00Z'),'24 septembre 2026')
+assert.equal(exports.schoolDate('2026-09-25T02:00:00Z','ht'),'24 Septanm 2026')
 assert.equal(exports.schoolTime('2026-09-25T13:00:00Z'),'09:00 AM')
 assert.equal(exports.schoolTime('2026-12-25T18:00:00Z'),'01:00 PM')
 assert.equal(exports.parseDateInput('25/09/2026'),'2026-09-25')

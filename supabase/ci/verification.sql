@@ -185,9 +185,15 @@ begin
  if not exists(select 1 from public.preschool_evaluation_events where evaluation_id=(select id from public.preschool_evaluations where student_id='50000000-0000-0000-0000-000000000001' limit 1) and action='created') then raise exception 'preschool evaluation audit missing';end if;
  failed:=false;begin update public.preschool_bulletin_versions set exam_month=7 where id=ps_version;exception when others then failed:=sqlerrm='preschool_bulletin_immutable';end;
  if not failed then raise exception 'preschool bulletin snapshot was mutable';end if;
+ insert into public.academic_years(id,school_id,start_date,end_date,is_current) values('11000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','2027-08-01','2028-07-31',false);
+ insert into public.classes(id,school_id,grade_level,name,academic_year_id) values('40000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','PS1','Future Preschool CI','11000000-0000-0000-0000-000000000002');
+ insert into public.grading_periods(id,school_id,academic_year_id,name,code,start_date,end_date,sections,is_active) values('80000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','11000000-0000-0000-0000-000000000002','1er Trimestre','T1','2027-08-01','2027-11-30',array['preschool'],true);
+ insert into public.preschool_bulletin_versions(school_id,student_id,class_id,academic_year_id,period_id,version,exam_month,payload,published_by,publisher_name)
+ values('10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000003','11000000-0000-0000-0000-000000000002','80000000-0000-0000-0000-000000000002',1,9,'{"academic_year":"2027-2028","student":{"name":"CI Student"}}','20000000-0000-0000-0000-000000000001','CI Director');
+ update public.students set departure_year_id=term_year where id='50000000-0000-0000-0000-000000000001';
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
  family:=public.family_preschool_bulletins();if jsonb_array_length(family)<>4 or family->0->'payload'->'student'->>'name'<>'CI Student' then raise exception 'linked parent missed preschool bulletin history';end if;
- ps_report:=private.student_report_cards('50000000-0000-0000-0000-000000000001');if jsonb_array_length(ps_report->'preschool_cards')<>4 then raise exception 'parent report-card RPC wrapper missed preschool bulletin history';end if;
+ ps_report:=private.student_report_cards('50000000-0000-0000-0000-000000000001');if jsonb_array_length(ps_report->'preschool_cards')<>4 then raise exception 'parent report-card RPC wrapper missed preschool bulletin history or leaked a post-departure Preschool bulletin';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000003',true);
  if jsonb_array_length(public.family_preschool_bulletins())<>0 then raise exception 'unrelated parent saw preschool bulletin';end if;
  if has_table_privilege('authenticated','public.preschool_bulletin_versions','select') or has_table_privilege('authenticated','public.preschool_evaluations','select') then raise exception 'authenticated can bypass preschool RPC security';end if;

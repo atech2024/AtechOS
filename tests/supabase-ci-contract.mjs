@@ -9,6 +9,7 @@ const guardVerification = readFileSync('supabase/ci/guard-verification.sql', 'ut
 const classVerification = readFileSync('supabase/ci/class-section-verification.sql', 'utf8');
 const classMigration = readFileSync('supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql', 'utf8');
 const preschoolRoleMigration = readFileSync('supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql', 'utf8');
+const preschoolDepartureMigration = readFileSync('supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql', 'utf8');
 const badgeBaseline = readFileSync('supabase/ci-badge/supabase/migrations/20260901000000_badge_pre_lifecycle_baseline.sql', 'utf8');
 const badgeVerification = readFileSync('supabase/ci-badge/badge-verification.sql', 'utf8');
 const badgeLifecycleMigration = readFileSync('supabase/migrations/20260928004221_badge_lifecycle_history.sql', 'utf8');
@@ -26,6 +27,7 @@ assert.match(workflow, /20261001144429_preschool_competency_bulletins\.sql/);
 assert.match(workflow, /20261002151506_enforce_enabled_school_section_for_classes\.sql/);
 assert.match(workflow, /20261002200218_preschool_active_staff_role_scope\.sql/);
 assert.match(workflow, /20261002210335_allow_secretary_to_publish_preschool_bulletins\.sql/);
+assert.match(workflow, /20261002223000_preschool_bulletin_departure_history\.sql/);
 assert.match(workflow, /supabase\/migrations\/20260928004221_badge_lifecycle_history\.sql/);
 assert.match(workflow, /badge-lifecycle:/);
 assert.match(workflow, /cp \.\.\/migrations\/20260928004221_badge_lifecycle_history\.sql supabase\/migrations\//);
@@ -74,6 +76,8 @@ assert.match(classMigration, /pg_advisory_xact_lock/);
 assert.doesNotMatch(classMigration, /SECURITY DEFINER/i);
 assert.match(preschoolRoleMigration, /private\.can_edit_preschool_class\(p_class uuid\)[\s\S]*?select private\.can_access_preschool_class\(p_class\)/);
 for(const assertion of ['preschool coordinator retained access after role change','preschool coordinator retained edit access after role change','preschool homeroom teacher retained access after role change','active homeroom teacher lost Preschool access']) assert.ok(verification.includes(assertion), `Preschool stale-role fixture must check: ${assertion}`);
+assert.match(preschoolDepartureMigration,/preschool_cards[\s\S]*?s\.departure_year_id is null or y\.start_date<=\(select start_date from public\.academic_years where id=s\.departure_year_id\)/,'Preschool report-card history must respect the student departure year');
+assert.ok(verification.includes('post-departure Preschool bulletin'),'the SQL fixture must prove that a future Preschool bulletin is excluded after departure');
 
 assert.match(badgeBaseline, /create table private\.student_badge_credentials\([\s\S]*?token text not null unique[\s\S]*?updated_at timestamptz/i);
 assert.doesNotMatch(badgeBaseline.match(/create table public\.student_badges\([\s\S]*?\);/i)?.[0] || '', /\bstate\s+text/i, 'badge baseline must be pre-lifecycle so the real migration is applied');

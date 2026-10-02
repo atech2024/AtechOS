@@ -38,7 +38,7 @@ Statuses use only `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`. A build is
 ### BUILD 05 — Preschool role-audit progress (2026-10-02)
 
 - Added rollback-only Supabase CI assertions for pickup permissions: director, school administrator, and secretary may manage pickup authorizations; surveillant and Censeur may view/preview QR pickup records but may not change the authorized-adult list; teachers are denied the pickup workspace. The existing pickup workflow continues to enforce a preschool-only QR scope and one pickup per student per Haiti-local day.
-- The fixture and its JavaScript contract passed the full local application test suite. The SQL role assertions still require the isolated hosted Supabase CI run; no production schema or records were changed.
+- The fixture and its JavaScript contract passed the full local application test suite. Isolated hosted Supabase CI run 37056484032 succeeded for commit `58e7e92`, exercising these SQL role assertions; no production schema or records were changed.
 - BUILD 05 remains IN PROGRESS. Remaining scope includes the full preschool acceptance audit, pickup/relocation behavior in hosted SQL verification, student badge/portal linkage, and authenticated role-by-role product review.
 
 ## BUILD 01 — Navigation & App Shell

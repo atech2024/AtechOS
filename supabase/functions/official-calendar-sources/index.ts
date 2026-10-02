@@ -14,8 +14,8 @@ const allowedGovernmentHosts = new Set(['menfp.gouv.ht', 'www.menfp.gouv.ht', 'c
 const allowedMirrorHosts = new Set(['haitilibre.com', 'www.haitilibre.com', 'autodiscover.haitilibre.com'])
 const userAgent = 'AtechOS school calendar source checker'
 
-type Candidate = { url: string; source: string; label: string; school_year: string | null }
-type Article = { url: string; school_year: string; label: string }
+type Candidate = { url: string; source: string; label: string; school_year: string | null; kind: 'school_calendar' | 'exam_calendar' }
+type Article = { url: string; school_year: string | null; label: string; kind: 'school_calendar' | 'exam_calendar' }
 
 function extractAnchors(html: string) {
   return [...html.matchAll(/<a\b[^>]*href\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi)].map(match => ({
@@ -30,12 +30,13 @@ function discoverOfficialLinks(html: string, base: string, source: string): Cand
     const url = new URL(anchor.href, base)
     if (url.protocol !== 'https:' || !allowedGovernmentHosts.has(url.hostname)) continue
     const haystack = `${url.pathname} ${url.search} ${anchor.text}`
-    if (!/(?:calendrier|calendar|calandriye)/i.test(haystack) || !/(?:20\d{2}(?:[_\-/ –—]?20\d{2})?|\.pdf(?:$|\?)|scolaire)/i.test(haystack)) continue
+    if (!/(?:calendrier|calendar|calandriye)/i.test(haystack) || !/(?:20\d{2}(?:[_\-/ –—]?20\d{2})?|\.pdf(?:$|\?)|scolaire|examen|examens)/i.test(haystack)) continue
     const year = haystack.match(/(20\d{2})\s*[_\-/ –—]\s*(20\d{2})/)
     const label = anchor.text && /(?:calendrier|calendar|calandriye)/i.test(anchor.text)
       ? anchor.text
       : `${source} school calendar${year ? ` ${year[1]}–${year[2]}` : ''}`
-    found.set(url.toString(), { url: url.toString(), source, label: label.slice(0, 240), school_year: year ? `${year[1]}/${year[2]}` : null })
+    const kind = /(?:exam|examen|période|periode)/i.test(haystack) ? 'exam_calendar' : 'school_calendar'
+    found.set(url.toString(), { url: url.toString(), source, label: label.slice(0, 240), school_year: year ? `${year[1]}/${year[2]}` : null, kind })
   } catch { /* ignore malformed or non-government links */ }
   return [...found.values()]
 }
@@ -44,20 +45,27 @@ function discoverArticles(html: string, base: string): Article[] {
   const found = new Map<string, Article>()
   for (const anchor of extractAnchors(html)) try {
     const url = new URL(anchor.href, base)
-    const year = url.pathname.match(/calendrier[-_]scolaire[-_](20\d{2})[-_](20\d{2})/i)
-    if (url.protocol !== 'https:' || !allowedMirrorHosts.has(url.hostname) || !/^\/article-\d+-/i.test(url.pathname) || !year) continue
-    const school_year = `${year[1]}/${year[2]}`
-    found.set(url.toString(), { url: url.toString(), school_year, label: `Calendrier scolaire ${year[1]}–${year[2]} · copie publiée par HaitiLibre` })
+    const title = `${url.pathname} ${anchor.text}`
+    const year = title.match(/(20\d{2})[-_/](20\d{2})/i)
+    const singleYear = title.match(/(20\d{2})/i)
+    const exam = /(?:exam|examen|période|periode)/i.test(title)
+    const kind = exam ? 'exam_calendar' : 'school_calendar'
+    if (url.protocol !== 'https:' || !allowedMirrorHosts.has(url.hostname) || !/^\/article-\d+-/i.test(url.pathname) || (!exam && !/(?:calendrier|calendar|calandriye)[-_]scolaire/i.test(title)) || (!year && !exam)) continue
+    const school_year = year ? `${year[1]}/${year[2]}` : null
+    const label = kind === 'exam_calendar' ? `Examens et périodes${year ? ` ${year[1]}–${year[2]}` : singleYear ? ` ${singleYear[1]}` : ''} · source HaitiLibre à vérifier` : `Calendrier scolaire ${year![1]}–${year![2]} · copie publiée par HaitiLibre`
+    found.set(url.toString(), { url: url.toString(), school_year, label, kind })
   } catch { /* ignore malformed links */ }
-  return [...found.values()].sort((a, b) => b.school_year.localeCompare(a.school_year))
+  return [...found.values()].sort((a, b) => (b.school_year || '').localeCompare(a.school_year || ''))
 }
 
 function discoverPdf(html: string, base: string, schoolYear: string): Candidate | null {
   for (const anchor of extractAnchors(html)) try {
     const url = new URL(anchor.href, base)
-    const year = url.pathname.match(/calendrier[-_]scolaire[-_](20\d{2})[-_](20\d{2})\.pdf$/i)
+    const year = url.pathname.match(/(?:calendrier[-_]scolaire|calendrier[-_]examens|examens?[-_]scolaires?)[-_](20\d{2})[-_](20\d{2})\.pdf$/i)
     if (url.protocol === 'https:' && allowedMirrorHosts.has(url.hostname) && year && `${year[1]}/${year[2]}` === schoolYear) {
-      return { url: url.toString(), source: 'HaitiLibre', label: `Calendrier scolaire ${year[1]}–${year[2]} · copie publiée par HaitiLibre`, school_year: schoolYear }
+      const kind = /(?:exam|examen|période|periode)/i.test(`${url.pathname} ${anchor.text}`) ? 'exam_calendar' : 'school_calendar'
+      const label = kind === 'exam_calendar' ? `Examens et périodes ${year[1]}–${year[2]} · source HaitiLibre à vérifier` : `Calendrier scolaire ${year[1]}–${year[2]} · copie publiée par HaitiLibre`
+      return { url: url.toString(), source: 'HaitiLibre', label, school_year: schoolYear, kind }
     }
   } catch { /* ignore malformed links */ }
   return null
@@ -77,23 +85,29 @@ async function discoverMirrorPdf(): Promise<Candidate[]> {
     }
   }))
   const articles = [...new Map(archives.flat().map(article => [article.url, article])).values()]
-    .sort((a, b) => b.school_year.localeCompare(a.school_year)).slice(0, 5)
+    .sort((a, b) => (b.school_year || '').localeCompare(a.school_year || '')).slice(0, 8)
   const documents = await Promise.all(articles.map(async article => {
     try {
       const html = await fetchText(article.url, 7000)
-      const pdf = discoverPdf(html, article.url, article.school_year)
-      if (!pdf) return null
-      const response = await fetch(pdf.url, { signal: AbortSignal.timeout(9000), headers: { 'user-agent': userAgent } })
-      if (!response.ok || !/application\/pdf/i.test(response.headers.get('content-type') || '')) return null
-      const bytes = new Uint8Array(await response.arrayBuffer())
-      if (bytes.length < 8 || String.fromCharCode(...bytes.slice(0, 5)) !== '%PDF-') return null
-      return pdf
+      const candidates: Candidate[] = []
+      const text = html.replace(/<script\b[\s\S]*?<\/script>|<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+      if (/(?:examens officiels|calendrier des examens|horaires? des examens)/i.test(text)) candidates.push({ url: article.url, source: 'HaitiLibre', label: `Référence des examens officiels ${article.school_year || ''} · source à vérifier`, school_year: article.school_year, kind: 'exam_calendar' })
+      const pdf = article.school_year ? discoverPdf(html, article.url, article.school_year) : null
+      if (pdf) {
+        const response = await fetch(pdf.url, { signal: AbortSignal.timeout(9000), headers: { 'user-agent': userAgent } })
+        if (!response.ok || !/application\/pdf/i.test(response.headers.get('content-type') || '')) return []
+        const bytes = new Uint8Array(await response.arrayBuffer())
+        if (bytes.length < 8 || String.fromCharCode(...bytes.slice(0, 5)) !== '%PDF-') return []
+        candidates.push(pdf)
+      }
+      if (!candidates.length) candidates.push({ url: article.url, source: 'HaitiLibre', label: article.label, school_year: article.school_year, kind: article.kind })
+      return candidates
     } catch (error) {
       console.warn('Calendar mirror document unavailable', article.url, error instanceof Error ? error.message : 'unknown error')
-      return null
+      return []
     }
   }))
-  return documents.filter((item): item is Candidate => Boolean(item))
+  return documents.flat()
 }
 
 Deno.serve(async request => {
@@ -118,7 +132,7 @@ Deno.serve(async request => {
       .sort((a, b) => (b.school_year || '').localeCompare(a.school_year || ''))
     if (body.persist && unique.length) {
       const supabase = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } })
-      const { error } = await supabase.from('official_calendar_sources').upsert(unique.map(item => ({ ...item, last_seen_at: new Date().toISOString() })), { onConflict: 'url' })
+      const { error } = await supabase.from('official_calendar_sources').upsert(unique.map(item => ({ url: item.url, source: item.source, label: item.label, school_year: item.school_year, document_kind: item.kind, last_seen_at: new Date().toISOString() })), { onConflict: 'url' })
       if (error) throw error
     }
     return Response.json({

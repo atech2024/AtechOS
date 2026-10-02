@@ -33,6 +33,10 @@ const yearHtml=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual F
 assert.ok(yearHtml.includes('aria-label="Academic year"'),'Authorized users must get the global academic-year selector.')
 assert.ok(yearHtml.includes('href="/dashboard/grades?year=year-1"'),'Dashboard links must preserve the selected academic year.')
 console.log('PASS global year selector appears for authorized users and navigation preserves the selected year.')
+const dashboardLayout=readFileSync('src/app/dashboard/layout.tsx','utf8')
+const selectorRoleList=dashboardLayout.match(/roles\.some\(role=>\[(.*?)\]\.includes\(role\)\)/)?.[1]||''
+for(const role of ['school_admin','director','secretary','teacher','surveillant','censeur','parent'])assert.ok(selectorRoleList.includes(`'${role}'`),'Academic-year selection must be available to '+role)
+console.log('PASS academic-year selector role coverage matches school administrators, teaching staff and parents.')
 
 for(const role of ['censeur','director','school_admin'])assert.ok(nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/approvals'))
 for(const role of ['teacher','parent','secretary','student'])assert.ok(!nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/approvals'))

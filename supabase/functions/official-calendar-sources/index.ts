@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { extractExamDateProposals, type ExamDateProposal } from './exam-date-proposals.ts'
 
 const governmentPages = [
   { source: 'MENFP', url: 'https://www.menfp.gouv.ht/' },
@@ -14,7 +15,7 @@ const allowedGovernmentHosts = new Set(['menfp.gouv.ht', 'www.menfp.gouv.ht', 'c
 const allowedMirrorHosts = new Set(['haitilibre.com', 'www.haitilibre.com', 'autodiscover.haitilibre.com'])
 const userAgent = 'AtechOS school calendar source checker'
 
-type Candidate = { url: string; source: string; label: string; school_year: string | null; kind: 'school_calendar' | 'exam_calendar' }
+type Candidate = { url: string; source: string; label: string; school_year: string | null; kind: 'school_calendar' | 'exam_calendar'; suggested_dates?: ExamDateProposal[] }
 type Article = { url: string; school_year: string | null; label: string; kind: 'school_calendar' | 'exam_calendar' }
 
 function extractAnchors(html: string) {
@@ -91,6 +92,8 @@ async function discoverMirrorPdf(): Promise<Candidate[]> {
       const html = await fetchText(article.url, 7000)
       const candidates: Candidate[] = []
       const text = html.replace(/<script\b[\s\S]*?<\/script>|<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+      const suggestedDates = extractExamDateProposals(html, article.school_year)
+      if (suggestedDates.length) candidates.push({ url: article.url, source: 'HaitiLibre', label: `${article.label.replace(/ · .*$/, '')} · dat egzamen pwopoze pou verifikasyon`, school_year: article.school_year, kind: 'exam_calendar', suggested_dates: suggestedDates })
       if (/(?:examens officiels|calendrier des examens|horaires? des examens)/i.test(text)) candidates.push({ url: article.url, source: 'HaitiLibre', label: `${article.label.replace(/ · .*$/, '')} · examens officiels à vérifier`, school_year: article.school_year, kind: 'exam_calendar' })
       const pdf = article.school_year ? discoverPdf(html, article.url, article.school_year) : null
       if (pdf) {
@@ -127,11 +130,21 @@ Deno.serve(async request => {
     }))
     const officialCandidates = officialPages.flatMap(page => page.links)
     const mirrorCandidates = await discoverMirrorPdf()
-    const unique = [...new Map([...officialCandidates, ...mirrorCandidates].map(item => [item.url, item])).values()]
+    const merged = new Map<string, Candidate>()
+    for (const item of [...officialCandidates, ...mirrorCandidates]) {
+      const previous = merged.get(item.url)
+      merged.set(item.url, previous ? {
+        ...previous,
+        ...item,
+        kind: item.kind === 'exam_calendar' || previous.kind === 'exam_calendar' ? 'exam_calendar' : 'school_calendar',
+        suggested_dates: [...(previous.suggested_dates || []), ...(item.suggested_dates || [])].filter((proposal, index, all) => all.findIndex(other => other.date_text === proposal.date_text && other.category === proposal.category) === index),
+      } : item)
+    }
+    const unique = [...merged.values()]
       .sort((a, b) => (b.school_year || '').localeCompare(a.school_year || ''))
     if (body.persist && unique.length) {
       const supabase = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } })
-      const { error } = await supabase.from('official_calendar_sources').upsert(unique.map(item => ({ url: item.url, source: item.source, label: item.label, school_year: item.school_year, document_kind: item.kind, last_seen_at: new Date().toISOString() })), { onConflict: 'url' })
+      const { error } = await supabase.from('official_calendar_sources').upsert(unique.map(item => ({ url: item.url, source: item.source, label: item.label, school_year: item.school_year, document_kind: item.kind, suggested_dates: item.suggested_dates || [], last_seen_at: new Date().toISOString() })), { onConflict: 'url' })
       if (error) throw error
     }
     return Response.json({

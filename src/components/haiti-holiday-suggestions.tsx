@@ -31,7 +31,10 @@ export default function HaitiHolidaySuggestions(){
   if(!selectedYear){setYear(null);setClosures([]);return}
   setYear(selectedYear as Year);setClosures(((c.data?.closures||[]) as Closure[]).filter(item=>item.day>=selectedYear.start_date&&item.day<=selectedYear.end_date))
   if(o.error)setSourceWarning('Automatic official calendar updates are not configured yet.')
-  else setSources((o.data||[]) as StoredCalendar[])
+  else{
+   const selectedSchoolYear=`${selectedYear.start_date.slice(0,4)}/${selectedYear.end_date.slice(0,4)}`
+   setSources(((o.data||[]) as StoredCalendar[]).filter(item=>!item.school_year||item.school_year===selectedSchoolYear))
+  }
  },[yearId])
  useEffect(()=>{let active=true;load().catch(()=>{if(active)setError('Unable to load holiday suggestions.')});return()=>{active=false}},[load])
  async function approve(date:string,name:string){
@@ -44,7 +47,7 @@ export default function HaitiHolidaySuggestions(){
  }
  async function refresh(){
   setRefreshing(true);setSourceWarning('');setError('')
-  try{const response=await fetch('/api/calendar/official-source',{cache:'no-store'}),data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to check official MENFP source.');setOnline(data.latest_calendar||null);setDiscovered(data.candidates||[]);setCheckedAt(data.checked_at||new Date().toISOString());setSourceWarning(data.warning||'');await load()}
+  try{const response=await fetch('/api/calendar/official-source',{cache:'no-store'}),data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to check official MENFP source.');const selectedSchoolYear=year?`${year.start_date.slice(0,4)}/${year.end_date.slice(0,4)}`:null;const candidates=(data.candidates||[]).filter((item:DiscoveredCalendar)=>!item.school_year||item.school_year===selectedSchoolYear);setOnline(candidates.find((item:DiscoveredCalendar)=>item.school_year===selectedSchoolYear)||candidates[0]||null);setDiscovered(candidates);setCheckedAt(data.checked_at||new Date().toISOString());setSourceWarning(data.warning||'');await load()}
   catch{setSourceWarning('Online calendar sources could not be checked right now. Existing dates remain unchanged; staff must verify any document before approving closures.')}
   finally{setRefreshing(false)}
  }

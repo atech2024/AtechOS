@@ -56,6 +56,8 @@ assert.match(suggestions,/Exam date proposals — staff review required/,'extrac
 assert.match(suggestions,/nothing is added to the school calendar automatically/,'exam proposals never auto-activate on the school calendar')
 assert.match(suggestions,/staff must approve each closure/,'official source closures remain subject to staff review')
 assert.match(suggestions,/useAcademicYear\(\)/,'holiday suggestions use the globally selected year')
+assert.match(suggestions,/selectedYear\.start_date\.slice\(0,4\).*selectedYear\.end_date\.slice\(0,4\)/,'detected source documents are matched to the academic year selected in the calendar')
+assert.match(suggestions,/filter\(item=>!item\.school_year\|\|item\.school_year===selectedSchoolYear\)/,'manual and saved source results hide documents for other school years while retaining yearless references')
 assert.match(suggestions,/\.eq\('id',yearId\)/,'holiday suggestions load the selected year instead of always using the current year')
 assert.match(suggestions,/item\.day>=selectedYear\.start_date&&item\.day<=selectedYear\.end_date/,'existing closures are scoped to the selected academic-year date range')
 assert.match(closuresUi,/useAcademicYear\(\)/,'the closure manager uses the globally selected academic year')

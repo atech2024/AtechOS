@@ -44,7 +44,7 @@ insert into public.attendance(id,school_id,student_id,class_id,attendance_date,c
  ('80000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date,now(),'present','20000000-0000-0000-0000-000000000001');
 
 do $test$
-declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false; adult_id uuid; pickup_workspace jsonb; term_year uuid:='11000000-0000-0000-0000-000000000001'; ps_period uuid; ps_competency uuid; ps_version uuid; ps_workspace jsonb; ps_report jsonb; ps_published integer;
+declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false; adult_id uuid; pickup_workspace jsonb; pickup_update_id uuid; term_year uuid:='11000000-0000-0000-0000-000000000001'; ps_period uuid; ps_competency uuid; ps_version uuid; ps_workspace jsonb; ps_report jsonb; ps_published integer;
 begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  if (select term_count from public.academic_years where id=term_year)<>3 then raise exception 'official term default must be three'; end if;
@@ -106,11 +106,26 @@ begin
  failed:=false;
  begin perform public.kindergarten_pickup_workspace(); exception when others then failed:=sqlerrm='not_authorized'; end;
  if not failed then raise exception 'teacher accessed kindergarten pickup workspace'; end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ perform public.guardian_note_kindergarten_pickup('50000000-0000-0000-0000-000000000001','on_the_way','Parent pickup update fixture');
+ select id into pickup_update_id from public.kindergarten_pickup_updates where student_id='50000000-0000-0000-0000-000000000001' and parent_user_id='20000000-0000-0000-0000-000000000002' and status='on_the_way';
+ if pickup_update_id is null then raise exception 'parent pickup update was not stored';end if;
+ if (select count(*) from public.notifications where event_key like 'kindergarten-pickup-parent:'||pickup_update_id::text||':%')<>5 then raise exception 'pickup update did not notify each enabled staff role once';end if;
+ failed:=false;
+ begin perform public.guardian_note_kindergarten_pickup('50000000-0000-0000-0000-000000000001','on_the_way','Duplicate parent pickup update');exception when others then failed:=sqlerrm='pickup_update_already_sent';end;
+ if not failed then raise exception 'duplicate parent pickup update was accepted';end if;
+ if (select count(*) from public.kindergarten_pickup_updates where student_id='50000000-0000-0000-0000-000000000001' and parent_user_id='20000000-0000-0000-0000-000000000002')<>1 then raise exception 'duplicate pickup update was persisted';end if;
+ perform public.guardian_note_kindergarten_pickup('50000000-0000-0000-0000-000000000001','delay','Changed pickup plan fixture');
+ if (select count(distinct status) from public.kindergarten_pickup_updates where student_id='50000000-0000-0000-0000-000000000001' and parent_user_id='20000000-0000-0000-0000-000000000002')<>2 then raise exception 'parent could not send a meaningful pickup status change';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  perform public.complete_kindergarten_pickup('AOSQ1.'||repeat('a',64),adult_id,'CI verified pickup');
  if not exists(select 1 from public.kindergarten_relocation_cases where id=v_case_id and status='picked_up' and closed_by='20000000-0000-0000-0000-000000000001') then raise exception 'pickup did not close relocation with actor'; end if;
  if not exists(select 1 from public.attendance_events where attendance_id='80000000-0000-0000-0000-000000000001' and source='STAFF' and actor_role='director' and action='kindergarten_pickup_check_out') then raise exception 'pickup checkout attribution failed'; end if;
  if not exists(select 1 from public.badge_scans where badge_id='51000000-0000-0000-0000-000000000001' and source='PICKUP' and result='pickup_complete') then raise exception 'pickup badge audit failed'; end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ failed:=false;
+ begin perform public.guardian_note_kindergarten_pickup('50000000-0000-0000-0000-000000000001','on_the_way',null);exception when others then failed:=sqlerrm='already_picked_up';end;
+ if not failed then raise exception 'parent sent a pickup update after the child left';end if;
  failed:=false;
  begin
   update public.kindergarten_pickups set reason='mutated' where student_id='50000000-0000-0000-0000-000000000001';

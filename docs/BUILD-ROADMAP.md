@@ -35,6 +35,12 @@ Statuses use only `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`. A build is
 | 13 — Parent/Student Portals | IN PROGRESS | — | — | BUILDS 05, 06, 08, 12 | Student-edge/privacy, report-card, assignment, portal and attendance tests | Student and parent views exist; audit identity, published-only bulletins, linked-child isolation, assignments, and attendance visibility. |
 | 14 — Premium Polish | NOT STARTED | — | — | BUILDS 01–13 | Full product test suite, localization audit, desktop/tablet/mobile review, production build | Final consistency, loading/error/empty states, responsive behavior, and accessible interaction audit. |
 
+### BUILD 05 — Preschool role-audit progress (2026-10-02)
+
+- Added rollback-only Supabase CI assertions for pickup permissions: director, school administrator, and secretary may manage pickup authorizations; surveillant and Censeur may view/preview QR pickup records but may not change the authorized-adult list; teachers are denied the pickup workspace. The existing pickup workflow continues to enforce a preschool-only QR scope and one pickup per student per Haiti-local day.
+- The fixture and its JavaScript contract passed the full local application test suite. The SQL role assertions still require the isolated hosted Supabase CI run; no production schema or records were changed.
+- BUILD 05 remains IN PROGRESS. Remaining scope includes the full preschool acceptance audit, pickup/relocation behavior in hosted SQL verification, student badge/portal linkage, and authenticated role-by-role product review.
+
 ## BUILD 01 — Navigation & App Shell
 
 ### Requirement classification

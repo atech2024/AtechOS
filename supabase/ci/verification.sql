@@ -10,7 +10,11 @@ insert into public.users(id,full_name) values
  ('20000000-0000-0000-0000-000000000001','CI Director'),
  ('20000000-0000-0000-0000-000000000002','Linked Parent'),
  ('20000000-0000-0000-0000-000000000003','Unrelated Parent'),
- ('20000000-0000-0000-0000-000000000004','CI Preschool Teacher');
+ ('20000000-0000-0000-0000-000000000004','CI Preschool Teacher'),
+ ('20000000-0000-0000-0000-000000000005','CI Surveillant'),
+ ('20000000-0000-0000-0000-000000000006','CI Censeur'),
+ ('20000000-0000-0000-0000-000000000007','CI Secretary'),
+ ('20000000-0000-0000-0000-000000000008','CI School Administrator');
 insert into public.grade_levels(id,code) values('30000000-0000-0000-0000-000000000001','PS1');
 insert into public.classes(id,school_id,grade_level_id,grade_level,name,academic_year_id) values
  ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','PS1','Preschool CI','11000000-0000-0000-0000-000000000001');
@@ -26,7 +30,11 @@ insert into public.school_members(school_id,user_id,role) values
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','director'),
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002','parent'),
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000003','parent'),
- ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000004','teacher');
+ ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000004','teacher'),
+ ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000005','surveillant'),
+ ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000006','censeur'),
+ ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000007','secretary'),
+ ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000008','school_admin');
 insert into public.parents(id,school_id,user_id,full_name,email,relationship) values
  ('70000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002','Linked Parent','linked@example.invalid','parent'),
  ('70000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000003','Other Parent','other@example.invalid','parent');
@@ -66,6 +74,32 @@ begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000003',true);
  if jsonb_array_length(public.kindergarten_parent_relocation_status())<>0 then raise exception 'unrelated parent saw relocation'; end if;
 
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+ if not (public.kindergarten_pickup_workspace()->>'can_manage_authorizations')::boolean then raise exception 'director cannot manage pickup authorizations'; end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000007',true);
+ if not (public.kindergarten_pickup_workspace()->>'can_manage_authorizations')::boolean then raise exception 'secretary cannot manage pickup authorizations'; end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ if not (public.kindergarten_pickup_workspace()->>'can_manage_authorizations')::boolean then raise exception 'school administrator cannot manage pickup authorizations'; end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000005',true);
+ if (public.kindergarten_pickup_workspace()->>'can_manage_authorizations')::boolean then raise exception 'surveillant gained pickup authorization management'; end if;
+ if public.kindergarten_pickup_preview('AOSQ1.'||repeat('a',64))->>'student_id'<>'50000000-0000-0000-0000-000000000001' then raise exception 'surveillant cannot preview preschool pickup QR'; end if;
+ failed:=false;
+ begin
+  perform public.save_kindergarten_pickup_authorization('50000000-0000-0000-0000-000000000001',null,'Unauthorized Adult','guardian',null,true);
+ exception when others then failed:=sqlerrm='not_authorized'; end;
+ if not failed then raise exception 'surveillant changed pickup authorizations'; end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000006',true);
+ if (public.kindergarten_pickup_workspace()->>'can_manage_authorizations')::boolean then raise exception 'censeur gained pickup authorization management'; end if;
+ if public.kindergarten_pickup_preview('AOSQ1.'||repeat('a',64))->>'student_id'<>'50000000-0000-0000-0000-000000000001' then raise exception 'censeur cannot preview preschool pickup QR'; end if;
+ failed:=false;
+ begin
+  perform public.save_kindergarten_pickup_authorization('50000000-0000-0000-0000-000000000001',null,'Unauthorized Adult','guardian',null,true);
+ exception when others then failed:=sqlerrm='not_authorized'; end;
+ if not failed then raise exception 'censeur changed pickup authorizations'; end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
+ failed:=false;
+ begin perform public.kindergarten_pickup_workspace(); exception when others then failed:=sqlerrm='not_authorized'; end;
+ if not failed then raise exception 'teacher accessed kindergarten pickup workspace'; end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  perform public.complete_kindergarten_pickup('AOSQ1.'||repeat('a',64),adult_id,'CI verified pickup');
  if not exists(select 1 from public.kindergarten_relocation_cases where id=v_case_id and status='picked_up' and closed_by='20000000-0000-0000-0000-000000000001') then raise exception 'pickup did not close relocation with actor'; end if;

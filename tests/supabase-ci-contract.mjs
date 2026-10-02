@@ -40,6 +40,7 @@ assert.match(verification, /unrelated parent saw relocation/);
 assert.match(verification, /private relocation detail leaked/);
 assert.match(verification, /pickup did not close relocation with actor/);
 assert.match(verification, /complete_kindergarten_pickup\(/, 'pickup fixture must exercise the production pickup RPC');
+for(const assertion of ['director cannot manage pickup authorizations','secretary cannot manage pickup authorizations','school administrator cannot manage pickup authorizations','surveillant cannot preview preschool pickup QR','surveillant changed pickup authorizations','censeur cannot preview preschool pickup QR','censeur changed pickup authorizations','teacher accessed kindergarten pickup workspace']) assert.ok(verification.includes(assertion), `pickup role fixture must check: ${assertion}`);
 assert.match(verification, /pickup badge audit failed/);
 assert.match(verification, /pickup checkout attribution failed/);
 assert.match(verification, /fourth_term_not_enabled/);

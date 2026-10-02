@@ -4,13 +4,22 @@ insert into public.schools(id,name) values
  ('12000000-0000-0000-0000-000000000001','Class section CI');
 insert into public.users(id,full_name,email) values
  ('22000000-0000-0000-0000-000000000001','Section Director','director@class-ci.invalid'),
- ('22000000-0000-0000-0000-000000000002','Section Teacher','teacher@class-ci.invalid');
+ ('22000000-0000-0000-0000-000000000002','Section Teacher','teacher@class-ci.invalid'),
+ ('22000000-0000-0000-0000-000000000003','Section Admin','admin@class-ci.invalid'),
+ ('22000000-0000-0000-0000-000000000004','Section Secretary','secretary@class-ci.invalid'),
+ ('22000000-0000-0000-0000-000000000005','Section Censeur','censeur@class-ci.invalid'),
+ ('22000000-0000-0000-0000-000000000006','Section Surveillant','surveillant@class-ci.invalid'),
+ ('22000000-0000-0000-0000-000000000007','Outside User','outside@class-ci.invalid');
 insert into public.academic_years(id,school_id,name,start_date,end_date,is_current) values
  ('32000000-0000-0000-0000-000000000001','12000000-0000-0000-0000-000000000001','Section year A','2026-08-01','2027-07-31',true),
  ('32000000-0000-0000-0000-000000000002','12000000-0000-0000-0000-000000000001','Section year B','2027-08-01','2028-07-31',false);
 insert into public.school_members(school_id,user_id,role) values
  ('12000000-0000-0000-0000-000000000001','22000000-0000-0000-0000-000000000001','director'),
- ('12000000-0000-0000-0000-000000000001','22000000-0000-0000-0000-000000000002','teacher');
+ ('12000000-0000-0000-0000-000000000001','22000000-0000-0000-0000-000000000002','teacher'),
+ ('12000000-0000-0000-0000-000000000001','22000000-0000-0000-0000-000000000003','school_admin'),
+ ('12000000-0000-0000-0000-000000000001','22000000-0000-0000-0000-000000000004','secretary'),
+ ('12000000-0000-0000-0000-000000000001','22000000-0000-0000-0000-000000000005','censeur'),
+ ('12000000-0000-0000-0000-000000000001','22000000-0000-0000-0000-000000000006','surveillant');
 insert into public.grade_levels(id,code,name,sort_order) values
  ('42000000-0000-0000-0000-000000000001','PS1','Petite Section',1),
  ('42000000-0000-0000-0000-000000000002','PS2','Moyenne Section',2),
@@ -69,6 +78,50 @@ begin
  class_id:=public.create_class('32000000-0000-0000-0000-000000000001','8e AF - B','AF8');
  if not exists(select 1 from public.classes where id=class_id and enabled) then raise exception 'enabled fundamental class was not created'; end if;
 
+ perform set_config('request.jwt.claim.sub','22000000-0000-0000-0000-000000000003',true);
+ class_id:=public.create_class('32000000-0000-0000-0000-000000000001','3e AF - Admin','AF3');
+ if not exists(select 1 from public.classes where id=class_id and enabled) then raise exception 'school administrator could not create a class'; end if;
+ perform set_config('request.jwt.claim.sub','22000000-0000-0000-0000-000000000004',true);
+ class_id:=public.create_class('32000000-0000-0000-0000-000000000001','4e AF - Secretariat','AF4');
+ if not exists(select 1 from public.classes where id=class_id and enabled) then raise exception 'secretary could not create a class'; end if;
+
+ perform set_config('request.jwt.claim.sub','22000000-0000-0000-0000-000000000005',true);
+ begin
+  perform public.create_class('32000000-0000-0000-0000-000000000001','Censeur bypass','AF1');
+  raise exception 'Censeur created a class';
+ exception when raise_exception then
+  if sqlerrm<>'school_membership_required' then raise; end if;
+ end;
+ begin
+  perform public.activate_school_section('32000000-0000-0000-0000-000000000001','primary',false);
+  raise exception 'Censeur changed an activated section';
+ exception when raise_exception then
+  if sqlerrm<>'not_authorized' then raise; end if;
+ end;
+
+ perform set_config('request.jwt.claim.sub','22000000-0000-0000-0000-000000000006',true);
+ begin
+  perform public.create_class('32000000-0000-0000-0000-000000000001','Surveillant bypass','AF1');
+  raise exception 'surveillant created a class';
+ exception when raise_exception then
+  if sqlerrm<>'school_membership_required' then raise; end if;
+ end;
+ begin
+  perform public.activate_school_section('32000000-0000-0000-0000-000000000001','primary',false);
+  raise exception 'surveillant changed an activated section';
+ exception when raise_exception then
+  if sqlerrm<>'not_authorized' then raise; end if;
+ end;
+
+ perform set_config('request.jwt.claim.sub','22000000-0000-0000-0000-000000000007',true);
+ begin
+  perform public.create_class('32000000-0000-0000-0000-000000000001','Outside bypass','AF1');
+  raise exception 'non-member created a class';
+ exception when raise_exception then
+  if sqlerrm<>'school_membership_required' then raise; end if;
+ end;
+
+ perform set_config('request.jwt.claim.sub','22000000-0000-0000-0000-000000000001',true);
  begin
   perform public.create_class('32000000-0000-0000-0000-000000000002','1re AF in inactive year','AF1');
   raise exception 'class was created in a year with no activated section';

@@ -56,7 +56,7 @@ for (const assertion of ['GUARD deadline did not skip closure/weekend','unrelate
 assert.doesNotMatch(guardVerification, /https:\/\/[^\s]*supabase\.co/);
 assert.match(classVerification.trim(), /^begin;/i);
 assert.match(classVerification, /rollback;\s*$/i);
-for(const assertion of ['activation did not seed and enable all six primary grades','school_section_not_enabled','class was created after section deactivation','class was created in a year with no activated section','teacher created a class','teacher changed an activated section']) assert.ok(classVerification.includes(assertion), `class-section SQL fixture must check: ${assertion}`);
+for(const assertion of ['activation did not seed and enable all six primary grades','school_section_not_enabled','class was created after section deactivation','class was created in a year with no activated section','teacher created a class','teacher changed an activated section','school administrator could not create a class','secretary could not create a class','Censeur created a class','Censeur changed an activated section','surveillant created a class','surveillant changed an activated section','non-member created a class']) assert.ok(classVerification.includes(assertion), `class-section SQL fixture must check: ${assertion}`);
 assert.match(classMigration, /school_section_not_enabled/);
 assert.match(classMigration, /pg_advisory_xact_lock/);
 assert.doesNotMatch(classMigration, /SECURITY DEFINER/i);

@@ -1,5 +1,6 @@
 'use client'
-import {useEffect,useState} from 'react'
+import {useCallback,useEffect,useState} from 'react'
+import {useRouter} from 'next/navigation'
 import {createClient} from '@/lib/supabase/client'
 import SchoolDateInput from '@/components/school-date-input'
 import {schoolDate} from '@/lib/school-date'
@@ -7,14 +8,15 @@ import {T} from '@/components/translation-provider'
 
 type Year={id:string;name:string;start_date:string;end_date:string;is_current:boolean}
 export default function AcademicYearCalendar({canManage}:{canManage:boolean}){
+ const router=useRouter()
  const [rows,setRows]=useState<Year[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('')
  const [edit,setEdit]=useState(''),[name,setName]=useState(''),[start,setStart]=useState(''),[end,setEnd]=useState(''),[current,setCurrent]=useState(true)
  const [createOpen,setCreateOpen]=useState(false)
- async function load(){const {data,error}=await createClient().from('academic_years').select('id,name,start_date,end_date,is_current').order('start_date',{ascending:false});if(error)setError(error.message);else setRows((data||[]) as Year[])}
- useEffect(()=>{void load()},[])
+ const load=useCallback(async()=>{const {data,error}=await createClient().from('academic_years').select('id,name,start_date,end_date,is_current').order('start_date',{ascending:false});if(error)setError(error.message);else setRows((data||[]) as Year[])},[])
+ useEffect(()=>{void load()},[load])
  function beginEdit(year:Year){setEdit(year.id);setName(year.name);setStart(year.start_date);setEnd(year.end_date);setCurrent(year.is_current);setError('');setMessage('')}
- async function saveEdit(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');setMessage('');const {error}=await createClient().rpc('update_academic_year',{p_id:edit,p_name:name,p_start_date:start,p_end_date:end,p_is_current:current});if(error)setError(error.message);else{setMessage('Academic year updated.');setEdit('');await load()}setBusy(false)}
- async function create(e:React.FormEvent){e.preventDefault();const form=new FormData(e.currentTarget as HTMLFormElement);setBusy(true);setError('');setMessage('');const firstStart=String(form.get('start')||''),firstEnd=String(form.get('end')||'');const {error}=await createClient().rpc('create_academic_year_with_successor',{p_name:String(form.get('name')||''),p_start_date:firstStart,p_end_date:firstEnd,p_is_current:form.get('current')==='on'});if(error)setError(error.message);else{setMessage('Academic year created. Review the next year dates below.');setCreateOpen(false);await load()}setBusy(false)}
+ async function saveEdit(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');setMessage('');const {error}=await createClient().rpc('update_academic_year',{p_id:edit,p_name:name,p_start_date:start,p_end_date:end,p_is_current:current});if(error)setError(error.message);else{setMessage('Academic year updated.');setEdit('');await load();router.refresh()}setBusy(false)}
+ async function create(e:React.FormEvent){e.preventDefault();const form=new FormData(e.currentTarget as HTMLFormElement);setBusy(true);setError('');setMessage('');const firstStart=String(form.get('start')||''),firstEnd=String(form.get('end')||'');const {error}=await createClient().rpc('create_academic_year_with_successor',{p_name:String(form.get('name')||''),p_start_date:firstStart,p_end_date:firstEnd,p_is_current:form.get('current')==='on'});if(error)setError(error.message);else{setMessage('Academic year created. Review the next year dates below.');setCreateOpen(false);await load();router.refresh()}setBusy(false)}
  const firstEnd=rows[0]?.end_date
  return <section className="my-5 rounded-2xl border bg-white p-5 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-bold"><T text="Academic years"/></h2><p className="text-sm text-slate-600"><T text="Manage school-year dates and choose the active year. A successor year is prepared automatically from the configured end date."/></p></div>{canManage&&<button type="button" onClick={()=>setCreateOpen(v=>!v)} className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white"><T text="+ Academic year"/></button>}</div>
  {error&&<p role="alert" className="mt-3 rounded bg-red-50 p-3 text-sm text-red-700">{error}</p>}{message&&<p role="status" className="mt-3 rounded bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p>}

@@ -10,6 +10,7 @@ const classVerification = readFileSync('supabase/ci/class-section-verification.s
 const classMigration = readFileSync('supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql', 'utf8');
 const preschoolRoleMigration = readFileSync('supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql', 'utf8');
 const preschoolDepartureMigration = readFileSync('supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql', 'utf8');
+const guardParentMigration = readFileSync('supabase/migrations/20261002233000_guard_active_parent_membership.sql', 'utf8');
 const badgeBaseline = readFileSync('supabase/ci-badge/supabase/migrations/20260901000000_badge_pre_lifecycle_baseline.sql', 'utf8');
 const badgeVerification = readFileSync('supabase/ci-badge/badge-verification.sql', 'utf8');
 const badgeLifecycleMigration = readFileSync('supabase/migrations/20260928004221_badge_lifecycle_history.sql', 'utf8');
@@ -28,6 +29,7 @@ assert.match(workflow, /20261002151506_enforce_enabled_school_section_for_classe
 assert.match(workflow, /20261002200218_preschool_active_staff_role_scope\.sql/);
 assert.match(workflow, /20261002210335_allow_secretary_to_publish_preschool_bulletins\.sql/);
 assert.match(workflow, /20261002223000_preschool_bulletin_departure_history\.sql/);
+assert.match(workflow, /20261002233000_guard_active_parent_membership\.sql/);
 assert.match(workflow, /supabase\/migrations\/20260928004221_badge_lifecycle_history\.sql/);
 assert.match(workflow, /badge-lifecycle:/);
 assert.match(workflow, /cp \.\.\/migrations\/20260928004221_badge_lifecycle_history\.sql supabase\/migrations\//);
@@ -66,7 +68,8 @@ assert.match(verification, /has_table_privilege\('authenticated'/);
 assert.doesNotMatch(verification, /https:\/\/[^\s]*supabase\.co/);
 assert.match(guardVerification.trim(), /^begin;/i);
 assert.match(guardVerification, /rollback;\s*$/i);
-for (const assertion of ['GUARD deadline did not skip closure/weekend','unrelated parent submitted a reason','three weekly lates did not create one case','open-school-day absence was not created at 09:00','missed meeting did not suspend student portal','KIOS did not enforce GUARD suspension','student portal login did not enforce GUARD suspension','confirmed meeting did not restore student portal','unrelated family accessed GUARD workspace']) assert.ok(guardVerification.includes(assertion), `GUARD database fixture must check: ${assertion}`);
+for (const assertion of ['GUARD deadline did not skip closure/weekend','unrelated parent submitted a reason','disabled parent received a GUARD notification','disabled parent submitted a GUARD reason','disabled parent read the GUARD workspace','three weekly lates did not create one case','open-school-day absence was not created at 09:00','missed meeting did not suspend student portal','KIOS did not enforce GUARD suspension','student portal login did not enforce GUARD suspension','confirmed meeting did not restore student portal','unrelated family accessed GUARD workspace']) assert.ok(guardVerification.includes(assertion), `GUARD database fixture must check: ${assertion}`);
+assert.match(guardParentMigration,/join public\.school_members m on m\.school_id=p\.school_id and m\.user_id=p\.user_id[\s\S]*?m\.role='parent' and m\.enabled/,'GUARD family access requires an active parent membership');
 assert.doesNotMatch(guardVerification, /https:\/\/[^\s]*supabase\.co/);
 assert.match(classVerification.trim(), /^begin;/i);
 assert.match(classVerification, /rollback;\s*$/i);

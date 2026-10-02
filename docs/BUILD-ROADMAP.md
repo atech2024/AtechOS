@@ -35,6 +35,12 @@ Statuses use only `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`. A build is
 | 13 — Parent/Student Portals | IN PROGRESS | — | — | BUILDS 05, 06, 08, 12 | Student-edge/privacy, report-card, assignment, portal and attendance tests | Student and parent views exist; audit identity, published-only bulletins, linked-child isolation, assignments, and attendance visibility. |
 | 14 — Premium Polish | NOT STARTED | — | — | BUILDS 01–13 | Full product test suite, localization audit, desktop/tablet/mobile review, production build | Final consistency, loading/error/empty states, responsive behavior, and accessible interaction audit. |
 
+### BUILD 11 — GUARD access-audit progress (2026-10-02)
+
+- Found an access gap: GUARD family checks followed the student-parent link but did not require the parent's `school_members` account to remain enabled. This allowed a disabled parent account to submit an absence reason or retain access to GUARD cases, and generated notices could still be delivered to that account.
+- Added migration `20261002233000_guard_active_parent_membership.sql` to require an enabled `parent` membership when reading or submitting GUARD family cases and when sending case notifications. Existing authorized staff access and other linked family accounts remain unchanged.
+- Added rollback-only synthetic database checks for a disabled linked parent's denied workspace/reason access and suppressed notification. Migration has been wired into the isolated Supabase workflow. Local `npm test`, `npm run typecheck`, and `npm run build` pass; hosted SQL execution is pending. This does not modify production Supabase.
+
 ### BUILD 05 — Preschool role-audit progress (2026-10-02)
 
 - Added rollback-only Supabase CI assertions for pickup permissions: director, school administrator, and secretary may manage pickup authorizations; surveillant and Censeur may view/preview QR pickup records but may not change the authorized-adult list; teachers are denied the pickup workspace. The existing pickup workflow continues to enforce a preschool-only QR scope and one pickup per student per Haiti-local day.

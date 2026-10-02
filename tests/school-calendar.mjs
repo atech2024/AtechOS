@@ -55,4 +55,6 @@ assert.match(migrationWorkflow,/school-calendar-verification\.sql/,'isolated Sup
 assert.match(migrationWorkflow,/20261002100000_official_calendar_sources\.sql/,'source registry migration is included in isolated Supabase CI')
 assert.match(migrationWorkflow,/20261002120000_enable_pg_net_for_calendar_sources\.sql/,'pg_net enabling migration is included in isolated Supabase CI')
 assert.match(migrationWorkflow,/20261002121500_allow_secondary_calendar_source\.sql/,'secondary source migration is included in isolated Supabase CI')
+assert.match(migrationWorkflow,/20261002125000_remove_calendar_test_pg_net\.sql/,'temporary diagnostic extension cleanup is included in isolated Supabase CI')
+assert.match(read('supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql'),/drop extension if exists pg_net/i,'the source checker does not leave its one-off egress diagnostic extension enabled')
 console.log('School calendar workflow checks passed.')

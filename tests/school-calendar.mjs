@@ -31,7 +31,7 @@ assert.match(edgeFunction,/application\\\/pdf/,'edge checker validates candidate
 assert.match(edgeFunction,/official_calendar_sources/,'scheduled discovery persists source links for staff review')
 assert.match(edgeFunction,/exam_calendar/,'official exam calendar links are marked for staff review')
 assert.match(edgeFunction,/no verifiable calendar copy was found/,'source discovery warns instead of inferring unsupported dates')
-assert.match(edgeFunction,/Référence des examens officiels/,'school calendar pages that mention official exams are surfaced as review references')
+assert.match(edgeFunction,/examens officiels/,'school calendar pages that mention official exams are surfaced as review references')
 assert.doesNotMatch(edgeFunction,/school_closures/,'source discovery never activates school closures')
 const sourceParser=read('src/lib/official-calendar-sources.ts')
 assert.match(sourceParser,/communication\.gouv\.ht\/institution\/education/,'source list includes the Government education archive')

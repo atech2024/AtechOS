@@ -55,7 +55,7 @@ function discoverArticles(html: string, base: string): Article[] {
     const label = kind === 'exam_calendar' ? `Examens et périodes${year ? ` ${year[1]}–${year[2]}` : singleYear ? ` ${singleYear[1]}` : ''} · source HaitiLibre à vérifier` : `Calendrier scolaire ${year![1]}–${year![2]} · copie publiée par HaitiLibre`
     found.set(url.toString(), { url: url.toString(), school_year, label, kind })
   } catch { /* ignore malformed links */ }
-  return [...found.values()].sort((a, b) => (b.school_year || '').localeCompare(a.school_year || ''))
+  return [...found.values()].sort((a, b) => Number(b.url.match(/article-(\d+)/)?.[1] || 0) - Number(a.url.match(/article-(\d+)/)?.[1] || 0))
 }
 
 function discoverPdf(html: string, base: string, schoolYear: string): Candidate | null {
@@ -91,7 +91,7 @@ async function discoverMirrorPdf(): Promise<Candidate[]> {
       const html = await fetchText(article.url, 7000)
       const candidates: Candidate[] = []
       const text = html.replace(/<script\b[\s\S]*?<\/script>|<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
-      if (/(?:examens officiels|calendrier des examens|horaires? des examens)/i.test(text)) candidates.push({ url: article.url, source: 'HaitiLibre', label: `Référence des examens officiels ${article.school_year || ''} · source à vérifier`, school_year: article.school_year, kind: 'exam_calendar' })
+      if (/(?:examens officiels|calendrier des examens|horaires? des examens)/i.test(text)) candidates.push({ url: article.url, source: 'HaitiLibre', label: `${article.label.replace(/ · .*$/, '')} · examens officiels à vérifier`, school_year: article.school_year, kind: 'exam_calendar' })
       const pdf = article.school_year ? discoverPdf(html, article.url, article.school_year) : null
       if (pdf) {
         const response = await fetch(pdf.url, { signal: AbortSignal.timeout(9000), headers: { 'user-agent': userAgent } })
@@ -126,8 +126,7 @@ Deno.serve(async request => {
       }
     }))
     const officialCandidates = officialPages.flatMap(page => page.links)
-    let mirrorCandidates: Candidate[] = []
-    if (!officialCandidates.length || officialPages.every(page => !page.reachable)) mirrorCandidates = await discoverMirrorPdf()
+    const mirrorCandidates = await discoverMirrorPdf()
     const unique = [...new Map([...officialCandidates, ...mirrorCandidates].map(item => [item.url, item])).values()]
       .sort((a, b) => (b.school_year || '').localeCompare(a.school_year || ''))
     if (body.persist && unique.length) {

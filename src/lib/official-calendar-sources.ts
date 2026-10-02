@@ -36,7 +36,7 @@ export function discoverHaitiLibreCalendarArticles(html:string,base=HAITILIBRE_E
   const label=kind==='exam_calendar'?`Examens et périodes${year?` ${year[1]}–${year[2]}`:singleYear?` ${singleYear[1]}`:''} · source HaitiLibre à vérifier`:`Calendrier scolaire ${year![1]}–${year![2]} · copie publiée par HaitiLibre`
   found.set(url.toString(),{url:url.toString(),school_year,label,kind})
  }catch{}
- return [...found.values()].sort((a,b)=>(b.school_year||'').localeCompare(a.school_year||''))
+ return [...found.values()].sort((a,b)=>Number(b.url.match(/article-(\d+)/)?.[1]||0)-Number(a.url.match(/article-(\d+)/)?.[1]||0))
 }
 
 export function discoverHaitiLibreCalendarPdf(html:string,base:string,schoolYear:string):OfficialCalendarLink|null{

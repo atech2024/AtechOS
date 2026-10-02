@@ -20,6 +20,8 @@ assert.match(examArticles[0]?.label||'',/Examens et périodes/)
 const examNotice=parser.discoverHaitiLibreCalendarArticles('<a href="/article-47860-haiti-education-examens-officiels-2026.html">Examens officiels 2026</a>')
 assert.equal(examNotice[0]?.school_year,null,'do not guess the academic year from a single exam year')
 assert.equal(examNotice[0]?.kind,'exam_calendar')
+const recentFirst=parser.discoverHaitiLibreCalendarArticles('<a href="/article-48357-calendrier-scolaire-2026-2027.html">Calendrier scolaire</a><a href="/article-50000-examens-officiels-2027.html">Examens officiels</a>')
+assert.equal(recentFirst[0]?.url.endsWith('article-50000-examens-officiels-2027.html'),true,'new exam notices are not hidden behind school-year PDFs')
 
 const article=`
  <a href="/docs/Calendrier-scolaire-2026-2027.pdf">Calendrier scolaire officiel</a>

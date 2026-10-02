@@ -52,7 +52,10 @@ assert.match(holidays,/Approve as school closure/,'the calendar offers a deliber
 const guardPage=readFileSync('src/app/dashboard/guard/page.tsx','utf8')
 assert.match(guardPage,/\['review','overdue','meeting'\]\.includes\(c\.status\)/,'staff can action an upcoming family meeting')
 assert.match(guardPage,/c\.meeting_due\?'Confirm family meeting held'/,'meeting status uses the meeting confirmation action')
+assert.match(guardPage,/error\.message\.includes\('case_not_reviewable'\)[\s\S]*await load\(\)[\s\S]*This GUARD case changed/,'stale staff actions refresh the current case instead of exposing a raw database error')
 const guardVerification=readFileSync('supabase/ci/guard-verification.sql','utf8')
 assert.match(guardVerification,/perform public\.review_guard_case\(v_reason_case,false,'Meeting rescheduled'\)/,'database integration fixture exercises meeting rescheduling')
+assert.match(guardVerification,/stale duplicate reason'[\s\S]*case_not_waiting_for_reason/,'database fixture rejects a stale family reason submission')
+assert.match(guardVerification,/Stale duplicate review'[\s\S]*case_not_reviewable/,'database fixture rejects a stale staff review action')
 
 console.log('PASS GUARD contract: Haiti school days, 9AM absences, parent reasons, three-late threshold, meeting deadlines, student access lock/recovery, scoped notifications and staff-approved holidays.')

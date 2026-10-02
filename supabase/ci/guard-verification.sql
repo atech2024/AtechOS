@@ -47,6 +47,9 @@ begin
  perform public.submit_guard_reason(v_reason_case,'Family reason fixture');
  if not exists(select 1 from public.guard_cases where id=v_reason_case and status='review' and reason='Family reason fixture' and reason_by='21000000-0000-0000-0000-000000000002') then raise exception 'linked parent reason was not recorded';end if;
  if not exists(select 1 from public.notifications where recipient_id='21000000-0000-0000-0000-000000000002' and type='guard') then raise exception 'family was not notified';end if;
+  v_failed:=false;
+  begin perform public.submit_guard_reason(v_reason_case,'stale duplicate reason');exception when others then v_failed:=sqlerrm='case_not_waiting_for_reason';end;
+  if not v_failed then raise exception 'GUARD accepted a stale duplicate family reason';end if;
 
  perform set_config('request.jwt.claim.sub','21000000-0000-0000-0000-000000000001',true);
  perform public.review_guard_case(v_reason_case,false,'Meeting requested');
@@ -58,6 +61,9 @@ begin
  if not exists(select 1 from public.notifications where recipient_id='21000000-0000-0000-0000-000000000001' and type='guard' and priority='high') then raise exception 'staff did not receive the meeting alert';end if;
  perform public.review_guard_case(v_reason_case,true,'Meeting fixture resolved');
  if (select status from public.guard_cases where id=v_reason_case)<>'resolved' then raise exception 'staff confirmation did not resolve the meeting case';end if;
+  v_failed:=false;
+  begin perform public.review_guard_case(v_reason_case,true,'Stale duplicate review');exception when others then v_failed:=sqlerrm='case_not_reviewable';end;
+  if not v_failed then raise exception 'GUARD accepted a stale review action';end if;
 
  insert into public.attendance(id,school_id,student_id,class_id,attendance_date,status,check_in_at,recorded_by) values
  ('81000000-0000-0000-0000-000000000010',v_school,v_student,v_class,'2026-09-28','late','2026-09-28 07:55 America/Port-au-Prince','21000000-0000-0000-0000-000000000001'),

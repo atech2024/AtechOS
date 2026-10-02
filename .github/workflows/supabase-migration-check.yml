@@ -21,6 +21,8 @@ on:
       - "supabase/migrations/20261001222000_school_calendar_year_successor.sql"
       - "supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql"
       - "supabase/migrations/20261002100000_official_calendar_sources.sql"
+      - "supabase/migrations/20261002120000_enable_pg_net_for_calendar_sources.sql"
+      - "supabase/migrations/20261002121500_allow_secondary_calendar_source.sql"
       - "vercel.json"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
@@ -41,6 +43,8 @@ on:
       - "supabase/migrations/20261001222000_school_calendar_year_successor.sql"
       - "supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql"
       - "supabase/migrations/20261002100000_official_calendar_sources.sql"
+      - "supabase/migrations/20261002120000_enable_pg_net_for_calendar_sources.sql"
+      - "supabase/migrations/20261002121500_allow_secondary_calendar_source.sql"
       - "vercel.json"
       - "supabase/ci/**"
       - ".github/workflows/supabase-migration-check.yml"
@@ -76,6 +80,8 @@ jobs:
           cp supabase/migrations/20261001222000_school_calendar_year_successor.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261002100000_official_calendar_sources.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002120000_enable_pg_net_for_calendar_sources.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002121500_allow_secondary_calendar_source.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

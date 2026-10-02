@@ -1,4 +1,4 @@
-export type OfficialCalendarSourceName='MENFP'|'Haitian Government'
+export type OfficialCalendarSourceName='MENFP'|'Haitian Government'|'HaitiLibre'
 
 export const OFFICIAL_CALENDAR_PAGES:[{source:OfficialCalendarSourceName;url:string},...{source:OfficialCalendarSourceName;url:string}[]]=[
  {source:'MENFP',url:'https://www.menfp.gouv.ht/'},
@@ -8,8 +8,41 @@ export const OFFICIAL_CALENDAR_PAGES:[{source:OfficialCalendarSourceName;url:str
 ]
 
 export const OFFICIAL_CALENDAR_HOSTS=new Set(['menfp.gouv.ht','www.menfp.gouv.ht','communication.gouv.ht'])
+export const HAITILIBRE_EDUCATION_PAGE='https://www.haitilibre.com/cat-5-education-1.html'
+const HAITILIBRE_HOSTS=new Set(['haitilibre.com','www.haitilibre.com','autodiscover.haitilibre.com'])
 
 export type OfficialCalendarLink={url:string;source:OfficialCalendarSourceName;label:string;school_year:string|null}
+
+export type HaitiLibreCalendarArticle={url:string;school_year:string;label:string}
+
+function anchors(html:string){
+ const values:{href:string;text:string}[]=[]
+ for(const match of html.matchAll(/<a\b[^>]*href\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi)){
+  values.push({href:match[2].replaceAll('&amp;','&'),text:match[3].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()})
+ }
+ return values
+}
+
+export function discoverHaitiLibreCalendarArticles(html:string,base=HAITILIBRE_EDUCATION_PAGE):HaitiLibreCalendarArticle[]{
+ const found=new Map<string,HaitiLibreCalendarArticle>()
+ for(const anchor of anchors(html))try{
+  const url=new URL(anchor.href,base),year=url.pathname.match(/calendrier[-_]scolaire[-_](20\d{2})[-_](20\d{2})/i)
+  if(url.protocol!=='https:'||!HAITILIBRE_HOSTS.has(url.hostname)||!/^\/article-\d+-/i.test(url.pathname)||!year)continue
+  const school_year=`${year[1]}/${year[2]}`
+  found.set(url.toString(),{url:url.toString(),school_year,label:`Calendrier scolaire ${year[1]}–${year[2]} · copie publiée par HaitiLibre`})
+ }catch{}
+ return [...found.values()].sort((a,b)=>b.school_year.localeCompare(a.school_year))
+}
+
+export function discoverHaitiLibreCalendarPdf(html:string,base:string,schoolYear:string):OfficialCalendarLink|null{
+ for(const anchor of anchors(html))try{
+  const url=new URL(anchor.href,base),year=url.pathname.match(/calendrier[-_]scolaire[-_](20\d{2})[-_](20\d{2})\.pdf$/i)
+  if(url.protocol==='https:'&&HAITILIBRE_HOSTS.has(url.hostname)&&year&&`${year[1]}/${year[2]}`===schoolYear){
+   return {url:url.toString(),source:'HaitiLibre',label:`Calendrier scolaire ${year[1]}–${year[2]} · copie publiée par HaitiLibre`,school_year:schoolYear}
+  }
+ }catch{}
+ return null
+}
 
 export function discoverOfficialCalendarLinks(html:string,base:string,source:OfficialCalendarSourceName):OfficialCalendarLink[]{
  const found=new Map<string,OfficialCalendarLink>()

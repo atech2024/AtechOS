@@ -33,6 +33,7 @@ on:
       - "supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql"
       - "supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql"
       - "supabase/migrations/20261002233000_guard_active_parent_membership.sql"
+      - "supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
@@ -66,6 +67,7 @@ on:
       - "supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql"
       - "supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql"
       - "supabase/migrations/20261002233000_guard_active_parent_membership.sql"
+      - "supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
@@ -115,6 +117,7 @@ jobs:
           cp supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261002233000_guard_active_parent_membership.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

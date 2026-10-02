@@ -44,7 +44,7 @@ insert into public.attendance(id,school_id,student_id,class_id,attendance_date,c
  ('80000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date,now(),'present','20000000-0000-0000-0000-000000000001');
 
 do $test$
-declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false; adult_id uuid; term_year uuid:='11000000-0000-0000-0000-000000000001'; ps_period uuid; ps_competency uuid; ps_version uuid; ps_workspace jsonb; ps_report jsonb; ps_published integer;
+declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false; adult_id uuid; pickup_workspace jsonb; term_year uuid:='11000000-0000-0000-0000-000000000001'; ps_period uuid; ps_competency uuid; ps_version uuid; ps_workspace jsonb; ps_report jsonb; ps_published integer;
 begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  if (select term_count from public.academic_years where id=term_year)<>3 then raise exception 'official term default must be three'; end if;
@@ -62,8 +62,8 @@ begin
  exception when others then failed:=sqlerrm='assessment_is_not_a_grading_period';
  end;
  if not failed then raise exception 'assessment code was accepted as active grading period'; end if;
- insert into public.kindergarten_pickup_authorizations(school_id,student_id,full_name,relationship,created_by)
- values('10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','Authorized Adult','guardian','20000000-0000-0000-0000-000000000001') returning id into adult_id;
+ insert into public.kindergarten_pickup_authorizations(school_id,student_id,full_name,relationship,phone,created_by)
+ values('10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','Authorized Adult','guardian','555-0123','20000000-0000-0000-0000-000000000001') returning id into adult_id;
  v_case_id:=public.start_kindergarten_relocation('50000000-0000-0000-0000-000000000001','needs_support','PRIVATE-CI-NOTE');
  perform public.record_kindergarten_parent_contact(v_case_id,'no_answer','PRIVATE-CI-CONTACT');
 
@@ -75,13 +75,17 @@ begin
  if jsonb_array_length(public.kindergarten_parent_relocation_status())<>0 then raise exception 'unrelated parent saw relocation'; end if;
 
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
- if not (public.kindergarten_pickup_workspace()->>'can_manage_authorizations')::boolean then raise exception 'director cannot manage pickup authorizations'; end if;
+ pickup_workspace:=public.kindergarten_pickup_workspace();
+ if not (pickup_workspace->>'can_manage_authorizations')::boolean then raise exception 'director cannot manage pickup authorizations'; end if;
+ if not ((pickup_workspace->'students'->0->'authorizations'->0)?'phone') then raise exception 'pickup manager cannot view authorized adult phone';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000007',true);
  if not (public.kindergarten_pickup_workspace()->>'can_manage_authorizations')::boolean then raise exception 'secretary cannot manage pickup authorizations'; end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
  if not (public.kindergarten_pickup_workspace()->>'can_manage_authorizations')::boolean then raise exception 'school administrator cannot manage pickup authorizations'; end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000005',true);
- if (public.kindergarten_pickup_workspace()->>'can_manage_authorizations')::boolean then raise exception 'surveillant gained pickup authorization management'; end if;
+ pickup_workspace:=public.kindergarten_pickup_workspace();
+ if (pickup_workspace->>'can_manage_authorizations')::boolean then raise exception 'surveillant gained pickup authorization management'; end if;
+ if (pickup_workspace->'students'->0->'authorizations'->0)?'phone' then raise exception 'surveillant saw authorized adult phone';end if;
  if public.kindergarten_pickup_preview('AOSQ1.'||repeat('a',64))->>'student_id'<>'50000000-0000-0000-0000-000000000001' then raise exception 'surveillant cannot preview preschool pickup QR'; end if;
  failed:=false;
  begin
@@ -89,7 +93,9 @@ begin
  exception when others then failed:=sqlerrm='not_authorized'; end;
  if not failed then raise exception 'surveillant changed pickup authorizations'; end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000006',true);
- if (public.kindergarten_pickup_workspace()->>'can_manage_authorizations')::boolean then raise exception 'censeur gained pickup authorization management'; end if;
+ pickup_workspace:=public.kindergarten_pickup_workspace();
+ if (pickup_workspace->>'can_manage_authorizations')::boolean then raise exception 'censeur gained pickup authorization management'; end if;
+ if (pickup_workspace->'students'->0->'authorizations'->0)?'phone' then raise exception 'censeur saw authorized adult phone';end if;
  if public.kindergarten_pickup_preview('AOSQ1.'||repeat('a',64))->>'student_id'<>'50000000-0000-0000-0000-000000000001' then raise exception 'censeur cannot preview preschool pickup QR'; end if;
  failed:=false;
  begin

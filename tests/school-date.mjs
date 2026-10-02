@@ -27,6 +27,8 @@ const exam=readFileSync('src/components/exam-calendar.tsx','utf8'),periods=readF
 assert.ok(exam.includes('min={selectedPeriod?.start_date||cls?.year_start}')&&exam.includes('max={selectedPeriod?.end_date||cls?.year_end}'),'exam dates are bounded to their selected period and academic year')
 assert.ok(periods.includes('min={selectedYear?.start_date} max={selectedYear?.end_date}'),'grading periods stay inside the selected academic year')
 assert.ok(assignments.includes('min={selectedPeriod?.start_date||selectedClass?.year_start}')&&assignments.includes('schoolDateTimeToISO(dueAt)'),'assignment deadlines use school-year limits and Haiti local time')
+assert.ok(assignments.includes("from('grading_periods').select('id,academic_year_id,name,code,start_date,end_date,weight')")&&assignments.includes('yearPeriods=periods.filter(p=>p.academic_year_id===selectedClass?.academic_year_id)'),'assignment periods are scoped by academic-year ID, including overlapping boundary dates')
+assert.ok(assignments.includes('!visibleRows.length')&&assignments.includes('No assignments for this academic year.'),'an empty selected-year assignment list has a clear message')
 assert.ok(publication.includes('min={periods.find(p=>p.id===period)?.start_date}'),'grade-entry deadlines are limited to their selected period')
 assert.ok(attendance.includes('min={selectedClass?.year_start} max={selectedClass?.year_end}'),'attendance date selection follows its class academic year')
 assert.equal(exports.schoolDateTimeToISO('2026-09-25T09:00'),'2026-09-25T13:00:00.000Z')

@@ -24,7 +24,7 @@ assert.equal(exports.schoolSections.find(x=>x.code==='fundamental').grades,'7e �
 const dictionary=readFileSync('src/lib/translations-extra.ts','utf8')
 for(const label of ['Petite, Moyenne, Grande Section','Petite Section','Moyenne Section','Grande Section'])assert.match(dictionary,new RegExp(`"${label}":\\[`),`${label} needs French and Haitian Creole translations`)
 const page=readFileSync('src/app/dashboard/classes/page.tsx','utf8')
-const classRoleFix=readFileSync('supabase/migrations/20261003233249_fix_create_class_role_enum_comparison.sql','utf8')
+const classRoleFix=readFileSync('supabase/migrations/20261003233351_fix_create_class_role_enum_comparison.sql','utf8')
 assert.match(classRoleFix,/m\.role::text = any\(array\[''school_admin'', ''director'', ''secretary''\]\)/,'class creation compares enum roles as text')
 assert.match(classRoleFix,/public\.create_class\(uuid,text,text,text,uuid\)/,'the migration guards the expected create_class RPC signature')
 assert.match(page,/\['primary', 'Primaire — AF1 à AF6'\]/,'the school structure presents AF1–AF6 as Primaire')

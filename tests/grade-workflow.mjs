@@ -17,7 +17,7 @@ assert.ok(!nav.permittedNavigation(['surveillant']).some(x=>x.href==='/dashboard
 assert.ok(!nav.permittedNavigation(['teacher']).some(x=>x.href==='/dashboard/publication'))
 const gradePage=readFileSync('src/app/dashboard/grades/page.tsx','utf8')
 assert.match(gradePage,/\['school_admin','director','censeur','secretary'\]/)
-const publicationMigration=readFileSync('supabase/migrations/20261003231514_grades_publication_secretary.sql','utf8')
+const publicationMigration=readFileSync('supabase/migrations/20261003233104_grades_publication_secretary.sql','utf8')
 assert.match(publicationMigration,/private\.has_role\(p_school,array\['school_admin','director','censeur','secretary'\]\)/)
 assert.match(publicationMigration,/public\.grade_publication_review\(\)/)
 assert.match(publicationMigration,/private\.grade_event\(uuid,text,text,jsonb,jsonb\)/)

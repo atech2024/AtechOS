@@ -1,5 +1,11 @@
 # Deployment and verification notes
 
+## Current rollout status (2026-10-03)
+
+On Supabase project `twmnhbthtiorjippixwz`, all ten migrations pending after the earlier Preview checks, from `20261002151506_enforce_enabled_school_section_for_classes.sql` through `20261003162629_confirm_official_exam_dates.sql`, were applied in order. The postflight migration list includes all ten. Read-only checks also confirmed the single-current-year index, the published-only student report call, and the RLS/policy boundary for confirmed official exam dates. See [BUILD-ROADMAP.md](docs/BUILD-ROADMAP.md) for the exact migration list and checks.
+
+PR #60 was still a draft at this checkpoint. Its isolated Supabase SQL workflow and Vercel Preview succeeded for commit `9686802`, but an authenticated role-by-role UI check and Vercel Production commit/environment verification are still outstanding. Applied database migrations alone do not prove that the frontend has been released or that the end-to-end flows work in production. The older dated findings and actions below describe their original review points; verify current Vercel environment variables without exposing their values before deploying.
+
 ## Findings (2026-09-22 UTC)
 
 Reviewed main commit 991d3bf and seven preceding commits. The public /signup and /login pages on both atech-os-4mbo.vercel.app and atech-os-kog7.vercel.app returned their actual forms, not the homepage. /signin returned 404 on both. GitHub's commit status records the latest 4mbo deployment as cancelled and kog7 as successful. Numerous Vercel projects are linked to this repository. The connected Vercel tool returned no projects, so current environment settings and build logs could not be verified.
@@ -22,7 +28,7 @@ Supabase project twmnhbthtiorjippixwz is ACTIVE_HEALTHY. create_school_onboardin
 1. Merge the fix PR, then deploy that commit in the intended existing Vercel project. Do not create another duplicate project. Verify the deployed commit SHA in Vercel.
 2. Set NEXT_PUBLIC_SUPABASE_URL to https://twmnhbthtiorjippixwz.supabase.co and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to this project's publishable key for Production and any Preview environment used for testing. Never use a service-role or secret key in NEXT_PUBLIC variables.
 3. Build command: npm run build; framework: Next.js; root: repository root. Rebuild after changing public variables, since they are embedded at build time.
-4. For automatic school-calendar and exam-reference discovery, add `SUPABASE_SERVICE_ROLE_KEY` (server-only; never prefix it with `NEXT_PUBLIC_`) and a random `CRON_SECRET` of at least 32 characters to Production Environment Variables, then redeploy. Vercel calls `/api/cron/official-calendar-sources` daily at 11:15 UTC. The checker reads MENFP/Government pages and HaitiLibre education archive copies, stores document links with a school-calendar or exam-reference label, and never creates closures, exam periods, or class exam appointments automatically. Staff must verify every document and manually enter/approve dates. Until the variables and source-registry migrations are installed, automatic discovery remains inactive. Vercel Cron runs against production deployments and does not retry failed runs.
+4. For automatic school-calendar and exam-reference discovery, verify `SUPABASE_SERVICE_ROLE_KEY` (server-only; never prefix it with `NEXT_PUBLIC_`) and a random `CRON_SECRET` of at least 32 characters in Production Environment Variables, then redeploy if either variable changed. Vercel calls `/api/cron/official-calendar-sources` daily at 11:15 UTC. The checker reads MENFP/Government pages and HaitiLibre education archive copies, stores document links with a school-calendar or exam-reference label, and never creates closures, exam periods, or class exam appointments automatically. Staff must verify every document and manually enter/approve dates. Automatic discovery requires both the variables and source-registry migrations; the live cron run has not been verified here. Vercel Cron runs against production deployments and does not retry failed runs.
 
 ## Supabase actions
 

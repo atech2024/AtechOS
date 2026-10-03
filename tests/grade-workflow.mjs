@@ -12,8 +12,20 @@ const translations=compile('src/lib/translations.ts',{'./translations-extra':ext
 const workflow=compile('src/lib/grade-workflow.ts')
 const nav=compile('src/lib/navigation.ts')
 assert.ok(nav.permittedNavigation(['censeur']).some(x=>x.href==='/dashboard/publication'))
-assert.ok(!nav.permittedNavigation(['secretary']).some(x=>x.href==='/dashboard/publication'))
+assert.ok(nav.permittedNavigation(['secretary']).some(x=>x.href==='/dashboard/publication'))
+assert.ok(!nav.permittedNavigation(['surveillant']).some(x=>x.href==='/dashboard/publication'))
 assert.ok(!nav.permittedNavigation(['teacher']).some(x=>x.href==='/dashboard/publication'))
+const gradePage=readFileSync('src/app/dashboard/grades/page.tsx','utf8')
+assert.match(gradePage,/\['school_admin','director','censeur','secretary'\]/)
+const publicationMigration=readFileSync('supabase/migrations/20261003233104_grades_publication_secretary.sql','utf8')
+assert.match(publicationMigration,/private\.has_role\(p_school,array\['school_admin','director','censeur','secretary'\]\)/)
+assert.match(publicationMigration,/public\.grade_publication_review\(\)/)
+assert.match(publicationMigration,/private\.grade_event\(uuid,text,text,jsonb,jsonb\)/)
+assert.doesNotMatch(publicationMigration,/school_admin','director','censeur','surveillant/)
+const gradeSqlVerification=readFileSync('supabase/grade-review-verification.sql','utf8')
+assert.match(gradeSqlVerification,/TEST secretary publication/)
+assert.match(gradeSqlVerification,/TEST surveillant publish bypass/)
+assert.match(gradeSqlVerification,/activate_school_section\(yr,'primary',true\);cls:=public\.create_class/)
 for(const locale of ['fr','ht']){
  const {default:Component}=compile('src/components/grade-workflow.tsx',{
   '@/lib/supabase/client':{createClient:()=>{throw Error('Rendering must not mutate data')}},
@@ -31,4 +43,4 @@ for(const locale of ['fr','ht']){
  assert.ok(html.includes(translations.translate('Grade submission',locale)))
 }
 for(const text of Object.values(workflow.gradeStates).concat(Object.values(workflow.gradeEvents)))for(const locale of ['fr','ht'])assert.notEqual(translations.translate(text,locale),text,text+' translation missing')
-console.log('PASS grade UI: teacher submission locks, Censeur access, secretary/teacher publication denied, French/Creole workflow translations.')
+console.log('PASS grade UI: teacher submission locks, authorized publication roles, teacher/surveillant denial, French/Creole workflow translations.')

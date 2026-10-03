@@ -4,7 +4,7 @@
 - Assignments show subject and the name of the account that published them.
 - In Assignments, open **Suivre les remises** to mark physical work received. Server time records receipt; unreceived work becomes missing after the deadline. Work marked received after the deadline is late.
 - Enable **Autoriser la remise en ligne** per assignment after setting its deadline. Students can submit text or a link to their work, only for their own current class before the deadline. This does not upload student files; teacher attachments remain supported separately.
-- Student bulletins show only published grades. Administrators, directors, secretaries and surveillants review and publish from Publication des bulletins. Saving grades alone does not publish a bulletin. Existing unpublished grades are not automatically released.
+- Student bulletins show only published grades. School administrators, directors, censeurs and secretaries review and publish from Publication des bulletins. Teachers and surveillants cannot publish grades. Saving grades alone does not publish a bulletin. Existing unpublished grades are not automatically released.
 - Multiple assessments remain supported. The selector shows existing assessments plus the next unused control slot, within school limits. Previous scores remain intact.
 
 ## Attendance (supersedes the previous staff read-only workflow)

@@ -1,11 +1,11 @@
 do $test$
-declare owner_id uuid:=gen_random_uuid();teacher uuid:=gen_random_uuid();reviewer uuid:=gen_random_uuid();guardian uuid:=gen_random_uuid();outsider uuid:=gen_random_uuid();secretary_id uuid:=gen_random_uuid();director_id uuid:=gen_random_uuid();
+declare owner_id uuid:=gen_random_uuid();teacher uuid:=gen_random_uuid();reviewer uuid:=gen_random_uuid();guardian uuid:=gen_random_uuid();outsider uuid:=gen_random_uuid();secretary_id uuid:=gen_random_uuid();director_id uuid:=gen_random_uuid();surveillant_id uuid:=gen_random_uuid();
 sid uuid;yr uuid;cls uuid;sub uuid;child uuid;pid uuid;period uuid;inv jsonb;g public.grades;g2 public.grades;correction uuid;failed boolean;history jsonb;
 begin begin
- insert into auth.users(id,email,email_confirmed_at,role,aud) select id,id::text||'@example.invalid',now(),'authenticated','authenticated' from unnest(array[owner_id,teacher,reviewer,guardian,outsider,secretary_id,director_id]) id;
+ insert into auth.users(id,email,email_confirmed_at,role,aud) select id,id::text||'@example.invalid',now(),'authenticated','authenticated' from unnest(array[owner_id,teacher,reviewer,guardian,outsider,secretary_id,director_id,surveillant_id]) id;
  perform set_config('request.jwt.claim.sub',owner_id::text,true);set local role authenticated;
  sid:=public.create_school_onboarding('Grade review fixture',gen_random_uuid()::text);
- yr:=public.create_academic_year('Review year','2026-01-01','2026-12-31',true);cls:=public.create_class(yr,'Review class','AF1');
+ yr:=public.create_academic_year('Review year','2026-01-01','2026-12-31',true);perform public.activate_school_section(yr,'primary',true);cls:=public.create_class(yr,'Review class','AF1');
  period:=public.activate_grading_period(yr,'Review period','R1','2026-01-01','2026-12-31',array['primary']);
  sub:=public.create_subject('Review subject','REV');
  child:=public.save_student_record(jsonb_build_object('first_name','Review','last_name','Child','class_id',cls));
@@ -21,21 +21,32 @@ begin begin
  inv:=public.create_school_invitation(director_id::text||'@example.invalid','Director','director');
  perform set_config('request.jwt.claim.sub',director_id::text,true);perform public.accept_school_invitation(inv->>'token');
  perform set_config('request.jwt.claim.sub',owner_id::text,true);
+ inv:=public.create_school_invitation(surveillant_id::text||'@example.invalid','Surveillant','surveillant');
+ perform set_config('request.jwt.claim.sub',surveillant_id::text,true);perform public.accept_school_invitation(inv->>'token');
+ perform set_config('request.jwt.claim.sub',owner_id::text,true);
  pid:=public.save_parent_for_student(child,'Guardian',guardian::text||'@example.invalid');inv:=public.create_school_invitation(guardian::text||'@example.invalid','Guardian','parent',null,pid);
  perform set_config('request.jwt.claim.sub',guardian::text,true);perform public.accept_school_invitation(inv->>'token');
  perform set_config('request.jwt.claim.sub',teacher::text,true);
  failed:=false;begin g2:=public.create_grade(child,sub,cls,'Bad',5,'NaN'::numeric,null,period,100);exception when others then failed:=sqlerrm='invalid_grade';end;if not failed then raise exception 'TEST nonfinite creation';end if;
  g:=public.create_grade(child,sub,cls,'Review period',5,10,null,period,100);
+ g2:=public.create_grade(child,sub,cls,'Secretary publication',8,10,null,period,100);
  perform public.revise_grade(g.id,6,10,null,'Correct draft');
  failed:=false;begin perform public.publish_reviewed_grades(array[g.id]);exception when others then failed:=true;end;if not failed then raise exception 'TEST teacher publishes';end if;
  failed:=false;begin update public.grades set published=true,workflow_state='published' where id=g.id;exception when insufficient_privilege then failed:=true;end;if not failed then raise exception 'TEST direct publication bypass';end if;
  perform set_config('request.jwt.claim.sub',reviewer::text,true);
  failed:=false;begin perform public.publish_reviewed_grades(array[g.id]);exception when others then failed:=sqlerrm='review_required';end;if not failed then raise exception 'TEST draft publication';end if;
- perform set_config('request.jwt.claim.sub',teacher::text,true);perform public.submit_grades(array[g.id]);
+ perform set_config('request.jwt.claim.sub',teacher::text,true);perform public.submit_grades(array[g.id,g2.id]);
  failed:=false;begin perform public.revise_grade(g.id,7,10,null,'Locked change');exception when others then failed:=sqlerrm='grade_locked_pending_review';end;if not failed then raise exception 'TEST submitted edit';end if;
  perform set_config('request.jwt.claim.sub',secretary_id::text,true);
- failed:=false;begin perform public.review_grades(array[g.id],'approve');exception when others then failed:=sqlerrm='not_authorized';end;if not failed then raise exception 'TEST secretary review bypass';end if;
- failed:=false;begin perform public.publish_reviewed_grades(array[g.id]);exception when others then failed:=sqlerrm='not_authorized';end;if not failed then raise exception 'TEST secretary publish bypass';end if;
+ history:=public.grade_publication_review();
+ if not exists(select 1 from jsonb_array_elements(history->'rows') row where row->>'id'=g.id::text) then raise exception 'TEST secretary review visibility';end if;
+ if not (public.grade_workflow_summary()->>'reviewer')::boolean then raise exception 'TEST secretary reviewer capability';end if;
+ perform public.review_grades(array[g2.id],'approve');
+ if public.publish_reviewed_grades(array[g2.id])<>1 then raise exception 'TEST secretary publication';end if;
+ perform set_config('request.jwt.claim.sub',surveillant_id::text,true);
+ failed:=false;begin perform public.grade_publication_review();exception when others then failed:=sqlerrm='not_authorized';end;if not failed then raise exception 'TEST surveillant review bypass';end if;
+ failed:=false;begin perform public.review_grades(array[g.id],'approve');exception when others then failed:=sqlerrm='not_authorized';end;if not failed then raise exception 'TEST surveillant review action bypass';end if;
+ failed:=false;begin perform public.publish_reviewed_grades(array[g2.id]);exception when others then failed:=sqlerrm='not_authorized';end;if not failed then raise exception 'TEST surveillant publish bypass';end if;
  perform set_config('request.jwt.claim.sub',guardian::text,true);
  if exists(select 1 from public.grades where id=g.id) then raise exception 'TEST parent draft exposure';end if;
  perform set_config('request.jwt.claim.sub',reviewer::text,true);failed:=false;begin perform public.review_grades(array[g.id],null);exception when others then failed:=sqlerrm='invalid_selection';end;if not failed then raise exception 'TEST null review action';end if;
@@ -67,4 +78,4 @@ begin begin
  failed:=false;begin g2:=public.create_grade(child,sub,cls,'Second',5,10,null,period,100);exception when others then failed:=sqlerrm='grade_deadline_passed';end;if not failed then raise exception 'TEST teacher deadline';end if;
  reset role;raise exception using errcode='ZX004',message='fixtures passed';exception when sqlstate 'ZX004' then null;end;
 end $test$;
-select 'PASS grades: submit/return/review/publish, locked draft bypass, published-only parent, immutable old/new correction, notices, cross-school scope, teacher deadline, secretary denial, director correction publication, duplicate pending correction and nonfinite values; fixtures rolled back' as result;
+select 'PASS grades: submit/return/review/publish, secretary publication, surveillant denial, locked draft bypass, published-only parent, immutable old/new correction, notices, cross-school scope, teacher deadline, director correction publication, duplicate pending correction and nonfinite values; fixtures rolled back' as result;

@@ -97,11 +97,15 @@ async function discoverMirrorPdf(): Promise<Candidate[]> {
       if (/(?:examens officiels|calendrier des examens|horaires? des examens)/i.test(text)) candidates.push({ url: article.url, source: 'HaitiLibre', label: `${article.label.replace(/ · .*$/, '')} · examens officiels à vérifier`, school_year: article.school_year, kind: 'exam_calendar' })
       const pdf = article.school_year ? discoverPdf(html, article.url, article.school_year) : null
       if (pdf) {
-        const response = await fetch(pdf.url, { signal: AbortSignal.timeout(9000), headers: { 'user-agent': userAgent } })
-        if (!response.ok || !/application\/pdf/i.test(response.headers.get('content-type') || '')) return []
-        const bytes = new Uint8Array(await response.arrayBuffer())
-        if (bytes.length < 8 || String.fromCharCode(...bytes.slice(0, 5)) !== '%PDF-') return []
-        candidates.push(pdf)
+        try {
+          const response = await fetch(pdf.url, { signal: AbortSignal.timeout(9000), headers: { 'user-agent': userAgent } })
+          if (response.ok && /application\/pdf/i.test(response.headers.get('content-type') || '')) {
+            const bytes = new Uint8Array(await response.arrayBuffer())
+            if (bytes.length >= 8 && String.fromCharCode(...bytes.slice(0, 5)) === '%PDF-') candidates.push(pdf)
+          }
+        } catch (error) {
+          console.warn('Calendar mirror PDF unavailable', pdf.url, error instanceof Error ? error.message : 'unknown error')
+        }
       }
       if (!candidates.length) candidates.push({ url: article.url, source: 'HaitiLibre', label: article.label, school_year: article.school_year, kind: article.kind })
       return candidates

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
+import vm from 'node:vm'
 import ts from 'typescript'
 
 const source=readFileSync('src/lib/official-calendar-sources.ts','utf8')
@@ -60,4 +61,45 @@ assert.equal(officialSchedule[0].start_date,'2027-06-14')
 assert.equal(officialSchedule[0].end_date,'2027-06-17')
 assert.equal(officialSchedule[1].start_date,'2027-06-28')
 assert.equal(officialSchedule[1].end_date,'2027-07-01')
+
+const edgeSource=readFileSync('supabase/functions/official-calendar-sources/index.ts','utf8')
+const edgeCompiled=ts.transpileModule(edgeSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
+const articleUrl='https://www.haitilibre.com/article-50000-calendrier-examens-2026-2027.html'
+const pdfUrl='https://www.haitilibre.com/docs/Calendrier-examens-2026-2027.pdf'
+const archiveHtml=`<a href="${articleUrl}">Calendrier examens 2026-2027</a>`
+const articleHtml='<p>Les examens officiels auront lieu du 9 au 13 novembre.</p><a href="/docs/Calendrier-examens-2026-2027.pdf">Calendrier examens PDF</a>'
+
+async function discoverWithPdf(pdfResult){
+ let handler
+ const fetch=async url=>{
+  if(url===pdfUrl){
+   if(pdfResult==='unavailable')throw new Error('PDF unavailable')
+   if(pdfResult==='http-error')return new Response('missing',{status:404})
+   if(pdfResult==='wrong-type')return new Response('<html>not a PDF</html>',{headers:{'content-type':'text/html'}})
+   return new Response(pdfResult==='valid'?'%PDF-1.7 fixture':'not a PDF document',{headers:{'content-type':'application/pdf'}})
+  }
+  if(url===articleUrl)return new Response(articleHtml)
+  if(url==='https://www.haitilibre.com/cat-5-education-1.html')return new Response(archiveHtml)
+  return new Response('')
+ }
+ vm.runInNewContext(edgeCompiled,{
+  exports:{},require:id=>id==='https://esm.sh/@supabase/supabase-js@2'?{createClient:()=>{throw new Error('Unexpected persistence')}}:id==='./exam-date-proposals.ts'?proposals:null,
+  Deno:{env:{get:key=>key==='SUPABASE_SERVICE_ROLE_KEY'?'fixture-secret':null},serve:callback=>{handler=callback}},
+  fetch,URL,AbortSignal,Uint8Array,Response,console:{warn:()=>{},error:()=>{}},
+ })
+ const response=await handler(new Request('https://example.invalid/functions/v1/official-calendar-sources',{method:'POST',headers:{authorization:'Bearer fixture-secret'},body:JSON.stringify({persist:false})}))
+ assert.equal(response.status,200)
+ return response.json()
+}
+
+for(const pdfResult of ['http-error','wrong-type','bad-signature','unavailable','valid']){
+ const discovered=await discoverWithPdf(pdfResult)
+ const article=discovered.candidates.find(item=>item.url===articleUrl)
+ assert.equal(article?.source,'HaitiLibre',`keep source attribution when the linked PDF is ${pdfResult}`)
+ assert.equal(article?.kind,'exam_calendar')
+ assert.equal(article?.suggested_dates?.length,1,`keep article exam proposals when the linked PDF is ${pdfResult}`)
+ assert.equal(article.suggested_dates[0].start_date,'2026-11-09')
+ assert.equal(article.suggested_dates[0].status,'needs_review')
+ assert.equal(discovered.candidates.some(item=>item.url===pdfUrl),pdfResult==='valid',`only include a verified PDF when it is ${pdfResult}`)
+}
 console.log('Official and secondary calendar source parsing checks passed.')

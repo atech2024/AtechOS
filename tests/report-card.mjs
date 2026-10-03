@@ -30,3 +30,20 @@ localeIndex=1
 html=render(card);assert.ok(html.includes('1 Oktòb 2026'))
 html=render({...card,document:doc});assert.ok(html.includes('Vèsyon ofisyèl'));assert.ok(html.includes('Pibliye pa'));assert.ok(html.includes('pa gen siyati Sansè'))
 console.log('PASS Haitian Creole document metadata.')
+
+const attendance=[
+ {date:'2026-09-30',year:'2026 / 2027',status:'present'},
+ {date:'2026-10-01',year:'2026 / 2027',status:'late'},
+ {date:'2026-10-31',year:'2026 / 2027',status:'absent'},
+ {date:'2026-11-01',year:'2026 / 2027',status:'present'},
+ {date:'2026-10-15',year:'2025 / 2026',status:'present'}
+]
+const dates=records=>Array.from(records||[],record=>record.date)
+assert.deepEqual(dates(exports.reportAttendanceRecords(attendance,'2026 / 2027','')),[
+ '2026-09-30','2026-10-01','2026-10-31','2026-11-01'
+])
+assert.deepEqual(dates(exports.reportAttendanceRecords(attendance,'2026 / 2027','preschool-period',{
+ start_date:'2026-10-01',end_date:'2026-10-31'
+})),['2026-10-01','2026-10-31'])
+assert.equal(exports.reportAttendanceRecords(attendance,'2026 / 2027','preschool-period'),null)
+console.log('PASS year and Preschool period attendance use verified inclusive dates; missing dates never show annual totals.')

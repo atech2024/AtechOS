@@ -20,9 +20,16 @@ for(const locale of ['ht','fr']){
  const staff=renderToStaticMarkup(React.createElement(CalendarView,{data:{...data,can_manage:true},onEdit:()=>{}}));assert.ok(staff.includes(translations.translate('Propose a schedule change',locale)))
 }
 const secondExam={...data.exams[0],id:'fixture-other-year',year_id:'year-2',year:'2027',class:'Class B'}
-const {CalendarView}=compile('src/components/exam-calendar.tsx',{'@/lib/supabase/client':{createClient:()=>{throw Error('Rendering must not query')}},'@/lib/school-date':dates,'@/components/school-date-input':{default:()=>null},'@/components/translation-provider':{T:({text})=>text,useLocale:()=> 'fr'},'@/components/academic-year-context':{useAcademicYear:()=>({years:[],year:null,yearId:'',canSelect:false,setYearId:()=>{}})},'@/lib/translations':translations})
+const {CalendarView,calendarWithConfirmedDates}=compile('src/components/exam-calendar.tsx',{'@/lib/supabase/client':{createClient:()=>{throw Error('Rendering must not query')}},'@/lib/school-date':dates,'@/components/school-date-input':{default:()=>null},'@/components/translation-provider':{T:({text})=>text,useLocale:()=> 'fr'},'@/components/academic-year-context':{useAcademicYear:()=>({years:[],year:null,yearId:'',canSelect:false,setYearId:()=>{}})},'@/lib/translations':translations})
 const selectedYearHtml=renderToStaticMarkup(React.createElement(CalendarView,{data:{...data,exams:[...data.exams,secondExam]},academicYearId:'year'}))
 assert.ok(selectedYearHtml.includes('Class A'));assert.ok(!selectedYearHtml.includes('Class B'),'The shared academic year must scope the published exam list.')
+const confirmedDate={id:'confirmed',year_id:'year',year:'2026',section:'fundamental',source_url:'https://calendar-ci.invalid/fixture',source_name:'MENFP',source_label:'Synthetic source',source_wording:'Synthetic exam window',category:'official_exam',start_date:'2026-11-09',end_date:'2026-11-13',confirmed_at:'2026-10-03T12:00:00Z'}
+const officialHtml=renderToStaticMarkup(React.createElement(CalendarView,{data:{...data,official_exam_dates:[confirmedDate,{...confirmedDate,id:'other',year_id:'year-2',source_wording:'Other year window'}]},academicYearId:'year'}))
+assert.ok(officialHtml.includes('Synthetic exam window')&&officialHtml.includes('https://calendar-ci.invalid/fixture'),'confirmed dates retain visible source attribution')
+const managerCalendar=calendarWithConfirmedDates({...data,can_manage:true,official_exam_dates:[]},{...data,official_exam_dates:[confirmedDate]})
+assert.ok(renderToStaticMarkup(React.createElement(CalendarView,{data:managerCalendar,academicYearId:'year'})).includes('Synthetic exam window'),'manager calendar retains confirmed dates when its editable workspace lacks the publication feed')
+assert.ok(!officialHtml.includes('Other year window'),'official exam dates follow the selected academic year')
+assert.ok(!selectedYearHtml.includes('Synthetic exam window'),'unconfirmed source proposals do not appear in the family calendar')
 const publication=readFileSync('src/app/dashboard/publication/page.tsx','utf8')
 assert.ok(publication.includes('const yearRows=rows.filter(r=>!academicYearId||r.year_id===academicYearId)'),'Publication review must limit batch actions to the selected academic year.')
 assert.ok(publication.includes("select('id,start_date,end_date,academic_year_id')")&&publication.includes('yearPeriods=periods.filter(p=>!academicYearId||p.year_id===academicYearId)'),'grade deadlines are tied to the selected year by period ID')

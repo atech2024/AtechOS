@@ -5,7 +5,7 @@ begin begin
  insert into auth.users(id,email,email_confirmed_at,role,aud) select id,id::text||'@example.invalid',now(),'authenticated','authenticated' from unnest(array[owner_id,teacher,reviewer,guardian,outsider,secretary_id,director_id,surveillant_id]) id;
  perform set_config('request.jwt.claim.sub',owner_id::text,true);set local role authenticated;
  sid:=public.create_school_onboarding('Grade review fixture',gen_random_uuid()::text);
- yr:=public.create_academic_year('Review year','2026-01-01','2026-12-31',true);cls:=public.create_class(yr,'Review class','AF1');
+ yr:=public.create_academic_year('Review year','2026-01-01','2026-12-31',true);perform public.activate_school_section(yr,'primary',true);cls:=public.create_class(yr,'Review class','AF1');
  period:=public.activate_grading_period(yr,'Review period','R1','2026-01-01','2026-12-31',array['primary']);
  sub:=public.create_subject('Review subject','REV');
  child:=public.save_student_record(jsonb_build_object('first_name','Review','last_name','Child','class_id',cls));

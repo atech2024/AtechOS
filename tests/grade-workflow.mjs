@@ -25,6 +25,7 @@ assert.doesNotMatch(publicationMigration,/school_admin','director','censeur','su
 const gradeSqlVerification=readFileSync('supabase/grade-review-verification.sql','utf8')
 assert.match(gradeSqlVerification,/TEST secretary publication/)
 assert.match(gradeSqlVerification,/TEST surveillant publish bypass/)
+assert.match(gradeSqlVerification,/activate_school_section\(yr,'primary',true\);cls:=public\.create_class/)
 for(const locale of ['fr','ht']){
  const {default:Component}=compile('src/components/grade-workflow.tsx',{
   '@/lib/supabase/client':{createClient:()=>{throw Error('Rendering must not mutate data')}},

@@ -7,12 +7,16 @@ import {T,useLocale} from '@/components/translation-provider'
 import {translate} from '@/lib/translations'
 import {useAcademicYear} from '@/components/academic-year-context'
 
-type Exam={id:string;class_id:string;class:string;year_id:string;year:string;subject_id:string;subject:string;period_id:string;period:string;starts_at:string;ends_at:string;cancelled:boolean;scanned_at:string|null;version:number;published_at:string;revision_start:string|null;revision_end:string|null}
+type Exam={id:string;class_id:string;class:string;year_id:string;year:string;section:string;subject_id:string;subject:string;period_id:string;period:string;starts_at:string;ends_at:string;cancelled:boolean;scanned_at:string|null;version:number;published_at:string;revision_start:string|null;revision_end:string|null}
 type Version={id:string;exam_id:string;class_id:string;subject_id:string;period_id:string;version:number;starts_at:string;ends_at:string;cancelled:boolean;revision_start:string|null;revision_end:string|null;reason:string;state:string;creator:string;publisher:string|null;created_at:string;published_at:string|null;snapshot:{class:string;year:string;subject:string;period:string};events:{id:string;action:string;actor_name:string;actor_role:string;reason:string;created_at:string;old_value:{starts_at?:string;ends_at?:string}|null;new_value:{starts_at?:string;ends_at?:string}|null}[]}
 type OfficialExamDate={id:string;year_id:string;year:string;section:string;source_url:string;source_name:string;source_label:string;source_wording:string;category:'exam_period'|'official_exam';start_date:string;end_date:string;confirmed_at:string}
 export type CalendarData={can_manage:boolean;can_publish:boolean;exams:Exam[];official_exam_dates?:OfficialExamDate[];versions?:Version[];closures:{day:string;title:string}[];classes:{id:string;name:string;year_id:string;year:string;section:string;year_start?:string;year_end?:string}[];subjects:{id:string;name:string;class_id:string}[];periods:{id:string;name:string;year_id:string;sections:string[];start_date:string;end_date:string}[]}
 export function calendarWithConfirmedDates(workspace:CalendarData,schoolCalendar:CalendarData):CalendarData{
  return {...workspace,official_exam_dates:schoolCalendar.official_exam_dates||[]}
+}
+export function officialExamDatesForSelection(data:CalendarData,selectedYear:string,classId:string):OfficialExamDate[]{
+ const selectedClass=data.classes.find(item=>item.id===classId)||data.exams.find(item=>item.class_id===classId)
+ return (data.official_exam_dates||[]).filter(date=>(!selectedYear||date.year_id===selectedYear)&&(!classId||(selectedClass!==undefined&&date.year_id===selectedClass.year_id&&date.section===selectedClass.section)))
 }
 const errors:Record<string,string>={exam_time_conflict:'Another exam already uses this class time.',school_closed:'The school is closed on this date.',invalid_exam_time:'End time must follow start time on the same day.',invalid_revision_week:'Revision dates must be within the academic year and before the exam.',invalid_exam_scope_or_date:'Choose a subject and a date within the selected period.',not_authorized:'Access denied.',censeur_publication_required:'A Censeur must publish this schedule.',version_not_pending:'This version is no longer awaiting publication. Reload the calendar.',reason_required:'Provide a reason of at least three characters.'}
 const states:Record<string,string>={pending:'Pending publication',published:'Published',returned:'Returned for correction',superseded:'Superseded draft'}
@@ -22,8 +26,7 @@ export function CalendarView({data,onEdit,academicYearId}:{data:CalendarData;onE
  const [year,setYear]=useState(''),[classId,setClassId]=useState(''),[period,setPeriod]=useState('')
  const selectedYear=academicYearId||year
  const rows=data.exams.filter(e=>(!selectedYear||e.year_id===selectedYear)&&(!classId||e.class_id===classId)&&(!period||e.period_id===period))
- const selectedClass=data.classes.find(item=>item.id===classId)
- const officialDates=(data.official_exam_dates||[]).filter(date=>(!selectedYear||date.year_id===selectedYear)&&(!selectedClass||(date.year_id===selectedClass.year_id&&date.section===selectedClass.section)))
+ const officialDates=officialExamDatesForSelection(data,selectedYear,classId)
  const yearOptions=Array.from(new Map([...data.classes.map(c=>[c.year_id,c.year] as const),...data.exams.map(e=>[e.year_id,e.year] as const),...(data.official_exam_dates||[]).map(date=>[date.year_id,date.year] as const)]).entries())
  const yearRange=data.classes.find(c=>c.year_id===selectedYear)
  const closures=data.closures.filter(c=>!selectedYear||!yearRange?.year_start||!yearRange?.year_end||(c.day>=yearRange.year_start&&c.day<=yearRange.year_end))

@@ -119,7 +119,7 @@ const mocks={
  '@/components/academic-year-context':{useAcademicYear:()=>({yearId:''})},
 }
 vm.runInNewContext(ts.transpileModule(suggestions,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports:componentExports,require:name=>mocks[name]||require(name)})
-const {savedCalendarSourcesForYear,calendarDocumentsForYear}=componentExports
+const {savedCalendarSourcesForYear,calendarDocumentsForYear,calendarSourceWarningForYear}=componentExports
 const source=(url,school_year,label,last_seen_at='2026-10-01T12:00:00Z')=>({url,source:'MENFP',label,school_year,document_kind:'school_calendar',last_seen_at,suggested_dates:[]})
 const saved=[source('https://menfp.gouv.ht/calendar','2026/2027','Old saved copy'),source('https://menfp.gouv.ht/old','2025/2026','Other year'),source('https://menfp.gouv.ht/general',null,'Undated reference')]
 const fresh={yearId:'year-26',checkedAt:'2026-10-02T12:00:00Z',warning:'',candidates:[{url:'https://menfp.gouv.ht/calendar',source:'MENFP',label:'New discovery',school_year:'2026/2027',kind:'exam_calendar',suggested_dates:[{date_text:'9 au 13 novembre',start_date:'2026-11-09',end_date:'2026-11-13',category:'exam_period',context:'Examens',status:'needs_review'}]},{url:'https://menfp.gouv.ht/unrelated',source:'MENFP',label:'Wrong year',school_year:'2025/2026',kind:'exam_calendar'}]}
@@ -127,8 +127,24 @@ const selected=calendarDocumentsForYear(saved,fresh,'year-26','2026/2027')
 assert.equal(selected.length,2,'selected year includes matching and undated references only')
 assert.equal(selected.find(item=>item.url==='https://menfp.gouv.ht/calendar')?.label,'New discovery','manual refresh wins over an older stored record with the same URL')
 assert.equal(selected.find(item=>item.url==='https://menfp.gouv.ht/calendar')?.suggested_dates.length,1,'fresh exam dates remain visible when a stored record has no dates')
+const storedProposal={date_text:'14 au 17 juin',start_date:'2027-06-14',end_date:'2027-06-17',category:'official_exam',context:'Examens officiels',status:'needs_review'}
+const savedWithProposal=[{...saved[0],suggested_dates:[storedProposal]},...saved.slice(1)]
+const refreshedWithoutProposal={...fresh,candidates:[{...fresh.candidates[0],suggested_dates:[]}]}
+const retained=calendarDocumentsForYear(savedWithProposal,refreshedWithoutProposal,'year-26','2026/2027')
+assert.equal(retained.find(item=>item.url==='https://menfp.gouv.ht/calendar')?.label,'New discovery','a refreshed document keeps its newer source details')
+assert.equal(retained.find(item=>item.url==='https://menfp.gouv.ht/calendar')?.suggested_dates[0]?.date_text,storedProposal.date_text,'manual refresh must not hide a saved proposal when extraction returns no dates')
+const mergedProposals=calendarDocumentsForYear(savedWithProposal,fresh,'year-26','2026/2027')
+assert.equal(mergedProposals.find(item=>item.url==='https://menfp.gouv.ht/calendar')?.suggested_dates.length,2,'saved and newly discovered proposals for one URL remain visible together')
+const repeated=calendarDocumentsForYear(savedWithProposal,{...fresh,candidates:[{...fresh.candidates[0],suggested_dates:[storedProposal]}]},'year-26','2026/2027')
+assert.equal(repeated.find(item=>item.url==='https://menfp.gouv.ht/calendar')?.suggested_dates.length,1,'the same saved and freshly discovered proposal appears once')
 assert.equal(calendarDocumentsForYear(saved,fresh,'year-25','2025/2026').some(item=>item.label==='New discovery'),false,'switching years immediately hides the prior manual refresh')
 assert.equal(calendarDocumentsForYear(saved,fresh,'year-26',null).length,0,'old documents do not flash while the new academic year is loading')
+const mixedYearSources=[{source:'MENFP',school_year:'2025/2026'},{source:'HaitiLibre',school_year:'2026/2027'}]
+assert.match(calendarSourceWarningForYear(mixedYearSources,'2026/2027',''),/HaitiLibre.*MENFP/,'an official link for another year cannot suppress the selected-year secondary-source warning')
+assert.match(calendarSourceWarningForYear(mixedYearSources,'2026/2027','','ht'),/HaitiLibre.*MENFP/,'the selected-year warning is available in Haitian Creole')
+assert.equal(calendarSourceWarningForYear([...mixedYearSources,{source:'Haitian Government',school_year:'2026/2027'}],'2026/2027','Existing warning'),'Existing warning','an official link for the selected year keeps the normal source status')
+assert.match(calendarSourceWarningForYear([{source:'HaitiLibre',school_year:null}],'2026/2027',''),/HaitiLibre.*MENFP/,'a yearless secondary reference does not count as official verification for the selected year')
+assert.match(suggestions,/calendarSourceWarningForYear\(calendarDocuments,selectedSchoolYear,/,'the displayed warning follows the selected-year documents, including saved references after a refresh')
 
 const records=[...Array.from({length:12},(_,index)=>source(`https://menfp.gouv.ht/other-${index}`,'2027/2028',`Other year ${index}`,`2027-10-${String(index+1).padStart(2,'0')}T00:00:00Z`)),source('https://menfp.gouv.ht/selected','2026/2027','Selected year','2026-09-01T00:00:00Z'),source('https://menfp.gouv.ht/undated',null,'Undated reference')]
 const db={from:table=>{assert.equal(table,'official_calendar_sources');let rows=records;return{select(){return this},eq(column,value){rows=rows.filter(item=>item[column]===value);return this},is(column,value){rows=rows.filter(item=>item[column]===value);return this},order(column,{ascending}){rows=[...rows].sort((a,b)=>ascending?a[column].localeCompare(b[column]):b[column].localeCompare(a[column]));return this},limit(count){return Promise.resolve({data:rows.slice(0,count),error:null})}}}}

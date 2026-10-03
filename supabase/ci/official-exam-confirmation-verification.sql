@@ -43,6 +43,12 @@ insert into public.classes(id,school_id,academic_year_id,grade_level,name,enable
 insert into public.subjects(id,name) values('75000000-0000-0000-0000-000000000011','Synthetic subject');
 insert into public.class_subjects(school_id,class_id,subject_id,teacher_id) values
  ('71000000-0000-0000-0000-000000000011','74000000-0000-0000-0000-000000000011','75000000-0000-0000-0000-000000000011','72000000-0000-0000-0000-000000000012');
+insert into public.grading_periods(id,school_id,academic_year_id,code,start_date,end_date,sections) values
+ ('76000000-0000-0000-0000-000000000011','71000000-0000-0000-0000-000000000011','73000000-0000-0000-0000-000000000011','CI','2027-03-01','2027-03-31',array['fundamental']);
+insert into public.exam_schedule_versions(id,version,published_at) values
+ ('77000000-0000-0000-0000-000000000011',1,'2027-02-01T12:00:00Z');
+insert into public.exam_schedule(id,school_id,class_id,subject_id,period_id,starts_at,ends_at,published_version_id,cancelled) values
+ ('78000000-0000-0000-0000-000000000011','71000000-0000-0000-0000-000000000011','74000000-0000-0000-0000-000000000011','75000000-0000-0000-0000-000000000011','76000000-0000-0000-0000-000000000011','2027-03-10T13:00:00Z','2027-03-10T15:00:00Z','77000000-0000-0000-0000-000000000011',false);
 insert into public.students(id,school_id,first_name,last_name) values
  ('81000000-0000-0000-0000-000000000001','71000000-0000-0000-0000-000000000011','Synthetic','Student One'),
  ('81000000-0000-0000-0000-000000000002','71000000-0000-0000-0000-000000000012','Synthetic','Student Two');
@@ -107,6 +113,8 @@ begin
  if exists(select 1 from public.official_calendar_sources) then raise exception 'teacher can read unconfirmed source proposals'; end if;
  if jsonb_array_length(public.school_calendar()->'official_exam_dates')<>1 then raise exception 'teacher did not receive confirmed section date'; end if;
  if public.school_calendar()->'official_exam_dates'->0->'proposal_snapshot' is distinct from 'null'::jsonb then raise exception 'teacher calendar leaked source proposal snapshot'; end if;
+ if jsonb_array_length(public.school_calendar()->'classes')<>0 then raise exception 'teacher received manager class list'; end if;
+ if jsonb_array_length(public.school_calendar()->'exams')<>1 or public.school_calendar()->'exams'->0->>'section' is distinct from 'fundamental' then raise exception 'teacher published exam omitted class section'; end if;
  begin perform public.confirm_official_exam_date('73000000-0000-0000-0000-000000000011','fundamental','https://calendar-ci.invalid/synthetic-exams',
   '{"date_text":"Synthetic CI exam period","start_date":"2027-03-10","end_date":"2027-03-12","category":"official_exam","context":"fixture only","status":"needs_review"}'::jsonb);
  exception when raise_exception then rejected:=sqlerrm='not_authorized'; end;
@@ -116,6 +124,7 @@ select set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000013'
 do $$ begin
  if exists(select 1 from public.official_calendar_sources) then raise exception 'parent can read unconfirmed source proposals'; end if;
  if jsonb_array_length(public.school_calendar('81000000-0000-0000-0000-000000000001')->'official_exam_dates')<>1 then raise exception 'parent did not receive own confirmed date'; end if;
+ if jsonb_array_length(public.school_calendar('81000000-0000-0000-0000-000000000001')->'exams')<>1 or public.school_calendar('81000000-0000-0000-0000-000000000001')->'exams'->0->>'section' is distinct from 'fundamental' then raise exception 'parent published exam omitted class section'; end if;
  if public.school_calendar('81000000-0000-0000-0000-000000000001')->'official_exam_dates'->0->'proposal_snapshot' is distinct from 'null'::jsonb then raise exception 'family calendar leaked source proposal snapshot'; end if;
  if public.school_calendar('81000000-0000-0000-0000-000000000001')->'official_exam_dates'->0->>'confirmed_by_name' is not null then raise exception 'family calendar leaked internal actor attribution'; end if;
 end $$;

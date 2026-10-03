@@ -3,18 +3,56 @@ import AssignmentTracking from '@/components/assignment-tracking'
 import { T } from '@/components/translation-provider'
 import SchoolDateInput from '@/components/school-date-input'
 import {schoolDateTime,schoolDateTimeToISO} from '@/lib/school-date'
-import { useEffect,useState } from 'react'
+import { useCallback,useEffect,useRef,useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {useAcademicYear} from '@/components/academic-year-context'
 type ClassRow={id:string;name:string;academic_year_id:string;year_start:string;year_end:string};type Subject={id:string;name:string};type Period={id:string;academic_year_id:string|null;name:string;code:string;weight:number;start_date:string;end_date:string};type Assignment={online_submission:boolean;id:string;class_id:string;subject_id:string;title:string;description:string|null;due_at:string|null;attachment_url:string|null;grading_period_id:string|null;max_score:number|null;created_at:string}
 const BUCKET='assignment-files'
+async function fetchYearAssignments(db:ReturnType<typeof createClient>,classIds:string[]){
+ if(!classIds.length)return {data:[] as Assignment[],error:null}
+ return db.from('assignments').select('id,class_id,subject_id,title,description,due_at,attachment_url,grading_period_id,max_score,created_at,online_submission').in('class_id',classIds).order('created_at',{ascending:false}).limit(50)
+}
 export default function AssignmentsPage(){const {yearId:academicYearId}=useAcademicYear();let supabase: ReturnType<typeof createClient> | null = null
   const getSupabase = () => {
     if (!supabase) supabase = createClient()
     return supabase
   };const [schoolId,setSchoolId]=useState(''),[classes,setClasses]=useState<ClassRow[]>([]),[subjects,setSubjects]=useState<Subject[]>([]),[subjectLinks,setSubjectLinks]=useState<{class_id:string;subject_id:string}[]>([]),[periods,setPeriods]=useState<Period[]>([]),[rows,setRows]=useState<Assignment[]>([]);const [classId,setClassId]=useState(''),[subjectId,setSubjectId]=useState(''),[periodId,setPeriodId]=useState(''),[title,setTitle]=useState(''),[description,setDescription]=useState(''),[dueAt,setDueAt]=useState(''),[maxScore,setMaxScore]=useState('10'),[file,setFile]=useState<File|null>(null),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('')
-async function load(){setLoading(true);setError('');const [school,c,s,p,a,links]=await Promise.all([getSupabase().rpc('get_my_school_id'),getSupabase().from('classes').select('id,name,academic_year_id').eq('enabled',true).order('name'),getSupabase().from('subjects').select('id,name').order('name'),getSupabase().from('grading_periods').select('id,academic_year_id,name,code,start_date,end_date,weight').order('start_date'),getSupabase().from('assignments').select('id,class_id,subject_id,title,description,due_at,attachment_url,grading_period_id,max_score,created_at,online_submission').order('created_at',{ascending:false}).limit(50),getSupabase().from('class_subjects').select('class_id,subject_id')]);const yearIds=[...new Set((c.data||[]).map(x=>x.academic_year_id).filter(Boolean))];const y=yearIds.length?await getSupabase().from('academic_years').select('id,start_date,end_date').in('id',yearIds):{data:[],error:null};setSubjectLinks(links.data||[]);if(links.error)setError(links.error.message);if(school.error||c.error||s.error||p.error||a.error||y.error)setError((school.error||c.error||s.error||p.error||a.error||y.error)?.message||'Could not load assignments.');setSchoolId((school.data as string)||'');setClasses((c.data||[]).map(x=>{const range=y.data?.find(r=>r.id===x.academic_year_id);return {...x,year_start:range?.start_date||'',year_end:range?.end_date||''}}) as ClassRow[]);setSubjects((s.data||[]) as Subject[]);setPeriods((p.data||[]) as Period[]);setRows((a.data||[]) as Assignment[]);setLoading(false)}
-useEffect(()=>{load()},[])
+ const loadVersion=useRef(0)
+ const load=useCallback(async()=>{
+  const version=++loadVersion.current
+  setLoading(true);setError('');setRows([])
+  try{
+   const db=createClient()
+   const [school,c,s,p,links]=await Promise.all([
+    db.rpc('get_my_school_id'),
+    db.from('classes').select('id,name,academic_year_id').eq('enabled',true).order('name'),
+    db.from('subjects').select('id,name').order('name'),
+    db.from('grading_periods').select('id,academic_year_id,name,code,start_date,end_date,weight').order('start_date'),
+    db.from('class_subjects').select('class_id,subject_id')
+   ])
+   const loadedClasses=c.data||[]
+   const selectedClassIds=academicYearId?loadedClasses.filter(row=>row.academic_year_id===academicYearId).map(row=>row.id):[]
+   const yearIds=[...new Set(loadedClasses.map(row=>row.academic_year_id).filter(Boolean))]
+   const [y,a]=await Promise.all([
+    yearIds.length?db.from('academic_years').select('id,start_date,end_date').in('id',yearIds):Promise.resolve({data:[],error:null}),
+    fetchYearAssignments(db,selectedClassIds)
+   ])
+   if(version!==loadVersion.current)return
+   const failure=school.error||c.error||s.error||p.error||links.error||y.error||a.error
+   if(failure)setError(failure.message||'Could not load assignments.')
+   setSchoolId((school.data as string)||'')
+   setClasses(loadedClasses.map(row=>{const range=y.data?.find(year=>year.id===row.academic_year_id);return {...row,year_start:range?.start_date||'',year_end:range?.end_date||''}}) as ClassRow[])
+   setSubjects((s.data||[]) as Subject[])
+   setPeriods((p.data||[]) as Period[])
+   setSubjectLinks(links.data||[])
+   setRows((a.data||[]) as Assignment[])
+  }catch{
+   if(version===loadVersion.current)setError('Could not load assignments.')
+  }finally{
+   if(version===loadVersion.current)setLoading(false)
+  }
+ },[academicYearId])
+useEffect(()=>{void load();const versionRef=loadVersion;return()=>{versionRef.current++}},[load])
 async function create(){const dueInput=document.getElementById("assignment-due") as HTMLInputElement|null;if(dueInput&&!dueInput.reportValidity())return;if(!classId||!subjectId||!title.trim()){setError('Class, subject and title are required.');return}if(file&&file.size>50*1024*1024){setError('Attachment must be 50 MB or smaller.');return}if(maxScore&&(!Number.isFinite(Number(maxScore))||Number(maxScore)<=0)){setError('Max score must be greater than 0.');return}setSaving(true);setError('');setMessage('');let assignmentId:string|undefined;try{const {data,error:e}=await getSupabase().rpc('create_assignment',{p_class_id:classId,p_subject_id:subjectId,p_title:title.trim(),p_description:description.trim()||null,p_due_at:dueAt?schoolDateTimeToISO(dueAt):null,p_attachment_url:null,p_grading_period_id:periodId||null,p_max_score:maxScore?Number(maxScore):null});if(e)throw e;assignmentId=data as string;if(file){const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path=`${schoolId}/${assignmentId}/${Date.now()}-${safe}`;const {data:uploaded,error:ue}=await getSupabase().storage.from(BUCKET).upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});if(ue)throw ue;const {error:ae}=await getSupabase().rpc('update_assignment_attachment',{p_assignment_id:assignmentId,p_attachment_url:uploaded.path});if(ae)throw ae}setMessage('Assignment published.');setTitle('');setDescription('');setDueAt('');setMaxScore('10');setFile(null);await load()}catch(e:unknown){setError(e instanceof Error ? e.message : 'Could not publish assignment.')}finally{setSaving(false)}}
 async function openAttachment(path:string){const {data,error:e}=await getSupabase().storage.from(BUCKET).createSignedUrl(path,3600);if(e){setError(e.message);return}if(data?.signedUrl)window.open(data.signedUrl,'_blank','noopener,noreferrer')}
 const yearClasses=classes.filter(c=>c.academic_year_id===academicYearId),yearClassIds=new Set(yearClasses.map(c=>c.id)),visibleRows=rows.filter(r=>yearClassIds.has(r.class_id));useEffect(()=>{if(classId&&!yearClassIds.has(classId)){setClassId('');setSubjectId('');setPeriodId('')}},[academicYearId,classes]);const className=(id:string)=>classes.find(c=>c.id===id)?.name||'Class';const subjectName=(id:string)=>subjects.find(s=>s.id===id)?.name||'Subject';const selectedClass=yearClasses.find(c=>c.id===classId),yearPeriods=periods.filter(p=>p.academic_year_id===selectedClass?.academic_year_id),selectedPeriod=yearPeriods.find(p=>p.id===periodId)

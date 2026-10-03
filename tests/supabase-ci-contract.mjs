@@ -13,6 +13,7 @@ const preschoolDepartureMigration = readFileSync('supabase/migrations/2026100222
 const guardParentMigration = readFileSync('supabase/migrations/20261002233000_guard_active_parent_membership.sql', 'utf8');
 const pickupPrivacyMigration = readFileSync('supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql', 'utf8');
 const pickupUpdateMigration = readFileSync('supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql', 'utf8');
+const publishedOnlyMigration = readFileSync('supabase/migrations/20261003023548_published_only_family_student_bulletins.sql', 'utf8');
 const badgeBaseline = readFileSync('supabase/ci-badge/supabase/migrations/20260901000000_badge_pre_lifecycle_baseline.sql', 'utf8');
 const badgeVerification = readFileSync('supabase/ci-badge/badge-verification.sql', 'utf8');
 const badgeLifecycleMigration = readFileSync('supabase/migrations/20260928004221_badge_lifecycle_history.sql', 'utf8');
@@ -34,6 +35,8 @@ assert.match(workflow, /20261002223000_preschool_bulletin_departure_history\.sql
 assert.match(workflow, /20261002233000_guard_active_parent_membership\.sql/);
 assert.match(workflow, /20261002235000_kindergarten_pickup_minimize_view_data\.sql/);
 assert.match(workflow, /20261003000000_limit_duplicate_preschool_pickup_updates\.sql/);
+assert.match(workflow, /20261003023548_published_only_family_student_bulletins\.sql/);
+assert.match(workflow, /cp supabase\/migrations\/20261003023548_published_only_family_student_bulletins\.sql supabase\/ci\/supabase\/migrations\//);
 assert.match(workflow, /supabase\/migrations\/20260928004221_badge_lifecycle_history\.sql/);
 assert.match(workflow, /badge-lifecycle:/);
 assert.match(workflow, /cp \.\.\/migrations\/20260928004221_badge_lifecycle_history\.sql supabase\/migrations\//);
@@ -87,6 +90,14 @@ assert.match(preschoolRoleMigration, /private\.can_edit_preschool_class\(p_class
 for(const assertion of ['preschool coordinator retained access after role change','preschool coordinator retained edit access after role change','preschool homeroom teacher retained access after role change','active homeroom teacher lost Preschool access']) assert.ok(verification.includes(assertion), `Preschool stale-role fixture must check: ${assertion}`);
 assert.match(preschoolDepartureMigration,/preschool_cards[\s\S]*?s\.departure_year_id is null or y\.start_date<=\(select start_date from public\.academic_years where id=s\.departure_year_id\)/,'Preschool report-card history must respect the student departure year');
 assert.ok(verification.includes('post-departure Preschool bulletin'),'the SQL fixture must prove that a future Preschool bulletin is excluded after departure');
+assert.match(publishedOnlyMigration, /create function private\.published_student_report_cards\(p_student uuid\)/);
+assert.match(publishedOnlyMigration, /jsonb_array_elements\(coalesce\(report->'document_history','\[\]'::jsonb\)\)/);
+assert.match(publishedOnlyMigration, /return private\.published_student_report_cards\(p_student\)/);
+assert.match(publishedOnlyMigration, /private\.published_student_report_cards\(s\.id\)/);
+assert.match(baseline, /create function public\.student_portal_overview\(p_token text\)/);
+for (const assertion of ['director lost calculated numeric bulletin preview','linked parent saw unpublished numeric bulletin','student saw unpublished numeric bulletin','unrelated parent saw numeric bulletin','linked parent missed published numeric bulletin','student missed published numeric bulletin','departed linked parent lost history or saw a future numeric bulletin','departed student lost history or saw a future numeric bulletin']) {
+  assert.ok(verification.includes(assertion), `numeric bulletin SQL fixture must check: ${assertion}`);
+}
 
 assert.match(badgeBaseline, /create table private\.student_badge_credentials\([\s\S]*?token text not null unique[\s\S]*?updated_at timestamptz/i);
 assert.doesNotMatch(badgeBaseline.match(/create table public\.student_badges\([\s\S]*?\);/i)?.[0] || '', /\bstate\s+text/i, 'badge baseline must be pre-lifecycle so the real migration is applied');

@@ -186,6 +186,20 @@ end $$;
 create function public.get_report_card(p_student uuid) returns jsonb language sql stable security definer set search_path='' as $$
  select private.student_report_cards(p_student)
 $$;
+-- Synthetic token stub: this fixture uses a student's UUID as a local-only
+-- token, so the real publication migration can patch the report call site.
+create function public.student_portal_overview(p_token text)
+returns jsonb language plpgsql stable security definer set search_path=''
+as $$
+declare base jsonb;s public.students;
+begin
+ select * into s from public.students where id::text=p_token;
+ if s.id is null then return null;end if;
+ base:=jsonb_build_object('student',jsonb_build_object('id',s.id));
+ return base||jsonb_build_object('report',private.student_report_cards(s.id));
+end $$;
+revoke all on function public.student_portal_overview(text) from public,anon,authenticated;
+grant execute on function public.student_portal_overview(text) to anon,authenticated;
 create or replace function public.get_my_school_id() returns uuid
 language sql stable security definer set search_path=''
 as $$ select m.school_id from public.school_members m where m.user_id=auth.uid() and m.enabled order by m.school_id limit 1 $$;

@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
+import {createRequire} from 'node:module'
+import vm from 'node:vm'
+import ts from 'typescript'
 
 const read=path=>readFileSync(path,'utf8')
 const migration=read('supabase/migrations/20261001222000_school_calendar_year_successor.sql')
@@ -58,7 +61,7 @@ assert.match(suggestions,/staff must approve each closure/,'official source clos
 assert.match(suggestions,/useAcademicYear\(\)/,'holiday suggestions use the globally selected year')
 assert.match(suggestions,/selectedYear\.start_date\.slice\(0,4\).*selectedYear\.end_date\.slice\(0,4\)/,'detected source documents are matched to the academic year selected in the calendar')
 assert.match(suggestions,/filter\(item=>!item\.school_year\|\|item\.school_year===selectedSchoolYear\)/,'manual and saved source results hide documents for other school years while retaining yearless references')
-assert.match(suggestions,/\.eq\('id',yearId\)/,'holiday suggestions load the selected year instead of always using the current year')
+assert.match(suggestions,/\.eq\('id',requestedYearId\)/,'holiday suggestions load the selected year instead of always using the current year')
 assert.match(suggestions,/item\.day>=selectedYear\.start_date&&item\.day<=selectedYear\.end_date/,'existing closures are scoped to the selected academic-year date range')
 assert.match(closuresUi,/useAcademicYear\(\)/,'the closure manager uses the globally selected academic year')
 assert.match(closuresUi,/\.gte\('day',year\.start_date\)\.lte\('day',year\.end_date\)/,'closure list is filtered to the selected school-year range')
@@ -88,4 +91,31 @@ assert.match(migrationWorkflow,/20261002150000_calendar_document_kinds\.sql/,'ca
 assert.match(migrationWorkflow,/20261002151000_official_exam_date_proposals\.sql/,'exam date proposal migration is included in isolated Supabase CI')
 assert.match(migrationWorkflow,/20261002153945_enforce_single_current_academic_year_per_school\.sql/,'current-year invariant migration is included in isolated Supabase CI')
 assert.match(read('supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql'),/drop extension if exists pg_net/i,'the source checker does not leave its one-off egress diagnostic extension enabled')
+
+const require=createRequire(import.meta.url)
+const componentExports={}
+const mocks={
+ '@/lib/supabase/client':{createClient:()=>{throw Error('The source-selection tests provide their own database.')}},
+ '@/lib/school-date':{schoolDate:date=>date},
+ '@/lib/haiti-holidays':{haitiHolidaySuggestions:()=>[]},
+ '@/components/translation-provider':{T:()=>null,useLocale:()=> 'fr'},
+ '@/lib/translations':{translate:text=>text},
+ '@/components/academic-year-context':{useAcademicYear:()=>({yearId:''})},
+}
+vm.runInNewContext(ts.transpileModule(suggestions,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports:componentExports,require:name=>mocks[name]||require(name)})
+const {savedCalendarSourcesForYear,calendarDocumentsForYear}=componentExports
+const source=(url,school_year,label,last_seen_at='2026-10-01T12:00:00Z')=>({url,source:'MENFP',label,school_year,document_kind:'school_calendar',last_seen_at,suggested_dates:[]})
+const saved=[source('https://menfp.gouv.ht/calendar','2026/2027','Old saved copy'),source('https://menfp.gouv.ht/old','2025/2026','Other year'),source('https://menfp.gouv.ht/general',null,'Undated reference')]
+const fresh={yearId:'year-26',checkedAt:'2026-10-02T12:00:00Z',warning:'',candidates:[{url:'https://menfp.gouv.ht/calendar',source:'MENFP',label:'New discovery',school_year:'2026/2027',kind:'exam_calendar',suggested_dates:[{date_text:'9 au 13 novembre',start_date:'2026-11-09',end_date:'2026-11-13',category:'exam_period',context:'Examens',status:'needs_review'}]},{url:'https://menfp.gouv.ht/unrelated',source:'MENFP',label:'Wrong year',school_year:'2025/2026',kind:'exam_calendar'}]}
+const selected=calendarDocumentsForYear(saved,fresh,'year-26','2026/2027')
+assert.equal(selected.length,2,'selected year includes matching and undated references only')
+assert.equal(selected.find(item=>item.url==='https://menfp.gouv.ht/calendar')?.label,'New discovery','manual refresh wins over an older stored record with the same URL')
+assert.equal(selected.find(item=>item.url==='https://menfp.gouv.ht/calendar')?.suggested_dates.length,1,'fresh exam dates remain visible when a stored record has no dates')
+assert.equal(calendarDocumentsForYear(saved,fresh,'year-25','2025/2026').some(item=>item.label==='New discovery'),false,'switching years immediately hides the prior manual refresh')
+assert.equal(calendarDocumentsForYear(saved,fresh,'year-26',null).length,0,'old documents do not flash while the new academic year is loading')
+
+const records=[...Array.from({length:12},(_,index)=>source(`https://menfp.gouv.ht/other-${index}`,'2027/2028',`Other year ${index}`,`2027-10-${String(index+1).padStart(2,'0')}T00:00:00Z`)),source('https://menfp.gouv.ht/selected','2026/2027','Selected year','2026-09-01T00:00:00Z'),source('https://menfp.gouv.ht/undated',null,'Undated reference')]
+const db={from:table=>{assert.equal(table,'official_calendar_sources');let rows=records;return{select(){return this},eq(column,value){rows=rows.filter(item=>item[column]===value);return this},is(column,value){rows=rows.filter(item=>item[column]===value);return this},order(column,{ascending}){rows=[...rows].sort((a,b)=>ascending?a[column].localeCompare(b[column]):b[column].localeCompare(a[column]));return this},limit(count){return Promise.resolve({data:rows.slice(0,count),error:null})}}}}
+const stored=await savedCalendarSourcesForYear(db,'2026/2027')
+assert.deepEqual(Array.from(stored.rows,item=>item.label),['Undated reference','Selected year'],'the selected year is filtered before result limits, even when newer years have many documents')
 console.log('School calendar workflow checks passed.')

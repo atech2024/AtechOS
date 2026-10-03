@@ -221,4 +221,100 @@ begin
 end
 $test$;
 
+-- A numeric bulletin can have a calculated grade preview before the school
+-- publishes its immutable family/student document. Keep this synthetic card
+-- in the rollback-only fixture; the production calculator is unchanged.
+insert into public.classes(id,school_id,grade_level,name,academic_year_id) values
+ ('40000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000001','AF7','Numeric CI','11000000-0000-0000-0000-000000000001'),
+ ('40000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000001','AF7','Future Numeric CI','11000000-0000-0000-0000-000000000002');
+insert into public.grading_periods(id,school_id,academic_year_id,name,code,start_date,end_date,sections,is_active) values
+ ('80000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','11000000-0000-0000-0000-000000000001','Numeric Period','T2','2026-12-01','2027-03-31',array['fundamental'],true),
+ ('80000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000001','11000000-0000-0000-0000-000000000002','Future Numeric Period','T2','2027-12-01','2028-03-31',array['fundamental'],true);
+insert into public.students(id,school_id,first_name,last_name,atechos_id) values
+ ('50000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','Numeric','Student','AOS-CI-0002');
+insert into public.enrollments(id,school_id,student_id,class_id,status) values
+ ('60000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000004','active');
+insert into public.student_parents(student_id,parent_id,is_primary,relationship) values
+ ('50000000-0000-0000-0000-000000000002','70000000-0000-0000-0000-000000000001',true,'parent');
+
+create or replace function private.calculated_student_report_cards(p_student uuid)
+returns jsonb language sql stable security definer set search_path=''
+as $$
+ select jsonb_build_object(
+  'student',jsonb_build_object('id',s.id,'first_name',s.first_name,'last_name',s.last_name,'atechos_id',s.atechos_id),
+  'school',jsonb_build_object('name',sc.name,'code',sc.code),
+  'passing_average',6,
+  'attendance','[]'::jsonb,
+  'cards',case when s.id='50000000-0000-0000-0000-000000000002'::uuid then
+   jsonb_build_array(jsonb_build_object(
+    'class_id','40000000-0000-0000-0000-000000000004',
+    'class_name','Numeric CI','year','CI Year',
+    'period_id','80000000-0000-0000-0000-000000000003',
+    'period','Numeric Period','start_date','2026-12-01','end_date','2027-03-31',
+    'subjects',jsonb_build_array(jsonb_build_object('name','Mathematique','note',7.5,'earned',15,'possible',20)),
+    'earned',15,'possible',20,'complete',true,'average',7.5,'status','passed'))
+   else '[]'::jsonb end)
+ from public.students s join public.schools sc on sc.id=s.school_id where s.id=p_student
+$$;
+
+do $numeric_bulletin$
+declare student_id uuid:='50000000-0000-0000-0000-000000000002';
+ report jsonb; preview jsonb; failed boolean;
+begin
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+ preview:=public.get_report_card(student_id);
+ if jsonb_array_length(preview->'cards')<>1 or preview->'cards'->0->>'average'<>'7.5' then
+  raise exception 'director lost calculated numeric bulletin preview';end if;
+
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ report:=public.get_report_card(student_id);
+ if jsonb_array_length(report->'cards')<>0 or jsonb_array_length(report->'document_history')<>0 then
+  raise exception 'linked parent saw unpublished numeric bulletin';end if;
+ report:=public.student_portal_overview(student_id::text)->'report';
+ if jsonb_array_length(report->'cards')<>0 then raise exception 'student saw unpublished numeric bulletin';end if;
+
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000003',true);
+ failed:=false;
+ begin perform public.get_report_card(student_id);exception when others then failed:=sqlerrm='not_authorized';end;
+ if not failed then raise exception 'unrelated parent saw numeric bulletin';end if;
+
+ -- This row stands in for publish_class_bulletins, which the small CI baseline
+ -- does not define. It exercises the real immutable-history visibility path.
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+ insert into public.bulletin_versions(school_id,student_id,class_id,period_id,version,payload) values
+ ('10000000-0000-0000-0000-000000000001',student_id,
+  '40000000-0000-0000-0000-000000000004','80000000-0000-0000-0000-000000000003',1,
+  jsonb_build_object('card',preview->'cards'->0));
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ report:=public.get_report_card(student_id);
+ if jsonb_array_length(report->'cards')<>1 or report->'cards'->0->'document'->>'version'<>'1'
+  or report->'cards'->0->>'average'<>'7.5' then
+  raise exception 'linked parent missed published numeric bulletin';end if;
+ report:=public.student_portal_overview(student_id::text)->'report';
+ if jsonb_array_length(report->'cards')<>1 or report->'cards'->0->'document'->>'version'<>'1' then
+  raise exception 'student missed published numeric bulletin';end if;
+
+ -- A departed student and linked parent retain only the last-school-year
+ -- publication, even when a future-year snapshot exists in the database.
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+ insert into public.bulletin_versions(school_id,student_id,class_id,period_id,version,payload) values
+ ('10000000-0000-0000-0000-000000000001',student_id,
+  '40000000-0000-0000-0000-000000000005','80000000-0000-0000-0000-000000000004',1,
+  jsonb_build_object('card',jsonb_build_object('class_id','40000000-0000-0000-0000-000000000005',
+   'class_name','Future Numeric CI','year','Future CI Year',
+   'period_id','80000000-0000-0000-0000-000000000004','period','Future Numeric Period',
+   'start_date','2027-12-01','end_date','2028-03-31','average',9)));
+ update public.students set school_status='departed',departure_year_id='11000000-0000-0000-0000-000000000001'
+ where id=student_id;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ report:=public.get_report_card(student_id);
+ if jsonb_array_length(report->'cards')<>1 or report->'cards'->0->>'class_name'<>'Numeric CI'
+  or jsonb_array_length(report->'document_history')<>1 then
+  raise exception 'departed linked parent lost history or saw a future numeric bulletin';end if;
+ report:=public.student_portal_overview(student_id::text)->'report';
+ if jsonb_array_length(report->'cards')<>1 or report->'cards'->0->>'class_name'<>'Numeric CI' then
+  raise exception 'departed student lost history or saw a future numeric bulletin';end if;
+end
+$numeric_bulletin$;
+
 rollback;

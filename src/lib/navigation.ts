@@ -13,7 +13,7 @@ export const navigation:NavigationItem[]=[
  {label:'Exams and school calendar',href:'/dashboard/calendar',icon:'calendar',roles:[...administration,'teacher','surveillant','censeur'],group:'school_life'},
  {label:'Grading periods',href:'/dashboard/grading-periods',icon:'calendar',roles:administration,group:'results'},
  {label:'Grades',href:'/dashboard/grades',icon:'grades',roles:[...administration,'teacher'],group:'results'},
- {label:'Publication des bulletins',href:'/dashboard/publication',icon:'publication',roles:['school_admin','director','censeur'],group:'results'},
+ {label:'Publication des bulletins',href:'/dashboard/publication',icon:'publication',roles:['school_admin','director','censeur','secretary'],group:'results'},
  {label:'Bulletins',href:'/dashboard/bulletins',icon:'reports',roles:[...administration,'surveillant'],group:'results'},
  {label:'Preschool competency bulletins',href:'/dashboard/preschool',icon:'reports',roles:[...administration,'teacher','censeur'],group:'preschool'},
  {label:'Assignments',href:'/dashboard/assignments',icon:'assignments',roles:[...administration,'teacher'],group:'teaching'},

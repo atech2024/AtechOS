@@ -4,8 +4,10 @@ import vm from 'node:vm'
 import ts from 'typescript'
 const exports={}
 vm.runInNewContext(ts.transpileModule(readFileSync('src/lib/school-date.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{exports,Intl,Date})
-assert.equal(exports.schoolDate('2026-09-25'),'25 Septanm 2026')
-assert.equal(exports.schoolDate('2026-09-25T02:00:00Z'),'24 Septanm 2026')
+assert.equal(exports.schoolDate('2026-09-25'),'25 septembre 2026')
+assert.equal(exports.schoolDate('2026-09-25','ht'),'25 Septanm 2026')
+assert.equal(exports.schoolDate('2026-09-25T02:00:00Z'),'24 septembre 2026')
+assert.equal(exports.schoolDate('2026-09-25T02:00:00Z','ht'),'24 Septanm 2026')
 assert.equal(exports.schoolTime('2026-09-25T13:00:00Z'),'09:00 AM')
 assert.equal(exports.schoolTime('2026-12-25T18:00:00Z'),'01:00 PM')
 assert.equal(exports.parseDateInput('25/09/2026'),'2026-09-25')
@@ -25,7 +27,9 @@ const exam=readFileSync('src/components/exam-calendar.tsx','utf8'),periods=readF
 assert.ok(exam.includes('min={selectedPeriod?.start_date||cls?.year_start}')&&exam.includes('max={selectedPeriod?.end_date||cls?.year_end}'),'exam dates are bounded to their selected period and academic year')
 assert.ok(periods.includes('min={selectedYear?.start_date} max={selectedYear?.end_date}'),'grading periods stay inside the selected academic year')
 assert.ok(assignments.includes('min={selectedPeriod?.start_date||selectedClass?.year_start}')&&assignments.includes('schoolDateTimeToISO(dueAt)'),'assignment deadlines use school-year limits and Haiti local time')
-assert.ok(publication.includes('min={periods.find(p=>p.id===period)?.start_date}'),'grade-entry deadlines are limited to their selected period')
+assert.ok(assignments.includes("from('grading_periods').select('id,academic_year_id,name,code,start_date,end_date,weight')")&&assignments.includes('yearPeriods=periods.filter(p=>p.academic_year_id===selectedClass?.academic_year_id)'),'assignment periods are scoped by academic-year ID, including overlapping boundary dates')
+assert.ok(assignments.includes('!visibleRows.length')&&assignments.includes('No assignments for this academic year.'),'an empty selected-year assignment list has a clear message')
+assert.ok(publication.includes('min={yearPeriods.find(p=>p.id===period)?.start_date}')&&publication.includes('yearPeriods=periods.filter(p=>!academicYearId||p.year_id===academicYearId)'),'grade-entry deadline periods are scoped to the selected academic year')
 assert.ok(attendance.includes('min={selectedClass?.year_start} max={selectedClass?.year_end}'),'attendance date selection follows its class academic year')
 assert.equal(exports.schoolDateTimeToISO('2026-09-25T09:00'),'2026-09-25T13:00:00.000Z')
 assert.equal(exports.schoolDateTimeToISO('2026-12-25T09:00'),'2026-12-25T14:00:00.000Z')

@@ -1,8 +1,9 @@
 export const SCHOOL_TIME_ZONE='America/Port-au-Prince'
-const months=['Janvye','Fevriye','Mas','Avril','Me','Jen','Jiyè','Out','Septanm','Oktòb','Novanm','Desanm']
-export function schoolDate(value:string|null|undefined){if(!value)return '—';const day=value.length===10?value:new Intl.DateTimeFormat('en-CA',{timeZone:SCHOOL_TIME_ZONE}).format(new Date(value));const [y,m,d]=day.split('-').map(Number);return `${d} ${months[m-1]} ${y}`}
+import type {Locale} from './i18n'
+const months:Record<Locale,string[]>={fr:['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],ht:['Janvye','Fevriye','Mas','Avril','Me','Jen','Jiyè','Out','Septanm','Oktòb','Novanm','Desanm'],en:['January','February','March','April','May','June','July','August','September','October','November','December']}
+export function schoolDate(value:string|null|undefined,locale:Locale='fr'){if(!value)return '—';const day=value.length===10?value:new Intl.DateTimeFormat('en-CA',{timeZone:SCHOOL_TIME_ZONE}).format(new Date(value));const [y,m,d]=day.split('-').map(Number);return `${d} ${months[locale][m-1]} ${y}`}
 export function schoolTime(value:string|null|undefined){if(!value)return '—';return new Intl.DateTimeFormat('en-US',{timeZone:SCHOOL_TIME_ZONE,hour:'2-digit',minute:'2-digit',hour12:true}).format(new Date(value))}
-export function schoolDateTime(value:string|null|undefined){return value?`${schoolDate(value)} · ${schoolTime(value)}`:'—'}
+export function schoolDateTime(value:string|null|undefined,locale:Locale='fr'){return value?`${schoolDate(value,locale)} · ${schoolTime(value)}`:'—'}
 export function dateInputText(value:string){const [y,m,d]=value.split('T')[0].split('-');return y&&m&&d?`${d}/${m}/${y}`:''}
 export function parseDateInput(value:string){const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);if(!m)return '';const iso=`${m[3]}-${m[2]}-${m[1]}`;const d=new Date(iso+'T12:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===iso?iso:''}
 export function dateWithinRange(value:string,min?:string,max?:string){const day=value.slice(0,10);if(!parseDateInput(dateInputText(day)))return false;return(!min||day>=min.slice(0,10))&&(!max||day<=max.slice(0,10))}

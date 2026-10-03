@@ -5,6 +5,7 @@ on:
     branches:
       - feature/kindergarten-relocation
       - feature/preschool-grade-labels
+      - feature/build01-navigation-shell
     paths:
       - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
       - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
@@ -26,8 +27,20 @@ on:
       - "supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql"
       - "supabase/migrations/20261002150000_calendar_document_kinds.sql"
       - "supabase/migrations/20261002151000_official_exam_date_proposals.sql"
+      - "supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql"
+      - "supabase/migrations/20261002153945_enforce_single_current_academic_year_per_school.sql"
+      - "supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql"
+      - "supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql"
+      - "supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql"
+      - "supabase/migrations/20261002233000_guard_active_parent_membership.sql"
+      - "supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql"
+      - "supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql"
+      - "supabase/migrations/20261003023548_published_only_family_student_bulletins.sql"
+      - "supabase/migrations/20261003162629_confirm_official_exam_dates.sql"
+      - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
+      - "supabase/ci-badge/**"
       - ".github/workflows/supabase-migration-check.yml"
   pull_request:
     paths:
@@ -51,8 +64,20 @@ on:
       - "supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql"
       - "supabase/migrations/20261002150000_calendar_document_kinds.sql"
       - "supabase/migrations/20261002151000_official_exam_date_proposals.sql"
+      - "supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql"
+      - "supabase/migrations/20261002153945_enforce_single_current_academic_year_per_school.sql"
+      - "supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql"
+      - "supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql"
+      - "supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql"
+      - "supabase/migrations/20261002233000_guard_active_parent_membership.sql"
+      - "supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql"
+      - "supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql"
+      - "supabase/migrations/20261003023548_published_only_family_student_bulletins.sql"
+      - "supabase/migrations/20261003162629_confirm_official_exam_dates.sql"
+      - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
+      - "supabase/ci-badge/**"
       - ".github/workflows/supabase-migration-check.yml"
   workflow_dispatch:
 
@@ -67,7 +92,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pin the CLI so setup does not need GitHub's rate-limited latest-release lookup.
+          version: 2.119.0
       - name: Stage selected pending migrations in an isolated local Supabase project
         shell: bash
         run: |
@@ -91,6 +117,16 @@ jobs:
           cp supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261002150000_calendar_document_kinds.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261002151000_official_exam_date_proposals.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002153945_enforce_single_current_academic_year_per_school.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002233000_guard_active_parent_membership.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261003023548_published_only_family_student_bulletins.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261003162629_confirm_official_exam_dates.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |
@@ -105,7 +141,37 @@ jobs:
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < guard-verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < school-calendar-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < official-exam-confirmation-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < class-section-verification.sql
       - name: Stop local Supabase
         if: always()
         working-directory: supabase/ci
+        run: supabase stop --no-backup
+
+  badge-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Stage the real badge lifecycle migration over a synthetic pre-lifecycle schema
+        working-directory: supabase/ci-badge
+        run: cp ../migrations/20260928004221_badge_lifecycle_history.sql supabase/migrations/
+      - name: Start isolated Supabase and apply badge lifecycle migration
+        working-directory: supabase/ci-badge
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Run rollback-only badge credential, role and KIOS checks
+        working-directory: supabase/ci-badge
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-badge-migration-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < badge-verification.sql
+      - name: Stop badge verification Supabase
+        if: always()
+        working-directory: supabase/ci-badge
         run: supabase stop --no-backup

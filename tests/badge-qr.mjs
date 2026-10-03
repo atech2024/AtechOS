@@ -20,4 +20,16 @@ assert.ok(!renderToStaticMarkup(React.createElement(exports.BadgeFront,{...props
 const back=renderToStaticMarkup(React.createElement(exports.BadgeBack,{origin:'https://school.example'}))
 assert.ok(back.includes('https://school.example/student/login'));assert.ok(back.includes('https://school.example/login'));assert.ok(!back.includes('AOSQ1.'));assert.ok(!back.includes('token='))
 assert.ok(back.includes('Ne le prêtez pas'));assert.ok(back.includes('Pa prete li'))
-console.log('PASS: portrait CR80 front, school branding/ID/class, no school year, private operational QR, bilingual back and login-only portal QR.')
+
+const dateExports={}
+vm.runInNewContext(ts.transpileModule(readFileSync('src/lib/school-date.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{exports:dateExports,Intl,Date})
+const studentExports={}
+const studentMock=n=>n==='@/lib/school-date'?dateExports:n==='@/components/translation-provider'?{T:({text})=>text}:n==='qrcode.react'?{QRCodeSVG:({value})=>React.createElement('span',{'data-qr':value})}:require(n)
+vm.runInNewContext(ts.transpileModule(readFileSync('src/components/student-identity-card.tsx','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports:studentExports,require:studentMock})
+const studentHtml=renderToStaticMarkup(React.createElement(studentExports.default,{student:{first_name:'Fixture',last_name:'Student',atechos_id:'AOS-123',class_name:'PS1',academic_year:'2026–2027',photo_available:true},qr:props.qr,attendance:{check_in_at:'2026-10-02T12:45:00.000Z',check_out_at:'2026-10-02T20:15:00.000Z'}}))
+for(const value of ['Fixture Student','PS1','2026–2027','AOS-123','08:45 AM','04:15 PM','/student/photo'])assert.ok(studentHtml.includes(value),`student identity panel must show ${value}`)
+assert.ok(studentHtml.includes('data-qr="'+props.qr+'"'),'student portal must present the active operational badge QR')
+assert.ok(readFileSync('src/app/student/page.tsx','utf8').includes('<StudentOverview qr={data.badge_qr}'),'portal workspace must pass the server-returned badge QR to the student overview')
+assert.ok(readFileSync('src/app/student/overview.tsx','utf8').includes('<StudentIdentityCard qr={qr}'),'student overview must render the badge QR in the identity panel')
+assert.ok(readFileSync('supabase/migrations/20260928004221_badge_lifecycle_history.sql','utf8').includes("b.active and b.state=''active''"),'student portal QR must only be returned for an active, non-revoked badge')
+console.log('PASS: portrait CR80 front, school branding/ID/class, no school year, private operational QR, bilingual back and login-only portal QR; student portal identity, class, year, daily Haiti-time attendance and private badge QR.')

@@ -4,5 +4,5 @@ export const labels: Record<Locale, Record<string, string>> = {
   fr: { language: 'Langue', dashboard: 'Tableau de bord', students: 'Élèves', staff: 'Utilisateurs et personnel', save: 'Enregistrer', cancel: 'Annuler', signIn: 'Se connecter', signUp: 'Créer un compte' },
   en: { language: 'Language', dashboard: 'Dashboard', students: 'Students', staff: 'Users & staff', save: 'Save', cancel: 'Cancel', signIn: 'Sign in', signUp: 'Create account' },
 }
-export function localeFrom(value: string | undefined): Locale { return value === 'fr' || value === 'en' ? value : 'ht' }
+export function localeFrom(value: string | undefined): Locale { return value === 'ht' || value === 'en' ? value : 'fr' }
 

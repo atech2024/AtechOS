@@ -1,5 +1,15 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import vm from 'node:vm'
+import ts from 'typescript'
+
+const require=createRequire(import.meta.url)
+const i18nExports={}
+vm.runInNewContext(ts.transpileModule(readFileSync('src/lib/i18n.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{exports:i18nExports,require})
+assert.equal(i18nExports.localeFrom(undefined),'fr','French is the default product language.')
+assert.equal(i18nExports.localeFrom('ht'),'ht','The explicit Haitian Creole preference must be retained.')
+assert.equal(i18nExports.localeFrom('en'),'en','The explicit English preference must be retained.')
 
 const shell = readFileSync('src/components/app-shell.tsx', 'utf8')
 const grades = readFileSync('src/app/dashboard/grades/page.tsx', 'utf8')

@@ -1,34 +1,102 @@
 'use client'
-import {useCallback,useEffect,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import {createClient} from '@/lib/supabase/client'
 import {schoolDate} from '@/lib/school-date'
 import {haitiHolidaySuggestions} from '@/lib/haiti-holidays'
 import {T,useLocale} from '@/components/translation-provider'
 import {translate} from '@/lib/translations'
 import {RefreshCw} from 'lucide-react'
+import {useAcademicYear} from '@/components/academic-year-context'
 
 type Year={id:string;name:string;start_date:string;end_date:string}
 type Closure={day:string;title:string}
 type ExamDateProposal={date_text:string;start_date:string|null;end_date:string|null;category:'exam_period'|'official_exam';context:string;status:'needs_review'}
-type OfficialCalendar={url:string;label:string;year:string|null;kind:'school_calendar'|'exam_calendar';suggested_dates?:ExamDateProposal[]}
 type StoredCalendar={url:string;source:string;label:string;school_year:string|null;document_kind:'school_calendar'|'exam_calendar';last_seen_at:string;suggested_dates:ExamDateProposal[]}
 type DiscoveredCalendar={url:string;source:string;label:string;school_year:string|null;kind:'school_calendar'|'exam_calendar';suggested_dates?:ExamDateProposal[]}
+type Discovery={yearId:string;checkedAt:string;candidates:DiscoveredCalendar[];warning:string}
+type ConfirmedOfficialExamDate={id:string;year_id:string;section:string;source_url:string;proposal_snapshot:ExamDateProposal}
+type ConfirmableSection={year_id:string;section:string}
+const sourceFields='url,source,label,school_year,document_kind,last_seen_at,suggested_dates'
+const secondarySourceWarnings={
+ en:'No MENFP or government calendar document was matched to the selected school year. The available HaitiLibre reference is secondary; verify its dates with MENFP before confirming exam dates or approving closures.',
+ fr:'Aucun calendrier du MENFP ou du Gouvernement n’a pu être associé à l’année scolaire sélectionnée. La référence disponible sur HaitiLibre est secondaire; vérifiez ses dates auprès du MENFP avant de confirmer des dates d’examen ou d’approuver des fermetures.',
+ ht:'Nou pa jwenn dokiman kalandriye MENFP oswa Gouvènman an ki koresponn ak ane lekòl ou chwazi a. Referans HaitiLibre ki disponib la se yon sous segondè; verifye dat li yo ak MENFP anvan ou konfime dat egzamen oswa apwouve jou lekòl fèmen.',
+}
+
+export function calendarSourceWarningForYear(items:{source:string;school_year:string|null}[],schoolYear:string|null,fallback:string,locale:'en'|'fr'|'ht'='en'){
+ if(!schoolYear)return fallback
+ const secondary=items.some(item=>item.source==='HaitiLibre'&&(!item.school_year||item.school_year===schoolYear))
+ const official=items.some(item=>item.school_year===schoolYear&&(item.source==='MENFP'||item.source==='Haitian Government'))
+ return secondary&&!official?secondarySourceWarnings[locale]:fallback
+}
+
+function sameProposal(left:ExamDateProposal,right:ExamDateProposal){
+ return left.date_text===right.date_text&&left.start_date===right.start_date&&left.end_date===right.end_date&&left.category===right.category&&left.context===right.context&&left.status===right.status
+}
+
+function ExamProposalList({item,saved,sections,confirmed,selectedSections,busy,onSection,onConfirm}:{item:StoredCalendar;saved:StoredCalendar[];sections:string[];confirmed:ConfirmedOfficialExamDate[];selectedSections:Record<string,string>;busy:string;onSection:(key:string,section:string)=>void;onConfirm:(key:string,item:StoredCalendar,proposal:ExamDateProposal,section:string)=>void}){
+ return <div className="mt-2 rounded-lg bg-amber-50 p-3"><p className="font-semibold text-amber-950"><T text="Exam date proposals — staff review required"/></p>{!sections.length&&<p className="text-xs text-amber-900"><T text="No active section is configured for this academic year."/></p>}<ul className="mt-1 list-disc space-y-3 pl-5 text-amber-950">{item.suggested_dates.map((proposal,index)=>{
+  const key=`${item.url}-${proposal.date_text}-${index}`,section=selectedSections[key]||''
+  const stored=saved.find(source=>source.url===item.url)?.suggested_dates?.find(candidate=>sameProposal(candidate,proposal))
+  const accepted=confirmed.some(date=>date.source_url===item.url&&date.section===section&&sameProposal(date.proposal_snapshot,proposal))
+  return <li key={key}><strong><T text={proposal.category==='official_exam'?'Official exam':'Exam period'}/></strong>: {proposal.start_date&&proposal.end_date?`${schoolDate(proposal.start_date)} – ${schoolDate(proposal.end_date)}`:proposal.date_text}<span className="block text-xs text-amber-900"><T text="Source wording"/>: {proposal.date_text}{proposal.context?` · ${proposal.context}`:''}</span>{!stored?<span className="block text-xs"><T text="This new proposal must be saved by the scheduled source check before confirmation."/></span>:!proposal.start_date||!proposal.end_date?<span className="block text-xs"><T text="Dates are incomplete; review the source manually."/></span>:<div className="mt-2 flex flex-wrap items-center gap-2"><label className="text-xs"><T text="School section"/><select className="ml-2 rounded border bg-white p-1" value={section} onChange={event=>onSection(key,event.target.value)} disabled={Boolean(busy)}><option value=""><T text="Choose"/></option>{sections.map(value=><option key={value} value={value}><T text={value}/></option>)}</select></label><button type="button" disabled={Boolean(busy)||!section||accepted} onClick={()=>onConfirm(key,item,stored,section)} className="rounded border border-amber-700 bg-white px-2 py-1 text-xs font-semibold disabled:opacity-50"><T text={accepted?'Confirmed for this section':'Confirm exam date for section'}/></button></div>}</li>
+ })}</ul></div>
+}
+
+export async function savedCalendarSourcesForYear(db:ReturnType<typeof createClient>,schoolYear:string){
+ const [matching,unassigned]=await Promise.all([
+  db.from('official_calendar_sources').select(sourceFields).eq('school_year',schoolYear).order('last_seen_at',{ascending:false}).limit(10),
+  db.from('official_calendar_sources').select(sourceFields).is('school_year',null).order('last_seen_at',{ascending:false}).limit(5),
+ ])
+ return {rows:[...(matching.data||[]),...(unassigned.data||[])].sort((a,b)=>b.last_seen_at.localeCompare(a.last_seen_at)) as StoredCalendar[],error:matching.error||unassigned.error}
+}
+
+export function calendarDocumentsForYear(sources:StoredCalendar[],discovery:Discovery|null,yearId:string,schoolYear:string|null){
+ if(!schoolYear)return []
+ const matchesYear=(item:{school_year:string|null})=>!item.school_year||item.school_year===schoolYear
+ const fresh=discovery?.yearId===yearId?discovery.candidates.filter(matchesYear):[]
+ const saved=new Map(sources.filter(matchesYear).map(item=>[item.url,item] as const))
+ return [...new Map<string,StoredCalendar>([
+  ...sources.filter(matchesYear).map(item=>[item.url,item] as const),
+  ...fresh.map(item=>{
+   const proposals=[...(saved.get(item.url)?.suggested_dates||[]),...(item.suggested_dates||[])]
+    .filter((proposal,index,all)=>all.findIndex(other=>sameProposal(other,proposal))===index)
+   return [item.url,{url:item.url,source:item.source,label:item.label,school_year:item.school_year,document_kind:item.kind,last_seen_at:discovery!.checkedAt,suggested_dates:proposals}] as const
+  }),
+ ]).values()]
+}
 export default function HaitiHolidaySuggestions(){
+ const {yearId}=useAcademicYear()
  const locale=useLocale(),t=(text:string)=>translate(text,locale)
- const [year,setYear]=useState<Year|null>(null),[closures,setClosures]=useState<Closure[]>([]),[sources,setSources]=useState<StoredCalendar[]>([]),[discovered,setDiscovered]=useState<DiscoveredCalendar[]>([]),[visible,setVisible]=useState(false),[busy,setBusy]=useState(''),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[online,setOnline]=useState<OfficialCalendar|null>(null),[checkedAt,setCheckedAt]=useState(''),[sourceWarning,setSourceWarning]=useState('')
+ const [year,setYear]=useState<Year|null>(null),[closures,setClosures]=useState<Closure[]>([]),[sources,setSources]=useState<StoredCalendar[]>([]),[discovery,setDiscovery]=useState<Discovery|null>(null),[confirmed,setConfirmed]=useState<ConfirmedOfficialExamDate[]>([]),[sections,setSections]=useState<string[]>([]),[selectedSections,setSelectedSections]=useState<Record<string,string>>({}),[visible,setVisible]=useState(false),[busy,setBusy]=useState(''),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[storedSourceWarning,setStoredSourceWarning]=useState('')
+ const currentYearId=useRef(yearId),loadVersion=useRef(0)
+ currentYearId.current=yearId
  const load=useCallback(async()=>{
+  const requestedYearId=yearId,version=++loadVersion.current,isCurrent=()=>currentYearId.current===requestedYearId&&loadVersion.current===version
   const db=createClient(),context=await db.rpc('school_context')
+  if(!isCurrent())return
   if(context.error)throw context.error
   const roles:string[]=context.data?.roles||[]
   if(!roles.some(r=>['school_admin','director','secretary','surveillant','censeur'].includes(r))){setVisible(false);return}
   setVisible(true)
-  const [y,c,o]=await Promise.all([db.from('academic_years').select('id,name,start_date,end_date').eq('is_current',true).maybeSingle(),db.rpc('school_calendar',{p_student:null}),db.from('official_calendar_sources').select('url,source,label,school_year,document_kind,last_seen_at,suggested_dates').order('last_seen_at',{ascending:false}).limit(10)])
-  if(y.error||c.error)throw y.error||c.error
-  setYear(y.data as Year|null);setClosures((c.data?.closures||[]) as Closure[])
-  if(o.error)setSourceWarning('Automatic official calendar updates are not configured yet.')
-  else setSources((o.data||[]) as StoredCalendar[])
- },[])
- useEffect(()=>{let active=true;load().catch(()=>{if(active)setError('Unable to load holiday suggestions.')});return()=>{active=false}},[load])
+  if(!requestedYearId){setYear(null);setClosures([]);setSources([]);setConfirmed([]);setSections([]);return}
+  const y=await db.from('academic_years').select('id,name,start_date,end_date').eq('id',requestedYearId).maybeSingle()
+  if(!isCurrent())return
+  if(y.error)throw y.error
+  const selectedYear=y.data
+  if(!selectedYear){setYear(null);setClosures([]);setSources([]);setConfirmed([]);setSections([]);return}
+  const selectedSchoolYear=`${selectedYear.start_date.slice(0,4)}/${selectedYear.end_date.slice(0,4)}`
+  const [c,o]=await Promise.all([db.rpc('school_calendar',{p_student:null}),savedCalendarSourcesForYear(db,selectedSchoolYear)])
+  if(!isCurrent())return
+  if(c.error)throw c.error
+  setYear(selectedYear as Year);setClosures(((c.data?.closures||[]) as Closure[]).filter(item=>item.day>=selectedYear.start_date&&item.day<=selectedYear.end_date))
+  setConfirmed(((c.data?.official_exam_dates||[]) as ConfirmedOfficialExamDate[]).filter(item=>item.year_id===requestedYearId))
+  setSections(((c.data?.confirmable_sections||[]) as ConfirmableSection[]).filter(item=>item.year_id===requestedYearId).map(item=>item.section))
+  if(o.error)setStoredSourceWarning('Automatic official calendar updates are not configured yet.')
+  else setStoredSourceWarning('')
+  setSources(o.rows)
+ },[yearId])
+ useEffect(()=>{let active=true;const versionRef=loadVersion;setYear(null);setSources([]);setClosures([]);setConfirmed([]);setSections([]);setSelectedSections({});setDiscovery(null);setStoredSourceWarning('');setRefreshing(false);setError('');load().catch(()=>{if(active)setError('Unable to load holiday suggestions.')});return()=>{active=false;versionRef.current++}},[load])
  async function approve(date:string,name:string){
   if(!window.confirm(`${t(name)} · ${schoolDate(date)}\n\n${t('Add this suggested date as a school closure?')}`))return
   setBusy(date);setError('');setMessage('')
@@ -37,14 +105,30 @@ export default function HaitiHolidaySuggestions(){
   else{setMessage('School closure approved and added to the calendar.');await load()}
   setBusy('')
  }
+ async function confirmExamDate(key:string,item:StoredCalendar,proposal:ExamDateProposal,section:string){
+  if(!year||year.id!==yearId||!sources.some(source=>source.url===item.url&&source.suggested_dates?.some(candidate=>sameProposal(candidate,proposal))))return
+  if(!window.confirm(`${t('Confirm this official exam date for the selected section?')}\n\n${item.label}\n${proposal.date_text}\n${t(section)}\n${item.url}`))return
+  setBusy(key);setError('');setMessage('')
+  try{const {error}=await createClient().rpc('confirm_official_exam_date',{p_year:year.id,p_section:section,p_source_url:item.url,p_proposal:proposal});if(error)throw error;await load();setMessage('Official exam date confirmed for the selected section.')}
+  catch(e){setError(e instanceof Error?e.message:'Unable to confirm the official exam date.')}
+  finally{setBusy('')}
+ }
  async function refresh(){
-  setRefreshing(true);setSourceWarning('');setError('')
-  try{const response=await fetch('/api/calendar/official-source',{cache:'no-store'}),data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to check official MENFP source.');setOnline(data.latest_calendar||null);setDiscovered(data.candidates||[]);setCheckedAt(data.checked_at||new Date().toISOString());setSourceWarning(data.warning||'');await load()}
-  catch{setSourceWarning('Online calendar sources could not be checked right now. Existing dates remain unchanged; staff must verify any document before approving closures.')}
-  finally{setRefreshing(false)}
+  if(!year||year.id!==yearId)return
+  const requestedYearId=yearId,selectedSchoolYear=`${year.start_date.slice(0,4)}/${year.end_date.slice(0,4)}`
+  setRefreshing(true);setError('')
+  try{const response=await fetch('/api/calendar/official-source',{cache:'no-store'}),data=await response.json();if(currentYearId.current!==requestedYearId)return;if(!response.ok)throw new Error(data.error||'Unable to check official MENFP source.');const candidates=(data.candidates||[]).filter((item:DiscoveredCalendar)=>!item.school_year||item.school_year===selectedSchoolYear);setDiscovery({yearId:requestedYearId,candidates,checkedAt:data.checked_at||new Date().toISOString(),warning:data.warning||''});await load()}
+  catch{if(currentYearId.current===requestedYearId)setDiscovery({yearId:requestedYearId,candidates:[],checkedAt:'',warning:'Online calendar sources could not be checked right now. Existing dates remain unchanged; staff must verify any document before approving closures.'})}
+  finally{if(currentYearId.current===requestedYearId)setRefreshing(false)}
  }
  if(!visible)return null
- const suggestions=year?haitiHolidaySuggestions(year.start_date,year.end_date).filter(h=>!closures.some(c=>c.day===h.date)):[]
- const calendarDocuments=[...new Map([...discovered.map(item=>({url:item.url,source:item.source,label:item.label,school_year:item.school_year,document_kind:item.kind,last_seen_at:checkedAt||new Date().toISOString(),suggested_dates:item.suggested_dates||[]})),...sources].map(item=>[item.url,item])).values()]
- return <section className="my-5 space-y-3 rounded-2xl border bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold"><T text="Suggested Haiti holidays and MENFP dates"/></h2><button type="button" disabled={refreshing} onClick={()=>void refresh()} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-50"><RefreshCw size={16} className={refreshing?'animate-spin':''}/><T text={refreshing?'Checking official sources...':'Refresh online suggestions'}/></button></div><p className="text-sm text-slate-600"><T text="Suggestions only: school staff must approve each closure. They are not official school-year dates until confirmed by MENFP or the school."/></p><p className="text-xs text-slate-500"><T text="Sources"/>: <a className="text-blue-700 underline" href="https://www.menfp.gouv.ht/" target="_blank" rel="noreferrer">MENFP official site</a> · <a className="text-blue-700 underline" href="https://communication.gouv.ht/institution/education/" target="_blank" rel="noreferrer">Haitian Government · Education</a> · <a className="text-blue-700 underline" href="https://www.haitilibre.com/cat-5-education-1.html" target="_blank" rel="noreferrer">HaitiLibre · secondary copies</a> · <a className="text-blue-700 underline" href="https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/135/HTI-135.pdf" target="_blank" rel="noreferrer">Haiti Labour Code</a></p>{checkedAt&&<p role="status" className="text-xs text-slate-500"><T text="Last checked"/>: {schoolDate(checkedAt.slice(0,10))} {new Intl.DateTimeFormat('en-US',{timeZone:'America/Port-au-Prince',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(checkedAt))}</p>}{online&&<p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900"><T text={online.kind==='exam_calendar'?'Official exam calendar found':'Official calendar found'}/>: <a className="font-semibold underline" href={online.url} target="_blank" rel="noreferrer">{online.label}</a>. <T text={online.kind==='exam_calendar'?'Review the official exam periods and dates; staff must confirm them before adding them to the school calendar.':'Review its school breaks, then add confirmed closures above.'}/></p>}{calendarDocuments.length>0&&<div className="rounded-lg border p-3"><h3 className="font-semibold"><T text="Calendar documents detected automatically"/></h3><ul className="divide-y">{calendarDocuments.map(item=><li key={item.url} className="py-2 text-sm"><a className="font-medium text-blue-700 underline" href={item.url} target="_blank" rel="noreferrer">{item.label}</a><span className="block text-xs text-slate-500"><T text={item.document_kind==='exam_calendar'?'Exam schedule / period reference':'School-year calendar reference'}/> · {item.source}{item.school_year?` · ${item.school_year}`:''} · {schoolDate(item.last_seen_at.slice(0,10))}</span>{item.suggested_dates?.length>0&&<div className="mt-2 rounded-lg bg-amber-50 p-3"><p className="font-semibold text-amber-950"><T text="Exam date proposals — staff review required"/></p><ul className="mt-1 list-disc space-y-1 pl-5 text-amber-950">{item.suggested_dates.map((proposal,index)=><li key={`${item.url}-${proposal.date_text}-${index}`}><strong><T text={proposal.category==='official_exam'?'Official exam':'Exam period'}/></strong>: {proposal.start_date&&proposal.end_date?`${schoolDate(proposal.start_date)} – ${schoolDate(proposal.end_date)}`:proposal.date_text}<span className="block text-xs text-amber-900"><T text="Source wording"/>: {proposal.date_text}{proposal.start_date&&proposal.end_date?' · ':''}{proposal.status==='needs_review'&&<T text="Unverified proposal; confirm the source and dates before adding them."/>}</span></li>)}</ul></div>}</li>)}</ul><p className="mt-2 text-xs text-slate-600"><T text="Detected documents and exam dates are references only. Verify each proposal with the source; nothing is added to the school calendar automatically."/></p></div>}{checkedAt&&!online&&!sourceWarning&&<p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900"><T text="MENFP did not link a school calendar on its official home page during this check. Review the source links above; no dates were inferred."/></p>}{sourceWarning&&<p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900"><T text={sourceWarning}/></p>}{error&&<p role="alert" className="rounded bg-red-50 p-3 text-red-700">{error}</p>}{message&&<p role="status" className="rounded bg-green-50 p-3 text-green-800"><T text={message}/></p>}{!year?<p><T text="No current academic year is configured."/></p>:!suggestions.length?<p><T text="No unapproved holiday suggestions in this academic year."/></p>:<ul className="divide-y">{suggestions.map(h=><li key={h.date} className="flex flex-wrap items-center justify-between gap-3 py-3"><span><strong>{schoolDate(h.date)}</strong> · <T text={h.name}/></span><button type="button" disabled={Boolean(busy)} onClick={()=>void approve(h.date,h.name)} className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-50"><T text="Approve as school closure"/></button></li>)}</ul>}</section>
+ const activeYear=year?.id===yearId?year:null,selectedSchoolYear=activeYear?`${activeYear.start_date.slice(0,4)}/${activeYear.end_date.slice(0,4)}`:null
+ const activeDiscovery=discovery?.yearId===yearId?discovery:null
+ const checkedAt=activeDiscovery?.checkedAt||''
+ const discovered=activeDiscovery?.candidates.filter(item=>!item.school_year||item.school_year===selectedSchoolYear)||[]
+ const online=discovered.find(item=>item.school_year===selectedSchoolYear)||discovered[0]||null
+ const suggestions=activeYear?haitiHolidaySuggestions(activeYear.start_date,activeYear.end_date).filter(h=>!closures.some(c=>c.day===h.date)):[]
+ const calendarDocuments=calendarDocumentsForYear(sources,activeDiscovery,yearId,selectedSchoolYear)
+ const sourceWarning=activeYear?calendarSourceWarningForYear(calendarDocuments,selectedSchoolYear,activeDiscovery?.warning||storedSourceWarning,locale):''
+ return <section className="my-5 space-y-3 rounded-2xl border bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold"><T text="Suggested Haiti holidays and MENFP dates"/></h2><button type="button" disabled={refreshing||!activeYear} onClick={()=>void refresh()} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-50"><RefreshCw size={16} className={refreshing?'animate-spin':''}/><T text={refreshing?'Checking official sources...':'Refresh online suggestions'}/></button></div><p className="text-sm text-slate-600"><T text="Suggestions only: school staff must approve each closure. They are not official school-year dates until confirmed by MENFP or the school."/></p><p className="text-xs text-slate-500"><T text="Sources"/>: <a className="text-blue-700 underline" href="https://www.menfp.gouv.ht/" target="_blank" rel="noreferrer">MENFP official site</a> · <a className="text-blue-700 underline" href="https://communication.gouv.ht/institution/education/" target="_blank" rel="noreferrer">Haitian Government · Education</a> · <a className="text-blue-700 underline" href="https://www.haitilibre.com/cat-5-education-1.html" target="_blank" rel="noreferrer">HaitiLibre · secondary copies</a> · <a className="text-blue-700 underline" href="https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/135/HTI-135.pdf" target="_blank" rel="noreferrer">Haiti Labour Code</a></p>{checkedAt&&<p role="status" className="text-xs text-slate-500"><T text="Last checked"/>: {schoolDate(checkedAt.slice(0,10))} {new Intl.DateTimeFormat('en-US',{timeZone:'America/Port-au-Prince',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(checkedAt))}</p>}{online&&<p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900"><T text={online.source==='HaitiLibre'?(online.kind==='exam_calendar'?'Exam schedule / period reference':'School-year calendar reference'):(online.kind==='exam_calendar'?'Official exam calendar found':'Official calendar found')}/>: <a className="font-semibold underline" href={online.url} target="_blank" rel="noreferrer">{online.label}</a>. <T text={online.kind==='exam_calendar'?'Review the official exam periods and dates; staff must confirm them before adding them to the school calendar.':'Review its school breaks, then add confirmed closures above.'}/></p>}{calendarDocuments.length>0&&<div className="rounded-lg border p-3"><h3 className="font-semibold"><T text="Calendar documents detected automatically"/></h3><ul className="divide-y">{calendarDocuments.map(item=><li key={item.url} className="py-2 text-sm"><a className="font-medium text-blue-700 underline" href={item.url} target="_blank" rel="noreferrer">{item.label}</a><span className="block text-xs text-slate-500"><T text={item.document_kind==='exam_calendar'?'Exam schedule / period reference':'School-year calendar reference'}/> · {item.source}{item.school_year?` · ${item.school_year}`:''} · {schoolDate(item.last_seen_at.slice(0,10))}</span>{item.suggested_dates?.length>0&&<ExamProposalList item={item} saved={sources} sections={sections} confirmed={confirmed} selectedSections={selectedSections} busy={busy} onSection={(key,section)=>setSelectedSections(current=>({...current,[key]:section}))} onConfirm={(key,source,proposal,section)=>void confirmExamDate(key,source,proposal,section)}/>}</li>)}</ul><p className="mt-2 text-xs text-slate-600"><T text="Detected documents and exam dates are references only. Verify each proposal with the source; nothing is added to the school calendar automatically."/></p></div>}{checkedAt&&!online&&!sourceWarning&&<p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900"><T text="MENFP did not link a school calendar on its official home page during this check. Review the source links above; no dates were inferred."/></p>}{sourceWarning&&<p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900"><T text={sourceWarning}/></p>}{error&&<p role="alert" className="rounded bg-red-50 p-3 text-red-700">{error}</p>}{message&&<p role="status" className="rounded bg-green-50 p-3 text-green-800"><T text={message}/></p>}{!activeYear?<p><T text="No current academic year is configured."/></p>:!suggestions.length?<p><T text="No unapproved holiday suggestions in this academic year."/></p>:<ul className="divide-y">{suggestions.map(h=><li key={h.date} className="flex flex-wrap items-center justify-between gap-3 py-3"><span><strong>{schoolDate(h.date)}</strong> · <T text={h.name}/></span><button type="button" disabled={Boolean(busy)} onClick={()=>void approve(h.date,h.name)} className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-50"><T text="Approve as school closure"/></button></li>)}</ul>}</section>
 }

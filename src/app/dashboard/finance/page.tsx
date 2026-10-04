@@ -10,5 +10,5 @@ export default async function FinancePage() {
   if (error) throw new Error('Unable to verify school access.')
   const roles: string[] = data?.roles || []
   if (!data?.school_id || !roles.some(role => ['school_admin', 'director', 'secretary', 'accountant'].includes(role))) redirect('/dashboard')
-  return <FinanceWorkspace schoolId={data.school_id as string} />
+  return <FinanceWorkspace schoolId={data.school_id as string} initialTab="overview" />
 }

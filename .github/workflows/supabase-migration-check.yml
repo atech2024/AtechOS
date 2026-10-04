@@ -38,6 +38,7 @@ on:
       - "supabase/migrations/20261003023548_published_only_family_student_bulletins.sql"
       - "supabase/migrations/20261003162629_confirm_official_exam_dates.sql"
       - "supabase/migrations/20261004000016_finance_accounting_core.sql"
+      - "supabase/migrations/20261004010000_finance_overdue_restrictions.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
@@ -76,6 +77,7 @@ on:
       - "supabase/migrations/20261003023548_published_only_family_student_bulletins.sql"
       - "supabase/migrations/20261003162629_confirm_official_exam_dates.sql"
       - "supabase/migrations/20261004000016_finance_accounting_core.sql"
+      - "supabase/migrations/20261004010000_finance_overdue_restrictions.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
@@ -130,6 +132,7 @@ jobs:
           cp supabase/migrations/20261003023548_published_only_family_student_bulletins.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261003162629_confirm_official_exam_dates.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004000016_finance_accounting_core.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261004010000_finance_overdue_restrictions.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

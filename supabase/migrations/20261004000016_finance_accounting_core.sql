@@ -159,7 +159,7 @@ begin
   v_id:=coalesce(v_after->>'id',v_before->>'id',v_after->>'school_id',v_before->>'school_id');
   select m.role::text into v_role from public.school_members m where m.school_id=v_school and m.user_id=auth.uid() and m.enabled order by case m.role when 'school_admin' then 0 when 'director' then 1 when 'accountant' then 2 when 'secretary' then 3 else 4 end limit 1;
   insert into public.finance_audit_events(school_id,actor_id,actor_role,entity,entity_id,action,before_data,after_data)
-  values(v_school,auth.uid(),v_role,tg_table_name,v_id,lower(tg_op),v_before,v_after);
+  values(v_school,auth.uid(),v_role,tg_table_name,v_id,case tg_op when 'INSERT' then 'created' when 'UPDATE' then 'updated' else 'deleted' end,v_before,v_after);
   if tg_op='DELETE' then return old; else return new; end if;
 end $$;
 

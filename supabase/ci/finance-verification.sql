@@ -2,9 +2,11 @@ begin;
 
 insert into public.schools(id) values ('fa000000-0000-0000-0000-000000000001');
 insert into public.academic_years(id,school_id,name,start_date,end_date,is_current) values
- ('fa100000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','Finance CI 2026-2027','2026-08-01','2027-07-31',true);
+ ('fa100000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','Finance CI 2026-2027','2026-08-01','2027-07-31',true),
+ ('fa100000-0000-0000-0000-000000000002','fa000000-0000-0000-0000-000000000001','Finance CI 2025-2026','2025-08-01','2026-07-31',false);
 insert into public.classes(id,school_id,academic_year_id,name,enabled) values
- ('fa200000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','fa100000-0000-0000-0000-000000000001','Finance CI Class',true);
+ ('fa200000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','fa100000-0000-0000-0000-000000000001','Finance CI Class',true),
+ ('fa200000-0000-0000-0000-000000000002','fa000000-0000-0000-0000-000000000001','fa100000-0000-0000-0000-000000000002','Finance CI Historic Class',true);
 insert into public.users(id,full_name) values
  ('fa300000-0000-0000-0000-000000000001','Finance Director'),
  ('fa300000-0000-0000-0000-000000000002','Finance Administrator'),
@@ -12,7 +14,8 @@ insert into public.users(id,full_name) values
  ('fa300000-0000-0000-0000-000000000004','Finance Accountant'),
  ('fa300000-0000-0000-0000-000000000005','Finance Parent');
 insert into public.students(id,school_id,first_name,last_name,atechos_id,active,school_status) values
- ('fa400000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','Finance','Student','AOS-FINANCE-CI',true,'active');
+ ('fa400000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','Finance','Student','AOS-FINANCE-CI',true,'active'),
+ ('fa400000-0000-0000-0000-000000000002','fa000000-0000-0000-0000-000000000001','Future','Due Date Student','AOS-FINANCE-CI-2',true,'active');
 insert into public.enrollments(id,school_id,student_id,class_id,status) values
  ('fa500000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','fa400000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001','active');
 insert into public.school_members(school_id,user_id,role,enabled) values
@@ -27,7 +30,7 @@ insert into public.student_parents(student_id,parent_id,relationship) values
  ('fa400000-0000-0000-0000-000000000001','fa600000-0000-0000-0000-000000000001','parent');
 
 do $$
-declare plan_id uuid; charge_id uuid; payment_id uuid; adjustment_id uuid; generated integer; workspace jsonb; denied boolean;
+declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; adjustment_id uuid; generated integer; workspace jsonb; denied boolean; future_installment uuid;
 begin
   if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') or has_table_privilege('authenticated','public.finance_payments','DELETE') then raise exception 'authenticated can directly mutate finance payments'; end if;
   if has_table_privilege('authenticated','public.finance_audit_events','UPDATE') or has_table_privilege('authenticated','public.finance_audit_events','DELETE') then raise exception 'finance audit events are mutable through the Data API'; end if;
@@ -35,12 +38,17 @@ begin
 
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
   perform public.save_finance_settings('HTG',false,false);
+  workspace:=public.finance_workspace('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001');
+  if (workspace->'settings'->>'restrict_kiosk')::boolean or (workspace->'settings'->>'restrict_exams')::boolean or (workspace->'settings'->>'restrict_bulletins')::boolean then raise exception 'finance restrictions must default off'; end if;
   plan_id:=public.create_finance_fee_plan('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001','rentree','Rentrée 2026',
     '[{"amount":100,"due_date":"2026-09-01"},{"amount":200,"due_date":"2027-01-15"}]'::jsonb);
   generated:=public.issue_finance_fee_plan(plan_id);
   if generated<>2 or public.issue_finance_fee_plan(plan_id)<>0 then raise exception 'fee issuance should create installment charges once and be idempotent'; end if;
   select id into charge_id from public.finance_charges where fee_plan_id=plan_id order by due_date limit 1;
   if charge_id is null then raise exception 'fee plan did not create student charges'; end if;
+  select id into future_installment from public.finance_fee_installments where fee_plan_id=plan_id and due_date='2027-01-15';
+  insert into public.finance_charges(school_id,student_id,academic_year_id,class_id,fee_plan_id,fee_installment_id,description,amount,currency_code,due_date,created_by)
+  values('fa000000-0000-0000-0000-000000000001','fa400000-0000-0000-0000-000000000002','fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001',plan_id,future_installment,'Future installment',200,'HTG','2027-01-15','fa300000-0000-0000-0000-000000000002') returning id into future_charge;
 
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000003',true);
   payment_id:=public.record_finance_payment(charge_id,50,'Cash','CI-PARTIAL-1',null,'2026-09-01 12:00:00-04');
@@ -63,6 +71,24 @@ begin
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
   adjustment_id:=public.request_finance_adjustment(charge_id,'half_scholarship',25,'School approved half scholarship');
   perform public.review_finance_adjustment(adjustment_id,'approved',null);
+  perform public.save_finance_settings('HTG',false,false,true,false,false);
+  if not private.finance_restriction_active('fa400000-0000-0000-0000-000000000001','kiosk') then raise exception 'overdue positive balance did not trigger selected KIOS restriction'; end if;
+  if private.finance_restriction_active('fa400000-0000-0000-0000-000000000001','exams') or private.finance_restriction_active('fa400000-0000-0000-0000-000000000001','bulletins') then raise exception 'unselected finance restrictions activated'; end if;
+  perform public.save_finance_settings('HTG',false,false,true,true,true);
+  if not private.finance_restriction_active('fa400000-0000-0000-0000-000000000001','exams') or not private.finance_restriction_active('fa400000-0000-0000-0000-000000000001','bulletins') then raise exception 'selected restrictions did not activate for overdue balance'; end if;
+  if private.finance_restriction_active('fa400000-0000-0000-0000-000000000002','kiosk') then raise exception 'future installment triggered an overdue restriction'; end if;
+  workspace:=private.filter_finance_restricted_bulletins('fa400000-0000-0000-0000-000000000001',jsonb_build_object('cards',jsonb_build_array(jsonb_build_object('class_id','fa200000-0000-0000-0000-000000000001'),jsonb_build_object('class_id','fa200000-0000-0000-0000-000000000002')),'document_history',jsonb_build_array(jsonb_build_object('class_id','fa200000-0000-0000-0000-000000000001'),jsonb_build_object('class_id','fa200000-0000-0000-0000-000000000002')),'preschool_cards',jsonb_build_array(jsonb_build_object('academic_year_id','fa100000-0000-0000-0000-000000000001'),jsonb_build_object('academic_year_id','fa100000-0000-0000-0000-000000000002'))));
+  if jsonb_array_length(workspace->'cards')<>1 or workspace->'cards'->0->>'class_id'<>'fa200000-0000-0000-0000-000000000002' then raise exception 'current-year bulletins were not filtered or historic cards were removed'; end if;
+  if jsonb_array_length(workspace->'document_history')<>1 or jsonb_array_length(workspace->'preschool_cards')<>1 then raise exception 'published historic bulletins were not retained'; end if;
+  if not (select pg_get_functiondef('public.student_kiosk_badge(text)'::regprocedure) like '%finance_restriction_active%') then raise exception 'KIOS financial restriction is not enforced at scan boundary'; end if;
+  if not (select pg_get_functiondef('public.school_calendar(uuid,text)'::regprocedure) like '%finance_restriction_active%') then raise exception 'exam financial restriction is not enforced at calendar boundary'; end if;
+  payment_id:=public.record_finance_payment(charge_id,25,'Cash','CI-SETTLEMENT',null,'2026-09-01 12:00:00-04');
+  if not private.finance_restriction_active('fa400000-0000-0000-0000-000000000001','kiosk') then raise exception 'pending payment incorrectly cleared an overdue restriction'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
+  perform public.review_finance_payment(payment_id,'validated',null);
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  if private.finance_restriction_active('fa400000-0000-0000-0000-000000000001','kiosk') then raise exception 'fully paid overdue charge kept the restriction active'; end if;
+  perform public.save_finance_settings('HTG',false,false,false,false,false);
   adjustment_id:=public.request_finance_adjustment(charge_id,'temporary_clearance',0,'Temporary exam clearance','2026-10-01 00:00:00-04','2026-10-15 23:59:00-04');
   perform public.review_finance_adjustment(adjustment_id,'approved',null);
   workspace:=public.finance_workspace('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001');
@@ -72,7 +98,7 @@ begin
   if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000003' and actor_role='secretary' and entity='finance_payments' and action='created') then raise exception 'payment creation audit did not retain secretary identity and role'; end if;
   if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000004' and actor_role='accountant' and entity='finance_payments' and action='updated') then raise exception 'payment validation audit did not retain accountant identity and role'; end if;
 
-  perform public.save_finance_settings('HTG',true,false);
+  perform public.save_finance_settings('HTG',true,false,false,false,false);
   workspace:=public.finance_workspace('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001');
   if (workspace->>'can_validate')::boolean is distinct from true then raise exception 'director validation setting did not grant the configured capability'; end if;
 

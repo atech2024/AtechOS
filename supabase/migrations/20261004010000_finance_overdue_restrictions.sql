@@ -39,26 +39,28 @@ end $$;
 create or replace function private.finance_restriction_active(p_student uuid,p_channel text)
 returns boolean language sql stable security definer set search_path=''
 as $$
-  select case p_channel
-    when 'kiosk' then coalesce((select fs.restrict_kiosk from public.finance_settings fs where fs.school_id=s.school_id),false)
-    when 'exams' then coalesce((select fs.restrict_exams from public.finance_settings fs where fs.school_id=s.school_id),false)
-    when 'bulletins' then coalesce((select fs.restrict_bulletins from public.finance_settings fs where fs.school_id=s.school_id),false)
-    else false
-  end
-  and exists (
-    select 1 from public.finance_charges c
-    where c.school_id=s.school_id and c.student_id=s.id
-      and c.due_date < (now() at time zone 'America/Port-au-Prince')::date
-      and greatest(0,c.amount
-        - coalesce((select sum(a.amount) from public.finance_adjustments a where a.charge_id=c.id and a.status='approved' and a.adjustment_type<>'temporary_clearance'),0)
-        - coalesce((select sum(p.amount) from public.finance_payments p where p.charge_id=c.id and p.status='validated'),0)) > 0
-      and not exists (
-        select 1 from public.finance_adjustments a where a.charge_id=c.id
-          and a.status='approved' and a.adjustment_type='temporary_clearance'
-          and a.valid_from<=now() and a.valid_until>now()
-      )
-  )
-  from public.students s where s.id=p_student and s.active and s.school_status='active'
+  select coalesce((
+    select case p_channel
+      when 'kiosk' then coalesce((select fs.restrict_kiosk from public.finance_settings fs where fs.school_id=s.school_id),false)
+      when 'exams' then coalesce((select fs.restrict_exams from public.finance_settings fs where fs.school_id=s.school_id),false)
+      when 'bulletins' then coalesce((select fs.restrict_bulletins from public.finance_settings fs where fs.school_id=s.school_id),false)
+      else false
+    end
+    and exists (
+      select 1 from public.finance_charges c
+      where c.school_id=s.school_id and c.student_id=s.id
+        and c.due_date < (now() at time zone 'America/Port-au-Prince')::date
+        and greatest(0,c.amount
+          - coalesce((select sum(a.amount) from public.finance_adjustments a where a.charge_id=c.id and a.status='approved' and a.adjustment_type<>'temporary_clearance'),0)
+          - coalesce((select sum(p.amount) from public.finance_payments p where p.charge_id=c.id and p.status='validated'),0)) > 0
+        and not exists (
+          select 1 from public.finance_adjustments a where a.charge_id=c.id
+            and a.status='approved' and a.adjustment_type='temporary_clearance'
+            and a.valid_from<=now() and a.valid_until>now()
+        )
+    )
+    from public.students s where s.id=p_student and s.active and s.school_status='active'
+  ),false)
 $$;
 revoke all on function private.finance_restriction_active(uuid,text) from public,anon,authenticated;
 
@@ -98,7 +100,7 @@ declare sid uuid; current_year uuid; restricted boolean; result jsonb:=p_report;
 begin
   if result is null then return null; end if;
   select school_id into sid from public.students where id=p_student;
-  if sid is null or not private.finance_restriction_active(p_student,'bulletins') then return result; end if;
+  if sid is null or not coalesce(private.finance_restriction_active(p_student,'bulletins'),false) then return result; end if;
   select id into current_year from public.academic_years where school_id=sid and is_current order by start_date desc limit 1;
   if current_year is null then return result; end if;
   select coalesce(jsonb_agg(card),'[]'::jsonb) into result

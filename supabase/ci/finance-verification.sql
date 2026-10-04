@@ -80,6 +80,11 @@ begin
   workspace:=private.filter_finance_restricted_bulletins('fa400000-0000-0000-0000-000000000001',jsonb_build_object('cards',jsonb_build_array(jsonb_build_object('class_id','fa200000-0000-0000-0000-000000000001'),jsonb_build_object('class_id','fa200000-0000-0000-0000-000000000002')),'document_history',jsonb_build_array(jsonb_build_object('class_id','fa200000-0000-0000-0000-000000000001'),jsonb_build_object('class_id','fa200000-0000-0000-0000-000000000002')),'preschool_cards',jsonb_build_array(jsonb_build_object('academic_year_id','fa100000-0000-0000-0000-000000000001'),jsonb_build_object('academic_year_id','fa100000-0000-0000-0000-000000000002'))));
   if jsonb_array_length(workspace->'cards')<>1 or workspace->'cards'->0->>'class_id'<>'fa200000-0000-0000-0000-000000000002' then raise exception 'current-year bulletins were not filtered or historic cards were removed'; end if;
   if jsonb_array_length(workspace->'document_history')<>1 or jsonb_array_length(workspace->'preschool_cards')<>1 then raise exception 'published historic bulletins were not retained'; end if;
+  update public.students set school_status='departed' where id='fa400000-0000-0000-0000-000000000001';
+  if private.finance_restriction_active('fa400000-0000-0000-0000-000000000001','bulletins') then raise exception 'departed student financial restriction should not hide history'; end if;
+  workspace:=private.filter_finance_restricted_bulletins('fa400000-0000-0000-0000-000000000001',jsonb_build_object('cards',jsonb_build_array(jsonb_build_object('class_id','fa200000-0000-0000-0000-000000000001'))));
+  if jsonb_array_length(workspace->'cards')<>1 then raise exception 'departed linked parent bulletin history was hidden'; end if;
+  update public.students set school_status='active' where id='fa400000-0000-0000-0000-000000000001';
   if not (select pg_get_functiondef('public.student_kiosk_badge(text)'::regprocedure) like '%finance_restriction_active%') then raise exception 'KIOS financial restriction is not enforced at scan boundary'; end if;
   if not (select pg_get_functiondef('public.school_calendar(uuid,text)'::regprocedure) like '%finance_restriction_active%') then raise exception 'exam financial restriction is not enforced at calendar boundary'; end if;
   payment_id:=public.record_finance_payment(charge_id,25,'Cash','CI-SETTLEMENT',null,'2026-09-01 12:00:00-04');

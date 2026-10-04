@@ -19,6 +19,8 @@ export const navigation:NavigationItem[]=[
  {label:'Assignments',href:'/dashboard/assignments',icon:'assignments',roles:[...administration,'teacher'],group:'teaching'},
  {label:'Academic progression',href:'/dashboard/progression',icon:'progression',roles:['school_admin','director'],group:'results'},
  {label:'Finance & Accounting',href:'/dashboard/finance',icon:'finance',roles:['school_admin','director','secretary','accountant'],group:'finance'},
+ {label:'Payments',href:'/dashboard/finance/payments',icon:'finance',roles:['school_admin','director','secretary','accountant'],group:'finance'},
+ {label:'Finance settings',href:'/dashboard/finance/settings',icon:'settings',roles:['school_admin','director','secretary','accountant'],group:'finance'},
  {label:'Access approvals',href:'/dashboard/approvals',icon:'requests',roles:['school_admin','director','censeur'],group:'followup'},
  {label:'Teacher requests',href:'/dashboard/teacher-requests',icon:'requests',roles:['school_admin','director'],group:'followup'},
  {label:'Users & staff',href:'/dashboard/staff',icon:'users',roles:['school_admin'],group:'administration'},

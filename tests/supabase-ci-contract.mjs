@@ -20,7 +20,9 @@ const badgeLifecycleMigration = readFileSync('supabase/migrations/20260928004221
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
 assert.match(workflow, /version:\s*2\.119\.0/);
-assert.match(workflow, /push:\s+branches:\s+- feature\/kindergarten-relocation/);
+const pushBranches = workflow.match(/push:\r?\n\s+branches:\r?\n((?:\s+- [^\r\n]+\r?\n)+)/)?.[1] || '';
+assert.match(pushBranches, /- feature\/kindergarten-relocation/);
+assert.match(pushBranches, /- feature\/finance-finalization/);
 assert.match(workflow, /supabase start/);
 assert.match(workflow, /supabase db reset --local --no-seed/);
 assert.match(workflow, /docker exec -i .* psql .*ON_ERROR_STOP=1/);

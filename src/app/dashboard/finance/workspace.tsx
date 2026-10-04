@@ -13,7 +13,7 @@ type ClassItem = { id: string; name: string; academic_year_id: string; enabled: 
 type Installment = { id: string; installment_number: number; amount: number; due_date: string }
 type Plan = { id: string; academic_year_id: string; academic_year_name: string; class_id: string; class_name: string; fee_type: string; label: string; currency_code: string; active: boolean; created_at: string; installments: Installment[] }
 type Charge = { id: string; student_id: string; academic_year_id: string; class_id: string; fee_plan_id: string; fee_installment_id: string; fee_type: string; description: string; amount: number; currency_code: string; due_date: string; student_name: string; student_code: string; class_name: string; academic_year_name: string; adjusted_amount: number; paid_amount: number; pending_amount: number }
-type Payment = { id: string; charge_id: string; amount: number; applied_amount: number; currency_code: string; payment_method: string; reference: string | null; proof_storage_path: string | null; paid_at: string; status: string; recorded_by: string; recorded_at: string; reviewed_by: string | null; review_reason: string | null; student_name: string; charge_description: string; class_name: string; charge_paid: number }
+type Payment = { id: string; charge_id: string; amount: number; applied_amount: number; refunded_amount?: number; currency_code: string; payment_method: string; reference: string | null; proof_storage_path: string | null; paid_at: string; status: string; recorded_by: string; recorded_at: string; reviewed_by: string | null; review_reason: string | null; student_name: string; charge_description: string; class_name: string; charge_paid: number }
 type Adjustment = { id: string; charge_id: string; adjustment_type: string; amount: number; currency_code: string; reason: string; valid_from: string | null; valid_until: string | null; status: string; student_name: string; charge_description: string; created_at: string; review_reason: string | null }
 type AuditEvent = { id: number; actor_id: string | null; actor_role: string | null; actor_name: string | null; entity: string; action: string; occurred_at: string; before_data: unknown; after_data: unknown }
 type StudentCredit = { student_id: string; student_name: string; currency_code: string; amount: number }
@@ -26,6 +26,32 @@ const feeTypes = ['inscription', 'rentree', 'class_fee'] as const
 const paymentMethods = ['Cash', 'Bank transfer', 'Check', 'MonCash', 'NatCash', 'Other'] as const
 const adjustmentTypes = ['scholarship', 'half_scholarship', 'discount', 'exception', 'manual_exemption', 'temporary_clearance'] as const
 const haitiToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Port-au-Prince' }).format(new Date())
+
+function financeErrorMessage(cause: unknown, locale: string) {
+  const code = cause && typeof cause === 'object' && 'code' in cause ? String(cause.code) : ''
+  const message = typeof cause === 'string' ? cause : cause instanceof Error ? cause.message : ''
+  const known = new Set(['not_authorized','invalid_payment','charge_not_found','payment_not_pending','payment_proof_required','payment_exceeds_balance','overpayment_only_allowed_for_entry_fees','payment_balance_conflict','proof_unavailable','finance_workspace_empty','not_authenticated'])
+  const key = known.has(message) ? message : known.has(code) ? code : 'finance_action_failed'
+  const labels: Record<string, [string,string,string]> = {
+    not_authorized: ['You are not allowed to do this.','Vous n’êtes pas autorisé à effectuer cette action.','Ou pa gen otorizasyon pou fè aksyon sa a.'],
+    invalid_payment: ['Check the payment amount, method and date.','Vérifiez le montant, le mode et la date du paiement.','Verifye montan, mòd ak dat peman an.'],
+    charge_not_found: ['The selected fee was not found. Refresh the page.','Les frais sélectionnés sont introuvables. Actualisez la page.','Frè ou chwazi a pa jwenn. Rafrechi paj la.'],
+    payment_not_pending: ['This payment was already processed. Refresh the page.','Ce paiement a déjà été traité. Actualisez la page.','Peman sa a deja trete. Rafrechi paj la.'],
+    payment_proof_required: ['The school requires proof of payment.','Une preuve de paiement est requise par les paramètres de l’école.','Paramèt lekòl la mande yon prèv peman.'],
+    payment_exceeds_balance: ['The balance changed. Refresh before validating.','Le solde a changé. Actualisez la page avant de valider.','Balans lan chanje. Rafrechi paj la anvan ou valide.'],
+    invalid_refund: ['Enter a refund amount and a reason with at least 3 characters.','Saisissez un montant et un motif d’au moins 3 caractères.','Mete yon montan ranbousman ak yon rezon ki gen omwen 3 karaktè.'],
+    payment_not_refundable: ['Only validated payments can be refunded.','Seuls les paiements validés peuvent être remboursés.','Se peman ki valide yo sèlman ki ka ranbouse.'],
+    refund_exceeds_remaining: ['The refund exceeds the unrefunded amount. Refresh the ledger and try again.','Le remboursement dépasse le montant restant. Actualisez le registre et réessayez.','Ranbousman an depase montan ki rete a. Rafrechi lis la epi eseye ankò.'],
+    refund_accounting_conflict: ['The refund could not be reconciled safely. No changes were saved; contact the finance manager.','Le remboursement ne peut pas être rapproché. Aucune modification n’a été enregistrée; contactez la direction financière.','Nou pa t ka rekonsilye ranbousman an san danje. Pa gen chanjman ki anrejistre; kontakte responsab finans lan.'],
+    overpayment_only_allowed_for_entry_fees: ['Overpayment is allowed only for registration or back-to-school fees.','Un paiement supérieur au solde est permis uniquement pour les frais d’inscription ou de rentrée.','Peman ki depase balans lan pèmèt sèlman pou frè enskripsyon oswa rantre.'],
+    payment_balance_conflict: ['Another payment changed this balance. Refresh and try again.','Un autre paiement a modifié ce solde. Actualisez et réessayez.','Yon lòt peman chanje balans sa a. Rafrechi epi eseye ankò.'],
+    proof_unavailable: ['The payment proof cannot be opened.','La preuve de paiement ne peut pas être ouverte.','Nou pa ka louvri prèv peman an.'],
+    finance_workspace_empty: ['Finance data is unavailable. Please try again.','Les données financières sont indisponibles. Réessayez.','Done finansye yo pa disponib. Eseye ankò.'],
+    not_authenticated: ['Your session expired. Sign in again.','Votre session a expiré. Reconnectez-vous.','Sesyon w lan fini. Konekte ankò.'],
+    finance_action_failed: ['Something went wrong. Check your connection and try again.','Une erreur est survenue. Vérifiez votre connexion et réessayez.','Gen yon erè ki rive. Verifye koneksyon an epi eseye ankò.'],
+  }
+  return locale === 'fr' ? labels[key][1] : locale === 'ht' ? labels[key][2] : labels[key][0]
+}
 
 function money(amount: number, code: string, locale: string) {
   try { return new Intl.NumberFormat(locale === 'fr' ? 'fr-HT' : locale === 'ht' ? 'ht-HT' : 'en-US', { style: 'currency', currency: code }).format(amount) }
@@ -51,6 +77,16 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [tab, setTab] = useState<'overview' | 'plans' | 'payments' | 'adjustments' | 'history' | 'settings'>(initialTab)
+  const [ledgerPage, setLedgerPage] = useState(0)
+  const [ledgerSearch, setLedgerSearch] = useState('')
+  const [ledgerQuery, setLedgerQuery] = useState('')
+  const [ledgerStatus, setLedgerStatus] = useState('all')
+  const [ledgerTotal, setLedgerTotal] = useState(0)
+  const [ledgerLoading, setLedgerLoading] = useState(false)
+  const [ledgerRefresh, setLedgerRefresh] = useState(0)
+  const [refundPaymentId, setRefundPaymentId] = useState('')
+  const [refundAmount, setRefundAmount] = useState('')
+  const [refundReason, setRefundReason] = useState('')
   const [yearId, setYearId] = useState('')
   const [classId, setClassId] = useState('')
   const [feeType, setFeeType] = useState<(typeof feeTypes)[number]>('inscription')
@@ -86,7 +122,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
       if (sequence !== loadSequence.current) return
       const next = (Array.isArray(result) ? result[0] : result) as WorkspaceData | null
       if (!next) throw new Error('finance_workspace_empty')
-      setData({ ...blank, ...next })
+      setData(current => ({ ...blank, ...next, payments: initialTab === 'payments' ? current.payments : next.payments }))
       if (!yearId && next.years?.length) setYearId(next.years.find(year => year.is_current)?.id || next.years[0].id)
       if (next.settings) {
         setCurrencyCode(next.settings.currency_code)
@@ -96,11 +132,28 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
         setRestrictExams(next.settings.restrict_exams)
         setRestrictBulletins(next.settings.restrict_bulletins)
       }
-    } catch (cause) { if (sequence === loadSequence.current) setError(cause instanceof Error ? cause.message : 'finance_load_failed') }
+    } catch (cause) { if (sequence === loadSequence.current) setError(financeErrorMessage(cause, locale)) }
     finally { if (sequence === loadSequence.current) setLoading(false) }
-  }, [db, yearId, classId])
+  }, [db, yearId, classId, locale, initialTab])
 
   useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    if (tab !== 'payments') return
+    let active = true
+    setLedgerLoading(true)
+    void (async () => {
+      try {
+        const { data: result, error: ledgerError } = await db.rpc('finance_payment_ledger', { p_academic_year_id: yearId || null, p_class_id: classId || null, p_status: ledgerStatus === 'all' ? null : ledgerStatus, p_search: ledgerQuery || null, p_offset: ledgerPage * 50, p_limit: 50 })
+        if (ledgerError) throw ledgerError
+        if (!active) return
+        const page = (Array.isArray(result) ? result[0] : result) as { items?: Payment[]; total?: number } | null
+        setData(current => ({ ...current, payments: page?.items || [] }))
+        setLedgerTotal(Number(page?.total || 0))
+      } catch (cause) { if (active) setError(financeErrorMessage(cause, locale)) }
+      finally { if (active) setLedgerLoading(false) }
+    })()
+    return () => { active = false }
+  }, [db, tab, yearId, classId, ledgerPage, ledgerStatus, ledgerQuery, ledgerRefresh, locale])
   const selectedClasses = data.classes.filter(item => item.academic_year_id === yearId && item.enabled)
   const selectedCharges = data.charges
     .filter(item => (!yearId || item.academic_year_id === yearId) && (!classId || item.class_id === classId))
@@ -108,7 +161,6 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
   const paymentOptions = selectedCharges.filter(charge => remaining(charge) > 0 && charge.due_date <= haitiToday())
   const orderedInstallments = [...installments].sort((a, b) => (a.due_date || '9999-12-31').localeCompare(b.due_date || '9999-12-31') || a.id.localeCompare(b.id))
   const installmentTotal = orderedInstallments.reduce((total, item) => total + (Number(item.amount) || 0), 0)
-  const pendingPayments = data.payments.filter(payment => payment.status === 'pending')
   const totalExpected = Number(data.summary.expected)
   const totalPaid = Number(data.summary.paid)
   const totalBalance = Number(data.summary.balance)
@@ -121,7 +173,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
   async function complete(action: () => Promise<void>, success: string) {
     setSaving(true); setError(''); setNotice('')
     try { await action(); setNotice(success); await load() }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'finance_action_failed') }
+    catch (cause) { setError(financeErrorMessage(cause, locale)) }
     finally { setSaving(false) }
   }
 
@@ -181,6 +233,19 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
     }, decision === 'validated' ? 'Payment validated. Linked parents received an in-app notice.' : 'Payment rejected with an audit reason.')
   }
 
+  async function refundPayment(event: FormEvent<HTMLFormElement>, payment: Payment) {
+    event.preventDefault()
+    const refundable = Math.max(0, Number(payment.amount) - Number(payment.refunded_amount || 0))
+    const amount = Number(refundAmount)
+    if (!Number.isFinite(amount) || amount <= 0 || amount > refundable || refundReason.trim().length < 3) return
+    if (!window.confirm(`${tr('Record this refund')} ${money(amount,payment.currency_code,locale)}? ${tr('The original receipt and audit history will be kept.')}`)) return
+    await complete(async () => {
+      const { error: actionError } = await db.rpc('refund_finance_payment', { p_payment_id: payment.id, p_amount: amount, p_reason: refundReason.trim() })
+      if (actionError) throw actionError
+      setRefundPaymentId(''); setRefundAmount(''); setRefundReason(''); setLedgerRefresh(value => value + 1)
+    }, 'Refund recorded. The original receipt and audit history remain available.')
+  }
+
   async function requestAdjustment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await complete(async () => {
@@ -211,7 +276,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
 
   async function openProof(path: string) {
     const { data: signed, error: proofError } = await db.storage.from('finance-proofs').createSignedUrl(path, 60)
-    if (proofError || !signed?.signedUrl) { setError(proofError?.message || 'proof_unavailable'); return }
+    if (proofError || !signed?.signedUrl) { setError(financeErrorMessage(proofError || 'proof_unavailable', locale)); return }
     window.open(signed.signedUrl, '_blank', 'noopener,noreferrer')
   }
 
@@ -267,7 +332,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
         <label className="block text-sm"><T text="Proof of payment"/>{data.settings?.proof_required&&<span className="ml-1 text-red-700">*</span>}<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required={Boolean(data.settings?.proof_required)} className={`${fieldClass} mt-1`} onChange={event=>setProof(event.target.files?.[0]||null)}/><span className="mt-1 block text-xs text-slate-500"><T text="Private file, PDF or image, maximum 10 MB."/></span></label>
         <button disabled={saving||!chargeId||!data.settings} className={buttonClass}><T text="Record for validation"/></button>
       </form>}
-      <section className={`${cardClass} space-y-3`}><div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold"><T text="Payment history"/></h2>{data.can_validate&&<span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">{pendingPayments.length} <T text="awaiting review"/></span>}</div>{data.payments.map(payment=><article key={payment.id} className="rounded-xl border border-slate-200 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold">{payment.student_name} · {money(Number(payment.amount),payment.currency_code,locale)}</p><p className="mt-1 text-sm text-slate-600">{payment.charge_description} · {payment.class_name} · {dateLabel(payment.paid_at,locale)}</p><p className="mt-1 text-xs text-slate-500"><T text="Method"/>: {payment.payment_method} · <T text="Reference"/>: {payment.reference||'—'}</p>{payment.review_reason&&<p className="mt-1 text-sm text-red-700">{payment.review_reason}</p>}</div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${payment.status==='validated'?'bg-emerald-100 text-emerald-800':payment.status==='rejected'?'bg-red-100 text-red-800':'bg-amber-100 text-amber-900'}`}><T text={payment.status==='validated'?'Validated':payment.status==='rejected'?'Rejected':'Pending validation'}/></span></div><div className="mt-3 flex flex-wrap gap-2">{payment.proof_storage_path&&<button type="button" onClick={()=>void openProof(payment.proof_storage_path!)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"><T text="Open proof"/></button>}{payment.status==='pending'&&data.can_validate&&<><button type="button" disabled={saving} onClick={()=>void reviewPayment(payment,'validated')} className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white"><T text="Validate"/></button><button type="button" disabled={saving} onClick={()=>void reviewPayment(payment,'rejected')} className="rounded-lg border border-red-300 px-3 py-1.5 text-sm text-red-700"><T text="Reject with reason"/></button></>}</div></article>)}{data.payments.length===0&&<p className="text-sm text-slate-500"><T text="No payments recorded yet."/></p>}</section>
+      <section className={`${cardClass} space-y-3`}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold"><T text="Payment history"/></h2>{data.can_validate&&<span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">{data.summary.pending_payments} <T text="awaiting review"/></span>}</div><form onSubmit={event=>{event.preventDefault();setLedgerPage(0);setLedgerQuery(ledgerSearch.trim())}} className="grid gap-2 sm:grid-cols-[minmax(12rem,1fr)_12rem_auto]"><label className="sr-only" htmlFor="finance-ledger-search"><T text="Search payments"/></label><input id="finance-ledger-search" maxLength={120} value={ledgerSearch} onChange={event=>setLedgerSearch(event.target.value)} placeholder={tr('Search student, fee or reference')} className={fieldClass}/><label className="sr-only" htmlFor="finance-ledger-status"><T text="Payment status"/></label><select id="finance-ledger-status" value={ledgerStatus} onChange={event=>{setLedgerStatus(event.target.value);setLedgerPage(0)}} className={fieldClass}><option value="all">{tr('All statuses')}</option><option value="pending">{tr('Pending validation')}</option><option value="validated">{tr('Validated')}</option><option value="rejected">{tr('Rejected')}</option></select><button className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold"><T text="Search"/></button></form>{ledgerLoading&&<p role="status" className="text-sm text-slate-600"><T text="Loading finance workspace…"/></p>}{data.payments.map(payment=>{const refundable=Math.max(0,Number(payment.amount)-Number(payment.refunded_amount||0));return <article key={payment.id} className="rounded-xl border border-slate-200 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{payment.student_name} · {money(Number(payment.amount),payment.currency_code,locale)}</p>{Number(payment.refunded_amount||0)>0&&<p className="mt-1 text-sm text-amber-800"><T text="Refunded"/>: {money(Number(payment.refunded_amount),payment.currency_code,locale)} · <T text="Refundable amount"/>: {money(refundable,payment.currency_code,locale)}</p>}<p className="mt-1 break-words text-sm text-slate-600">{payment.charge_description} · {payment.class_name} · {dateLabel(payment.paid_at,locale)}</p><p className="mt-1 break-words text-xs text-slate-500"><T text="Method"/>: {payment.payment_method} · <T text="Reference"/>: {payment.reference||'—'}</p>{payment.review_reason&&<p className="mt-1 text-sm text-red-700">{payment.review_reason}</p>}</div><span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${payment.status==='validated'?'bg-emerald-100 text-emerald-800':payment.status==='rejected'?'bg-red-100 text-red-800':'bg-amber-100 text-amber-900'}`}><T text={payment.status==='validated'?'Validated':payment.status==='rejected'?'Rejected':'Pending validation'}/></span></div><div className="mt-3 flex flex-wrap gap-2">{payment.proof_storage_path&&<button type="button" onClick={()=>void openProof(payment.proof_storage_path!)} className="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm"><T text="Open proof"/></button>}{payment.status==='pending'&&data.can_validate&&<><button type="button" disabled={saving} onClick={()=>void reviewPayment(payment,'validated')} className="min-h-11 rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white"><T text="Validate"/></button><button type="button" disabled={saving} onClick={()=>void reviewPayment(payment,'rejected')} className="min-h-11 rounded-lg border border-red-300 px-3 py-2 text-sm text-red-700"><T text="Reject with reason"/></button></>}{payment.status==='validated'&&refundable>0&&data.can_validate&&<button type="button" disabled={saving} onClick={()=>{setRefundPaymentId(refundPaymentId===payment.id?'':payment.id);setRefundAmount(refundable.toFixed(2));setRefundReason('')}} className="min-h-11 rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold text-amber-900"><T text={refundPaymentId===payment.id?'Cancel refund':'Refund payment'}/></button>}</div>{refundPaymentId===payment.id&&<form onSubmit={event=>void refundPayment(event,payment)} className="mt-4 grid gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:grid-cols-2"><label className="text-sm font-medium"><T text="Refund amount"/> ({payment.currency_code})<input type="number" required min="0.01" max={refundable.toFixed(2)} step="0.01" inputMode="decimal" className={`${fieldClass} mt-1 text-base`} value={refundAmount} onChange={event=>setRefundAmount(event.target.value)}/></label><label className="text-sm font-medium sm:col-span-2"><T text="Required reason"/><textarea required minLength={3} maxLength={500} rows={3} className={`${fieldClass} mt-1 text-base`} value={refundReason} onChange={event=>setRefundReason(event.target.value)}/></label><p className="text-xs text-slate-700 sm:col-span-2"><T text="The original receipt, proof and audit history will be kept. Any credit already used will be restored to the related fee balance."/></p><div className="flex flex-wrap gap-2 sm:col-span-2"><button type="submit" disabled={saving||Number(refundAmount)<=0||Number(refundAmount)>refundable||refundReason.trim().length<3} className="min-h-11 rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><T text="Record refund"/></button><button type="button" disabled={saving} onClick={()=>setRefundPaymentId('')} className="min-h-11 rounded-lg border border-slate-300 px-4 py-2 text-sm"><T text="Cancel"/></button></div></form>}</article>})}{!ledgerLoading&&data.payments.length===0&&<p className="text-sm text-slate-500"><T text="No payments recorded yet."/></p>}<div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3 text-sm"><span className="text-slate-600">{ledgerTotal} <T text="payments found"/> · {ledgerTotal===0?0:ledgerPage*50+1}–{Math.min((ledgerPage+1)*50,ledgerTotal)}</span><div className="flex gap-2"><button type="button" disabled={ledgerPage===0||ledgerLoading} onClick={()=>setLedgerPage(page=>Math.max(0,page-1))} className="min-h-11 rounded-lg border border-slate-300 px-3 py-2 disabled:opacity-50"><T text="Previous"/></button><button type="button" disabled={(ledgerPage+1)*50>=ledgerTotal||ledgerLoading} onClick={()=>setLedgerPage(page=>page+1)} className="min-h-11 rounded-lg border border-slate-300 px-3 py-2 disabled:opacity-50"><T text="Next"/></button></div></div></section>
     </div>}
 
     {tab === 'adjustments' && <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
@@ -279,6 +344,5 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
 
     {tab === 'settings' && (data.can_manage ? <form onSubmit={saveSettings} className={`${cardClass} grid gap-4 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]`}><div><h2 className="text-lg font-semibold"><T text="Finance settings"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Only school managers can change currency and critical finance rules. Secretaries cannot change these settings."/></p></div><div className="space-y-3"><label className="block text-sm"><T text="Currency code"/><input required minLength={3} maxLength={3} pattern="[A-Za-z]{3}" className={`${fieldClass} mt-1 uppercase`} placeholder="HTG" value={currencyCode} onChange={event=>setCurrencyCode(event.target.value.toUpperCase())}/></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={directorCanValidate} onChange={event=>setDirectorCanValidate(event.target.checked)}/><span><T text="Allow the director to validate payments."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={proofRequired} onChange={event=>setProofRequired(event.target.checked)}/><span><T text="Require proof before a payment can be validated."/></span></label><fieldset className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3"><legend className="px-1 text-sm font-semibold text-slate-900"><T text="Optional overdue-fee restrictions"/></legend><p className="text-xs text-slate-700"><T text="A restriction applies only after a fee due date has passed and the remaining balance is positive. Pending payments do not reduce the balance; approved reductions do. Restrictions are off until the school selects them."/></p><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictKiosk} onChange={event=>setRestrictKiosk(event.target.checked)}/><span><T text="Block student KIOS check-in for an overdue balance."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictExams} onChange={event=>setRestrictExams(event.target.checked)}/><span><T text="Hide published exam schedules in the student and parent portals for an overdue balance."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictBulletins} onChange={event=>setRestrictBulletins(event.target.checked)}/><span><T text="Hide current-year bulletins in the student and parent portals for an overdue balance; prior-year bulletins remain available."/></span></label></fieldset><button disabled={saving} className={buttonClass}><T text="Save finance settings"/></button></div></form> : <section className={cardClass}><p className="text-sm text-slate-600"><T text="Only school managers can change finance settings."/></p></section>)}
 
-    {selectedCharges.length>=500&&<p className="text-xs text-slate-500"><T text="The list shows the newest 500 records in the selected scope. Totals include all records."/></p>}
   </main>
 }

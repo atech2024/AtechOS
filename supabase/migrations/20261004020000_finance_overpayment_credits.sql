@@ -258,7 +258,7 @@ begin
   from public.finance_charges c
   left join lateral (select sum(x.amount) adjusted from public.finance_adjustments x where x.charge_id=c.id and x.status='approved' and x.adjustment_type<>'temporary_clearance') a on true
   left join lateral (
-    select sum(x.applied_amount) filter(where x.status='validated') + coalesce((select sum(ca.amount) from public.finance_credit_allocations ca where ca.charge_id=c.id),0) paid,
+    select coalesce(sum(x.applied_amount) filter(where x.status='validated'),0) + coalesce((select sum(ca.amount) from public.finance_credit_allocations ca where ca.charge_id=c.id),0) paid,
       count(*) filter(where x.status='pending') pending,count(*) filter(where x.status='validated') validated_count
     from public.finance_payments x where x.charge_id=c.id
   ) p on true

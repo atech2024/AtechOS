@@ -66,7 +66,7 @@ begin
 
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
   perform public.review_finance_payment(payment_id,'validated',null);
-  if not exists(select 1 from public.notifications n where n.school_id='fa000000-0000-0000-0000-000000000001' and n.recipient_id='fa300000-0000-0000-0000-000000000005' and n.event_key='finance-payment-validated:'||payment_id::text and n.description like '%50.00 HTG%' and n.description like '%Rentrée 2026%' and n.description like '%Validé%' and n.description like '%Solde restant:%' and n.description like '%CI-PARTIAL-1%') then raise exception 'validated payment notice omitted required receipt details or missed linked parent'; end if;
+  if not exists(select 1 from public.notifications n where n.school_id='fa000000-0000-0000-0000-000000000001' and n.recipient_id='fa300000-0000-0000-0000-000000000005' and n.event_key='finance-payment-validated:'||payment_id::text and n.description like '%50.00 HTG%' and n.description like '%Rentrée 2026%' and n.description like '%Validé%' and n.description like '%Solde restant :%' and n.description like '%CI-PARTIAL-1%') then raise exception 'validated payment notice omitted required receipt details or missed linked parent'; end if;
 
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
   adjustment_id:=public.request_finance_adjustment(charge_id,'half_scholarship',25,'School approved half scholarship');

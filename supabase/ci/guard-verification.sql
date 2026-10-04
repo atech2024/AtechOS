@@ -44,6 +44,8 @@ begin
  begin perform public.submit_guard_reason(v_reason_case,'unlinked parent attempt');exception when others then v_failed:=sqlerrm='not_authorized';end;
  if not v_failed then raise exception 'unrelated parent submitted a reason';end if;
  update public.school_members set enabled=false where school_id=v_school and user_id='21000000-0000-0000-0000-000000000002';
+ insert into public.attendance(id,school_id,student_id,class_id,attendance_date,status) values
+ ('81000000-0000-0000-0000-000000000014',v_school,v_student,v_class,'2026-09-02','absent');
  insert into public.guard_cases(id,school_id,student_id,kind,event_date,status,reason_due)
  values('81000000-0000-0000-0000-000000000003',v_school,v_student,'absence','2026-09-02','awaiting_reason',now()+interval '2 days');
  if exists(select 1 from public.notifications where recipient_id='21000000-0000-0000-0000-000000000002' and event_key='guard:81000000-0000-0000-0000-000000000003:awaiting_reason') then raise exception 'disabled parent received a GUARD notification';end if;
@@ -110,6 +112,19 @@ begin
  if v_result->>'error'='guard_account_suspended' then raise exception 'confirmed meeting did not restore kiosk access';end if;
  v_result:=public.student_device_login('AOS-GUARD-0001','GUARD Student','123456',null);
  if v_result->>'error'='guard_account_suspended' then raise exception 'confirmed meeting did not restore portal sign-in';end if;
+
+ insert into public.attendance(id,school_id,student_id,class_id,attendance_date,status) values
+ ('81000000-0000-0000-0000-000000000013',v_school,v_student,v_class,'2026-10-02','absent');
+ insert into public.guard_cases(id,school_id,student_id,kind,event_date,status,reason_due)
+ values('81000000-0000-0000-0000-000000000004',v_school,v_student,'absence','2026-10-02','awaiting_reason',now()+interval '1 day');
+ if not private.guard_has_three_unexcused_absences(v_student) then raise exception 'three unexcused absences did not activate the KIOS restriction';end if;
+ v_result:=private.record_student_kiosk(v_student);
+ if v_result->>'error'<>'guard_three_unexcused_absences' then raise exception 'three unexcused absences blocked KIOS with the wrong reason: %',v_result;end if;
+ update public.guard_cases set status='review',reason='Family explanation submitted'
+ where student_id=v_student and kind='absence' and event_date='2026-09-02';
+ if private.guard_has_three_unexcused_absences(v_student) then raise exception 'submitted family reason still counted as an unexcused absence';end if;
+ v_result:=private.record_student_kiosk(v_student);
+ if v_result->>'error'='guard_three_unexcused_absences' then raise exception 'KIOS restriction remained after the third absence received a reason';end if;
 
  perform set_config('request.jwt.claim.sub','21000000-0000-0000-0000-000000000002',true);
  if auth.uid()<>'21000000-0000-0000-0000-000000000002'::uuid then raise exception 'linked parent JWT claim was not set: %',auth.uid();end if;

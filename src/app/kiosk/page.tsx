@@ -8,6 +8,15 @@ import { createClient } from '@/lib/supabase/client'
 
 type Result = { action:string; first_name:string; last_name:string; class_name:string; check_in_at:string|null; check_out_at:string|null; guard_meeting_required?:boolean }
 const messages:Record<string,string> = { check_in:'Check-in recorded.',check_out:'Check-out recorded.',duplicate_scan:'Already checked in. Check-out opens at 13:00.',already_complete:'Attendance already complete for today.' }
+const scanErrors:Record<string,string> = {
+ invalid_badge:'Badge not accepted. Ask the school to replace it.',
+ kiosk_closed:'Kiosk closed from 08:01 to 12:59. Contact school staff.',
+ check_in_required:'No check-in today. Contact school staff.',
+ current_class_required:'Ask the school to verify your current class.',
+ guard_account_suspended:"Student access is temporarily inactive. Go to the Director's office with your parent or guardian.",
+ guard_three_unexcused_absences:'Access refused: three school-day absences have no accepted reason. Go to the Director with your parent or guardian.',
+ financial_restriction:'Access refused: an overdue school fee still has a balance. Contact the school administration.',
+}
 export default function StudentKiosk() {
  const [code,setCode]=useState(''),[pin,setPin]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[result,setResult]=useState<Result|null>(null)
  const lock=useRef(false),codeInput=useRef<HTMLInputElement>(null),pinInput=useRef<HTMLInputElement>(null)
@@ -16,7 +25,7 @@ export default function StudentKiosk() {
  async function record(scanned:string,secret=''){if(lock.current)return;lock.current=true;setBusy(true);setError('');setResult(null)
   try {const {data,error:failure}=await (scanned.startsWith('AOSQ1.')?createClient().rpc('student_kiosk_badge',{p_qr:scanned}):createClient().rpc('student_kiosk_scan',{p_code:scanned,p_pin:secret}));
    if(failure) setError('Unable to record attendance. Please try again.')
-   else if(data?.error) setError(data.error==='invalid_badge'?'Badge not accepted. Ask the school to replace it.':data.error==='kiosk_closed'?'Kiosk closed from 08:01 to 12:59. Contact school staff.':data.error==='check_in_required'?'No check-in today. Contact school staff.':data.error==='current_class_required'?'Ask the school to verify your current class.':data.error==='guard_account_suspended'?"Student access is temporarily inactive. Go to the Director's office with your parent or guardian.":'ID or PIN not accepted. After five failed attempts, wait 15 minutes.')
+   else if(data?.error) setError(scanErrors[data.error] || 'ID or PIN not accepted. After five failed attempts, wait 15 minutes.')
    else if(data?.action) {setResult(data as Result);setCode('')}
   } catch {setError('Unable to record attendance. Please try again.')}
   finally {setPin('');setBusy(false);lock.current=false;codeInput.current?.focus()}

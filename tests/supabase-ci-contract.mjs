@@ -41,7 +41,7 @@ assert.match(workflow, /supabase\/migrations\/20260928004221_badge_lifecycle_his
 assert.match(workflow, /badge-lifecycle:/);
 assert.match(workflow, /cp \.\.\/migrations\/20260928004221_badge_lifecycle_history\.sql supabase\/migrations\//);
 assert.match(workflow, /< badge-verification\.sql/);
-for (const migration of ['20260930120000_guard_cases_workflow','20260930121500_guard_deadline_processor','20260930123000_weekly_lateness_guard','20260930194459_guard_school_day_deadlines_notifications','20260930210000_guard_meeting_access_lock','20260930213000_official_school_terms','20260930220000_guard_school_day_absence','20260930232834_kindergarten_pickup_workflow','20260930233211_kindergarten_pickup_audit_source']) assert.ok(workflow.includes(migration+'.sql'), `workflow must apply ${migration}`);
+for (const migration of ['20260930120000_guard_cases_workflow','20260930121500_guard_deadline_processor','20260930123000_weekly_lateness_guard','20260930194459_guard_school_day_deadlines_notifications','20260930210000_guard_meeting_access_lock','20260930213000_official_school_terms','20260930220000_guard_school_day_absence','20260930232834_kindergarten_pickup_workflow','20260930233211_kindergarten_pickup_audit_source','20261004195614_kiosk_guard_scan_reasons']) assert.ok(workflow.includes(migration+'.sql'), `workflow must apply ${migration}`);
 assert.match(workflow, /< guard-verification\.sql/);
 assert.match(workflow, /< class-section-verification\.sql/);
 assert.doesNotMatch(workflow, /SUPABASE_ACCESS_TOKEN|supabase link|db push|--linked/);

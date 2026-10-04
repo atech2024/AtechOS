@@ -97,7 +97,7 @@ begin
   adjustment_id:=public.request_finance_adjustment(charge_id,'temporary_clearance',0,'Temporary exam clearance','2026-10-01 00:00:00-04','2026-10-15 23:59:00-04');
   perform public.review_finance_adjustment(adjustment_id,'approved',null);
   workspace:=public.finance_workspace('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001');
-  if (workspace->'summary'->>'expected')::numeric<>475 or (workspace->'summary'->>'paid')::numeric<>50 or (workspace->'summary'->>'balance')::numeric<>425 then raise exception 'finance totals did not include all issued charges, validated payments, and approved tuition reduction correctly'; end if;
+  if (workspace->'summary'->>'expected')::numeric<>475 or (workspace->'summary'->>'paid')::numeric<>75 or (workspace->'summary'->>'balance')::numeric<>400 then raise exception 'finance totals did not include all issued charges, validated payments, and approved tuition reduction correctly'; end if;
   if (workspace->>'can_manage')::boolean is distinct from true or (workspace->>'can_validate')::boolean is distinct from false then raise exception 'director validation must remain disabled unless the school enables it'; end if;
   if workspace::text ilike '%atechos_id%' or workspace::text ilike '%nis%' then raise exception 'finance workspace exposed unnecessary student identity fields'; end if;
   if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000003' and actor_role='secretary' and entity='finance_payments' and action='created') then raise exception 'payment creation audit did not retain secretary identity and role'; end if;

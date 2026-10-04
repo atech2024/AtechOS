@@ -1,0 +1,85 @@
+begin;
+
+insert into public.schools(id) values ('fa000000-0000-0000-0000-000000000001');
+insert into public.academic_years(id,school_id,name,start_date,end_date,is_current) values
+ ('fa100000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','Finance CI 2026-2027','2026-08-01','2027-07-31',true);
+insert into public.classes(id,school_id,academic_year_id,name,enabled) values
+ ('fa200000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','fa100000-0000-0000-0000-000000000001','Finance CI Class',true);
+insert into public.users(id,full_name) values
+ ('fa300000-0000-0000-0000-000000000001','Finance Director'),
+ ('fa300000-0000-0000-0000-000000000002','Finance Administrator'),
+ ('fa300000-0000-0000-0000-000000000003','Finance Secretary'),
+ ('fa300000-0000-0000-0000-000000000004','Finance Accountant'),
+ ('fa300000-0000-0000-0000-000000000005','Finance Parent');
+insert into public.students(id,school_id,first_name,last_name,atechos_id,active,school_status) values
+ ('fa400000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','Finance','Student','AOS-FINANCE-CI',true,'active');
+insert into public.enrollments(id,school_id,student_id,class_id,status) values
+ ('fa500000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','fa400000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001','active');
+insert into public.school_members(school_id,user_id,role,enabled) values
+ ('fa000000-0000-0000-0000-000000000001','fa300000-0000-0000-0000-000000000001','director',true),
+ ('fa000000-0000-0000-0000-000000000001','fa300000-0000-0000-0000-000000000002','school_admin',true),
+ ('fa000000-0000-0000-0000-000000000001','fa300000-0000-0000-0000-000000000003','secretary',true),
+ ('fa000000-0000-0000-0000-000000000001','fa300000-0000-0000-0000-000000000004','accountant',true),
+ ('fa000000-0000-0000-0000-000000000001','fa300000-0000-0000-0000-000000000005','parent',true);
+insert into public.parents(id,school_id,user_id,full_name,email) values
+ ('fa600000-0000-0000-0000-000000000001','fa000000-0000-0000-0000-000000000001','fa300000-0000-0000-0000-000000000005','Finance Parent','finance-parent@example.test');
+insert into public.student_parents(student_id,parent_id,relationship) values
+ ('fa400000-0000-0000-0000-000000000001','fa600000-0000-0000-0000-000000000001','parent');
+
+do $$
+declare plan_id uuid; charge_id uuid; payment_id uuid; adjustment_id uuid; generated integer; workspace jsonb; denied boolean;
+begin
+  if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') or has_table_privilege('authenticated','public.finance_payments','DELETE') then raise exception 'authenticated can directly mutate finance payments'; end if;
+  if has_table_privilege('authenticated','public.finance_audit_events','UPDATE') or has_table_privilege('authenticated','public.finance_audit_events','DELETE') then raise exception 'finance audit events are mutable through the Data API'; end if;
+  if not (select relrowsecurity from pg_class where oid='public.finance_payments'::regclass) or not (select relrowsecurity from pg_class where oid='public.finance_audit_events'::regclass) then raise exception 'finance RLS is disabled'; end if;
+
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  perform public.save_finance_settings('HTG',false,false);
+  plan_id:=public.create_finance_fee_plan('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001','rentree','Rentrée 2026',
+    '[{"amount":100,"due_date":"2026-09-01"},{"amount":200,"due_date":"2027-01-15"}]'::jsonb);
+  generated:=public.issue_finance_fee_plan(plan_id);
+  if generated<>2 or public.issue_finance_fee_plan(plan_id)<>0 then raise exception 'fee issuance should create installment charges once and be idempotent'; end if;
+  select id into charge_id from public.finance_charges where fee_plan_id=plan_id order by due_date limit 1;
+  if charge_id is null then raise exception 'fee plan did not create student charges'; end if;
+
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000003',true);
+  payment_id:=public.record_finance_payment(charge_id,50,'Cash','CI-PARTIAL-1',null,'2026-09-01 12:00:00-04');
+  denied:=false;
+  begin perform public.review_finance_payment(payment_id,'validated',null); exception when others then denied:=sqlerrm='not_authorized'; end;
+  if not denied then raise exception 'secretary validated a payment'; end if;
+  denied:=false;
+  begin perform public.record_finance_payment(charge_id,51,'Cash','CI-OVERPAY',null,'2026-09-01 12:00:00-04'); exception when others then denied:=sqlerrm='payment_exceeds_balance'; end;
+  if not denied then raise exception 'payment booking did not reserve partial payment balance'; end if;
+
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  denied:=false;
+  begin perform public.review_finance_payment(payment_id,'validated',null); exception when others then denied:=sqlerrm='not_authorized'; end;
+  if not denied then raise exception 'director validated a payment without school setting'; end if;
+
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
+  perform public.review_finance_payment(payment_id,'validated',null);
+  if not exists(select 1 from public.notifications n where n.school_id='fa000000-0000-0000-0000-000000000001' and n.recipient_id='fa300000-0000-0000-0000-000000000005' and n.event_key='finance-payment-validated:'||payment_id::text and n.description like '%50.00 HTG%' and n.description like '%Rentrée 2026%' and n.description like '%Validé%' and n.description like '%Solde restant:%' and n.description like '%CI-PARTIAL-1%') then raise exception 'validated payment notice omitted required receipt details or missed linked parent'; end if;
+
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  adjustment_id:=public.request_finance_adjustment(charge_id,'half_scholarship',25,'School approved half scholarship');
+  perform public.review_finance_adjustment(adjustment_id,'approved',null);
+  adjustment_id:=public.request_finance_adjustment(charge_id,'temporary_clearance',0,'Temporary exam clearance','2026-10-01 00:00:00-04','2026-10-15 23:59:00-04');
+  perform public.review_finance_adjustment(adjustment_id,'approved',null);
+  workspace:=public.finance_workspace('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001');
+  if (workspace->'summary'->>'expected')::numeric<>275 or (workspace->'summary'->>'paid')::numeric<>50 or (workspace->'summary'->>'balance')::numeric<>225 then raise exception 'finance totals did not include validated payments and approved tuition reduction correctly'; end if;
+  if (workspace->>'can_manage')::boolean is distinct from true or (workspace->>'can_validate')::boolean is distinct from false then raise exception 'director validation must remain disabled unless the school enables it'; end if;
+  if workspace::text ilike '%atechos_id%' or workspace::text ilike '%nis%' then raise exception 'finance workspace exposed unnecessary student identity fields'; end if;
+  if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000003' and actor_role='secretary' and entity='finance_payments' and action='created') then raise exception 'payment creation audit did not retain secretary identity and role'; end if;
+  if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000004' and actor_role='accountant' and entity='finance_payments' and action='updated') then raise exception 'payment validation audit did not retain accountant identity and role'; end if;
+
+  perform public.save_finance_settings('HTG',true,false);
+  workspace:=public.finance_workspace('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001');
+  if (workspace->>'can_validate')::boolean is distinct from true then raise exception 'director validation setting did not grant the configured capability'; end if;
+
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000005',true);
+  denied:=false;
+  begin perform public.finance_workspace(); exception when others then denied:=sqlerrm='not_authorized'; end;
+  if not denied then raise exception 'parent accessed internal finance workspace'; end if;
+end $$;
+
+rollback;

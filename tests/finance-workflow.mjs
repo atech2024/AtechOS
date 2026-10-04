@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import vm from 'node:vm'
+import ts from 'typescript'
+
+const sql = readFileSync('supabase/migrations/20261004000016_finance_accounting_core.sql', 'utf8')
+const fixture = readFileSync('supabase/ci/finance-verification.sql', 'utf8')
+const workflow = readFileSync('.github/workflows/supabase-migration-check.yml', 'utf8')
+const page = readFileSync('src/app/dashboard/finance/page.tsx', 'utf8')
+const workspace = readFileSync('src/app/dashboard/finance/workspace.tsx', 'utf8')
+const navSource = readFileSync('src/lib/navigation.ts', 'utf8')
+const exports = {}
+vm.runInNewContext(ts.transpileModule(navSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText, { exports })
+
+assert.match(sql, /director_can_validate boolean not null default false/)
+assert.match(sql, /proof_required boolean not null default false/)
+assert.match(sql, /m\.role in \('school_admin','director','secretary','accountant'\)/)
+assert.match(sql, /m\.role in \('school_admin','accountant'\)/)
+assert.match(sql, /private\.finance_can_validate\(p_school uuid\)[\s\S]*?director_can_validate/)
+assert.match(sql, /enable row level security/i)
+assert.match(sql, /revoke insert,update,delete,truncate,references,trigger[\s\S]*?finance_audit_events from public,anon,authenticated/i)
+assert.match(sql, /revoke all on function public\.finance_workspace[\s\S]*?from public,anon/i)
+assert.match(sql, /grant execute on function public\.finance_workspace[\s\S]*?to authenticated/i)
+assert.match(sql, /finance-proofs'[\s\S]*?public=false/)
+assert.match(sql, /payment_balance_conflict/)
+assert.match(sql, /amount<>round\(p_amount,2\)/)
+assert.match(sql, /storage\.objects o where o\.bucket_id='finance-proofs' and o\.name=proof/)
+assert.match(fixture.trim(), /^begin;/i)
+assert.match(fixture, /rollback;\s*$/i)
+for (const check of ['secretary validated a payment', 'director validated a payment without school setting', 'director validation setting did not grant', 'payment_exceeds_balance', 'parent accessed internal finance workspace', 'finance audit events are mutable']) assert.ok(fixture.includes(check), `Finance SQL fixture must cover ${check}`)
+assert.match(workflow, /20261004000016_finance_accounting_core\.sql/)
+assert.match(workflow, /< finance-verification\.sql/)
+assert.match(page, /roles\.some\(role => \['school_admin', 'director', 'secretary', 'accountant'\]/)
+assert.doesNotMatch(page, /data\?\.owner/)
+for (const role of ['school_admin', 'director', 'secretary', 'accountant']) assert.ok(exports.navigation.some(item => item.href === '/dashboard/finance' && item.roles.includes(role)))
+for (const role of ['teacher', 'parent', 'surveillant', 'censeur', 'student']) assert.ok(!exports.permittedNavigation([role]).some(item => item.href === '/dashboard/finance'))
+assert.match(workspace, /p_academic_year_id: yearId \|\| null/)
+assert.match(workspace, /p_proof_required: proofRequired/)
+assert.match(workspace, /p_director_can_validate: directorCanValidate/)
+assert.match(workspace, /SchoolDateInput type="date"/)
+assert.match(workspace, /SchoolDateInput type="datetime-local"/)
+assert.match(workspace, /schoolDateTimeToISO\(clearanceFrom\)/)
+console.log('PASS Finance contracts: role boundaries, safe defaults, scoped RPC/RLS, payment rules, audit, private proof and isolated SQL CI.')

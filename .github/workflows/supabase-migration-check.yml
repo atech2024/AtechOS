@@ -37,6 +37,7 @@ on:
       - "supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql"
       - "supabase/migrations/20261003023548_published_only_family_student_bulletins.sql"
       - "supabase/migrations/20261003162629_confirm_official_exam_dates.sql"
+      - "supabase/migrations/20261004000016_finance_accounting_core.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
@@ -74,6 +75,7 @@ on:
       - "supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql"
       - "supabase/migrations/20261003023548_published_only_family_student_bulletins.sql"
       - "supabase/migrations/20261003162629_confirm_official_exam_dates.sql"
+      - "supabase/migrations/20261004000016_finance_accounting_core.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
@@ -127,6 +129,7 @@ jobs:
           cp supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261003023548_published_only_family_student_bulletins.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261003162629_confirm_official_exam_dates.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261004000016_finance_accounting_core.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |
@@ -143,6 +146,7 @@ jobs:
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < school-calendar-verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < official-exam-confirmation-verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < class-section-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < finance-verification.sql
       - name: Stop local Supabase
         if: always()
         working-directory: supabase/ci

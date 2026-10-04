@@ -17,6 +17,8 @@ assert.ok(parent.includes('/dashboard/parent-portal'));assert.ok(!parent.include
 assert.ok(nav.permittedNavigation(['director']).some(x=>x.href==='/dashboard/publication'))
 assert.ok(nav.permittedNavigation(['school_admin']).some(x=>x.href==='/dashboard/settings'))
 assert.ok(nav.permittedNavigation(['director']).some(x=>x.href==='/dashboard/settings'))
+for(const role of ['school_admin','director','secretary','accountant'])assert.ok(nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/finance'),`${role} must see Finance.`)
+for(const role of ['teacher','parent','surveillant','censeur','student'])assert.ok(!nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/finance'),`${role} must not see Finance.`)
 assert.ok(!nav.permittedNavigation(['secretary']).some(x=>x.href==='/dashboard/settings'),'Secretaries must not be offered grading-rule configuration that the database denies.')
 assert.ok(!nav.navigation.some(x=>x.href==='/dashboard/grading-settings'),'Grading rules belong under the settings center navigation.')
 const settingsPage=readFileSync('src/app/dashboard/settings/page.tsx','utf8')

@@ -44,6 +44,8 @@ begin
  begin perform public.submit_guard_reason(v_reason_case,'unlinked parent attempt');exception when others then v_failed:=sqlerrm='not_authorized';end;
  if not v_failed then raise exception 'unrelated parent submitted a reason';end if;
  update public.school_members set enabled=false where school_id=v_school and user_id='21000000-0000-0000-0000-000000000002';
+ insert into public.attendance(id,school_id,student_id,class_id,attendance_date,status) values
+ ('81000000-0000-0000-0000-000000000014',v_school,v_student,v_class,'2026-09-02','absent');
  insert into public.guard_cases(id,school_id,student_id,kind,event_date,status,reason_due)
  values('81000000-0000-0000-0000-000000000003',v_school,v_student,'absence','2026-09-02','awaiting_reason',now()+interval '2 days');
  if exists(select 1 from public.notifications where recipient_id='21000000-0000-0000-0000-000000000002' and event_key='guard:81000000-0000-0000-0000-000000000003:awaiting_reason') then raise exception 'disabled parent received a GUARD notification';end if;

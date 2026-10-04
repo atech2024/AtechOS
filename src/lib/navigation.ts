@@ -1,4 +1,4 @@
-export type NavigationGroup='overview'|'people'|'preschool'|'school_life'|'teaching'|'results'|'followup'|'administration'|'family_portals'
+export type NavigationGroup='overview'|'people'|'preschool'|'school_life'|'teaching'|'results'|'finance'|'followup'|'administration'|'family_portals'
 export type NavigationItem={label:string;href:string;icon:string;roles:string[];group:NavigationGroup}
 const administration=['school_admin','director','secretary']
 export const navigation:NavigationItem[]=[
@@ -18,6 +18,7 @@ export const navigation:NavigationItem[]=[
  {label:'Preschool competency bulletins',href:'/dashboard/preschool',icon:'reports',roles:[...administration,'teacher','censeur'],group:'preschool'},
  {label:'Assignments',href:'/dashboard/assignments',icon:'assignments',roles:[...administration,'teacher'],group:'teaching'},
  {label:'Academic progression',href:'/dashboard/progression',icon:'progression',roles:['school_admin','director'],group:'results'},
+ {label:'Finance & Accounting',href:'/dashboard/finance',icon:'finance',roles:['school_admin','director','secretary','accountant'],group:'finance'},
  {label:'Access approvals',href:'/dashboard/approvals',icon:'requests',roles:['school_admin','director','censeur'],group:'followup'},
  {label:'Teacher requests',href:'/dashboard/teacher-requests',icon:'requests',roles:['school_admin','director'],group:'followup'},
  {label:'Users & staff',href:'/dashboard/staff',icon:'users',roles:['school_admin'],group:'administration'},

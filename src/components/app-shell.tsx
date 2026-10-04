@@ -23,6 +23,7 @@ import {
   ChevronRight,
   ChevronDown,
   Home,
+  CircleDollarSign,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { permittedNavigation, type NavigationGroup, type NavigationItem } from '@/lib/navigation'
@@ -38,7 +39,7 @@ const icons: Record<string, typeof Users> = {
   dashboard: LayoutDashboard, students: GraduationCap, parents: Users, teachers: Users, classes: BookOpen,
   attendance: ClipboardCheck, badge: Contact, calendar: CalendarDays, grades: FileText,
   publication: ClipboardCheck, reports: FileText, assignments: BookOpen, progression: ArrowUpRight,
-  requests: UserPlus, users: Users, settings: Settings,
+  requests: UserPlus, users: Users, settings: Settings, finance: CircleDollarSign,
 }
 const roleLabels: Record<string, string> = {
   school_admin: 'Administrator', director: 'Director', secretary: 'Secretary', teacher: 'Teacher',
@@ -47,10 +48,10 @@ const roleLabels: Record<string, string> = {
 }
 const groupLabels: Record<NavigationGroup, string> = {
   overview: 'Dashboard', people: 'Students & families', preschool: 'Preschool', school_life: 'School life',
-  teaching: 'Teaching', results: 'Evaluation & results', followup: 'Requests & follow-up',
+  teaching: 'Teaching', results: 'Evaluation & results', finance: 'Finance & Accounting', followup: 'Requests & follow-up',
   administration: 'Administration', family_portals: 'Family portals',
 }
-const groupOrder: NavigationGroup[] = ['people', 'preschool', 'school_life', 'teaching', 'results', 'followup', 'administration', 'family_portals']
+const groupOrder: NavigationGroup[] = ['people', 'preschool', 'school_life', 'teaching', 'results', 'finance', 'followup', 'administration', 'family_portals']
 
 export default function AppShell({ children, school, name, avatar, roles, owner, academicYear }: {
   children: ReactNode; school: string; name: string; avatar: string | null; roles: string[]; owner: boolean; academicYear: string | null

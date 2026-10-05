@@ -49,6 +49,7 @@ create table public.grading_periods (
 create table public.students (
  id uuid primary key,
  school_id uuid not null references public.schools(id),
+ user_id uuid references public.users(id),
  first_name text not null,
  last_name text not null,
  atechos_id text,

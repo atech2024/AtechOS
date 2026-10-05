@@ -46,6 +46,7 @@ on:
       - "supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql"
       - "supabase/migrations/20261004220000_finance_payment_refunds.sql"
       - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
+      - "supabase/migrations/20261005050000_finance_overpayments_all_fees.sql"
       - "supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
@@ -93,6 +94,7 @@ on:
       - "supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql"
       - "supabase/migrations/20261004220000_finance_payment_refunds.sql"
       - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
+      - "supabase/migrations/20261005050000_finance_overpayments_all_fees.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
@@ -155,6 +157,7 @@ jobs:
           cp supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004220000_finance_payment_refunds.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005013350_parent_finance_payment_portal.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005050000_finance_overpayments_all_fees.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005044450_student_sanctions_emergency_release.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
@@ -235,3 +238,4 @@ jobs:
         if: always()
         working-directory: supabase/ci-progression
         run: supabase stop --no-backup
+

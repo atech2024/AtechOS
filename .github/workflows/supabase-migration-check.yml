@@ -3,6 +3,7 @@ name: Supabase migration checks (free local stack)
 on:
   push:
     branches:
+      - feature/finance-finalization
       - feature/kindergarten-relocation
       - feature/preschool-grade-labels
       - feature/build01-navigation-shell
@@ -40,6 +41,8 @@ on:
       - "supabase/migrations/20261004000016_finance_accounting_core.sql"
       - "supabase/migrations/20261004010000_finance_overdue_restrictions.sql"
       - "supabase/migrations/20261004020000_finance_overpayment_credits.sql"
+      - "supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql"
+      - "supabase/migrations/20261004220000_finance_payment_refunds.sql"
       - "supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
@@ -81,6 +84,8 @@ on:
       - "supabase/migrations/20261004000016_finance_accounting_core.sql"
       - "supabase/migrations/20261004010000_finance_overdue_restrictions.sql"
       - "supabase/migrations/20261004020000_finance_overpayment_credits.sql"
+      - "supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql"
+      - "supabase/migrations/20261004220000_finance_payment_refunds.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
@@ -137,6 +142,8 @@ jobs:
           cp supabase/migrations/20261004000016_finance_accounting_core.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004010000_finance_overdue_restrictions.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004020000_finance_overpayment_credits.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261004220000_finance_payment_refunds.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci

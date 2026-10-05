@@ -33,7 +33,7 @@ insert into public.enrollments(id,school_id,student_id,class_id,status) values
  ('fb500000-0000-0000-0000-000000000003','fb000000-0000-0000-0000-000000000002','fb400000-0000-0000-0000-000000000003','fb200000-0000-0000-0000-000000000002','active');
 
 do $$
-declare sanction_type uuid; contact_id uuid; release_id uuid; sanction_id uuid; workspace jsonb; denied boolean;
+declare sanction_type uuid; contact_id uuid; contact2_id uuid; release_id uuid; release2_id uuid; sanction_id uuid; workspace jsonb; denied boolean; kiosk jsonb;
 begin
  if not (select relrowsecurity from pg_class where oid='public.student_sanctions'::regclass)
     or has_table_privilege('authenticated','public.student_sanctions','SELECT')
@@ -73,11 +73,29 @@ begin
  perform public.record_student_release(release_id,now()+interval '2 hours');
  perform public.confirm_student_return(release_id);
  if not exists(select 1 from public.student_release_cases where id=release_id and status='returned' and reviewed_role='director' and released_role='director' and returned_at is not null) then raise exception 'medical release/return actor timeline was not recorded'; end if;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000003',true);
+ contact2_id:=public.save_student_release_contact('fb400000-0000-0000-0000-000000000002',null,'Second Alternate Adult','Parent',null,true);
+ release2_id:=public.request_student_release('fb400000-0000-0000-0000-000000000002','exceptional',contact2_id,'Student is authorized to leave with family');
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000001',true);
+ perform public.review_student_release(release2_id,true,'Departure approved by director');
+ insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at)
+ values('fb000000-0000-0000-0000-000000000001','fb400000-0000-0000-0000-000000000002','fb200000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date,'present',now()-interval '1 hour');
+ -- student_release_kiosk_ci_window: isolate the exact 08:01-12:59 denial deterministically.
+ create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $window$ select 'blocked'::text; $window$;
+ kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
+ if kiosk->>'error'<>'kiosk_closed' then raise exception 'unreleased student bypassed the blocked KIOS window'; end if;
+ perform public.record_student_release(release2_id,now()+interval '2 hours');
+ kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
+ if kiosk->>'action'<>'check_out' then raise exception 'authorized departure scan did not check the student out: %',kiosk; end if;
+ if not exists(select 1 from public.attendance a where a.student_id='fb400000-0000-0000-0000-000000000002' and a.attendance_date=(now() at time zone 'America/Port-au-Prince')::date and a.check_out_at is not null)
+    or not exists(select 1 from public.attendance_events e where e.student_id='fb400000-0000-0000-0000-000000000002' and e.source='KIOS' and e.action='check_out') then
+  raise exception 'authorized KIOS departure did not preserve attendance and student actor audit';
+ end if;
  if (select count(*) from public.student_followup_events where entity_id in (sanction_type,sanction_id,contact_id,release_id))<7 then raise exception 'audit trail is incomplete'; end if;
  denied:=false; begin update public.student_followup_events set action='tampered' where entity_id=release_id; exception when others then denied:=sqlerrm='student_followup_event_immutable'; end;
  if not denied then raise exception 'immutable follow-up audit record was changed'; end if;
  workspace:=public.student_followup_workspace();
- if jsonb_array_length(workspace->'students')<>2 or jsonb_array_length(workspace->'releases')<>1 then raise exception 'workspace leaked another school or lost the in-scope record'; end if;
+ if jsonb_array_length(workspace->'students')<>2 or jsonb_array_length(workspace->'releases')<>2 then raise exception 'workspace leaked another school or lost the in-scope record'; end if;
 end $$;
 
 rollback;

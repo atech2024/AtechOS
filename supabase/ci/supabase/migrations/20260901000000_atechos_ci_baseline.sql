@@ -49,6 +49,7 @@ create table public.grading_periods (
 create table public.students (
  id uuid primary key,
  school_id uuid not null references public.schools(id),
+ user_id uuid references public.users(id),
  first_name text not null,
  last_name text not null,
  atechos_id text,
@@ -288,13 +289,30 @@ as $$
  select exists(select 1 from public.school_members m where m.school_id=p_school and m.user_id=auth.uid() and m.enabled and m.role in ('school_admin','director','secretary','censeur','surveillant'))
 $$;
 
+create function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $$
+ select case when p_time<time '07:46' then 'present' when p_time<time '08:01' then 'late' when p_time<time '13:00' then 'blocked' else 'checkout' end;
+$$;
+
 create or replace function private.record_student_kiosk(p_student uuid) returns jsonb
 language plpgsql security definer set search_path=''
 as $$
-declare s public.students%rowtype;ts timestamptz:=now();result text:='check_in';
+declare s public.students%rowtype;a public.attendance%rowtype;ts timestamptz:=now();d date:=(now() at time zone 'America/Port-au-Prince')::date;result text;window_name text:=private.kiosk_window((now() at time zone 'America/Port-au-Prince')::time);
 begin
- select * into s from public.students where id=p_student;
+ select * into s from public.students where id=p_student and active and school_status='active';
  if s.id is null then return jsonb_build_object('error','invalid_credentials');end if;
+ select * into a from public.attendance where student_id=s.id and attendance_date=d for update;
+ if window_name='blocked' then return jsonb_build_object('error','kiosk_closed');end if;
+ if window_name='checkout' then
+  if a.check_in_at is null then return jsonb_build_object('error','check_in_required');end if;
+  if a.check_out_at is not null then result:='already_complete';else update public.attendance set check_out_at=ts,recorded_by=s.user_id,updated_at=ts where id=a.id returning * into a;result:='check_out';end if;
+ elsif a.check_in_at is not null then result:='duplicate_scan';
+ else
+  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,recorded_by)
+  select s.school_id,s.id,e.class_id,d,window_name,ts,s.user_id from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id where e.student_id=s.id and e.status='active' and y.is_current limit 1
+  on conflict(student_id,attendance_date) do update set check_in_at=excluded.check_in_at,status=excluded.status,recorded_by=excluded.recorded_by,updated_at=ts returning * into a;
+  if a.id is null then return jsonb_build_object('error','current_class_required');end if;result:='check_in';
+ end if;
+ if result in ('check_in','check_out') then insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date) values(a.id,s.id,'KIOS',s.user_id,s.first_name||' '||s.last_name,'student',result,d);end if;
  return jsonb_build_object('action',result,'atechos_id',s.atechos_id,'name',s.first_name||' '||s.last_name);
 end $$;
 

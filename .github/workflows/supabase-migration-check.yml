@@ -174,6 +174,7 @@ jobs:
           cp supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005044450_student_sanctions_emergency_release.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005170000_student_release_kiosk_checkout.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

@@ -93,7 +93,7 @@ begin
     or not exists(select 1 from public.kindergarten_relocation_events where case_id=relocation_id and event_type='relocated_to_office' and actor_role='director') then raise exception 'Director approval did not authorize and audit the Preschool move';end if;
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000005',true);
  family_relocation:=public.kindergarten_parent_relocation_status();
- if family_relocation->0->>'status'<>'active' or family_relocation->0->>'message' not ilike '%urgently%' or family_relocation::text ilike '%Private test note%' then raise exception 'parent status leaked relocation notes or lost the urgent prompt';end if;
+ if family_relocation->0->>'status'<>'active' or family_relocation->0->>'message' not ilike '%as soon as possible%' or family_relocation::text ilike '%Private test note%' then raise exception 'parent status leaked relocation notes or lost the pickup prompt';end if;
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000003',true);
  perform public.return_kindergarten_student_to_class(relocation_id,'Returned after review');
 

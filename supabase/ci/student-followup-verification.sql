@@ -151,7 +151,7 @@ begin
  insert into private.badge_token_history(token_hash,badge_id) values(encode(extensions.digest(repeat('c',64),'sha256'),'hex'),'fb700000-0000-0000-0000-000000000003');
  -- Fix the regular KIOS schedule so this integration assertion is independent
  -- of the hosted runner's clock. The surrounding fixture rolls back.
- create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $$ select 'blocked'::text $$;
+ create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $school_release_window$ select 'blocked'::text; $school_release_window$;
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000006',true);
  protocol:=public.school_release_protocol_workspace();
  if protocol->>'active'<>'false' or protocol->>'can_activate'<>'true' then raise exception 'other-school release protocol leaked or failed to initialize';end if;

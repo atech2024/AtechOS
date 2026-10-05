@@ -95,6 +95,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
   const [installments, setInstallments] = useState<InstallmentDraft[]>([{ id: 'installment-1', amount: '', due_date: '' }])
   const [chargeId, setChargeId] = useState('')
   const [paymentSearch, setPaymentSearch] = useState('')
+  const [paymentClassFilter, setPaymentClassFilter] = useState('')
   const [paymentOptions, setPaymentOptions] = useState<Charge[]>([])
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
@@ -176,7 +177,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
   const selectedCharges = data.charges
     .filter(item => (!yearId || item.academic_year_id === yearId) && (!classId || item.class_id === classId))
     .sort((a, b) => a.due_date.localeCompare(b.due_date) || a.student_name.localeCompare(b.student_name) || a.description.localeCompare(b.description))
-  const filteredPaymentOptions = paymentOptions.filter(charge => !paymentSearch.trim() || [charge.student_name, charge.student_code, charge.class_name].some(value => value.toLocaleLowerCase().includes(paymentSearch.trim().toLocaleLowerCase())))
+  const filteredPaymentOptions = paymentOptions.filter(charge => (!paymentClassFilter || charge.class_id === paymentClassFilter) && (!paymentSearch.trim() || [charge.student_name, charge.student_code, charge.class_name].some(value => value.toLocaleLowerCase().includes(paymentSearch.trim().toLocaleLowerCase()))))
   const orderedInstallments = [...installments].sort((a, b) => (a.due_date || '9999-12-31').localeCompare(b.due_date || '9999-12-31') || a.id.localeCompare(b.id))
   const installmentTotal = orderedInstallments.reduce((total, item) => total + (Number(item.amount) || 0), 0)
   const totalExpected = Number(data.summary.expected)
@@ -353,6 +354,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
 
     {tab === 'payments' && <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
       {data.can_record&&<form onSubmit={recordPayment} className={`${cardClass} space-y-4`}><div><h2 className="text-lg font-semibold"><T text="Record a payment"/></h2><p className="mt-1 text-sm text-slate-600"><T text="A recorded payment remains pending until an authorized person validates it."/></p></div>
+        <label className="block text-sm"><T text="Class"/><select className={`${fieldClass} mt-1`} value={paymentClassFilter} onChange={event=>{setPaymentClassFilter(event.target.value);setChargeId('')}}><option value=""><T text="All classes"/></option>{selectedClasses.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
         <label className="block text-sm"><T text="Find student by name, AtechOS ID or class"/><input type="search" className={`${fieldClass} mt-1`} value={paymentSearch} onChange={event=>setPaymentSearch(event.target.value)} placeholder="AtechOS ID · élève · classe"/></label>
         <label className="block text-sm"><T text="Student fee"/><select required className={`${fieldClass} mt-1`} value={chargeId} onChange={event=>setChargeId(event.target.value)}><option value=""><T text="Choose"/></option>{filteredPaymentOptions.map(item=><option key={item.id} value={item.id}>{item.student_name} · {item.student_code} · {item.class_name} · {item.description} · {dateLabel(item.due_date,locale)} · {money(remaining(item),item.currency_code,locale)}</option>)}</select></label>
         {filteredPaymentOptions.length===0&&<p className="-mt-2 text-xs text-slate-600"><T text={paymentOptions.length===0?'No installment is due yet. Upcoming installments will appear here on their due dates.':'No student or fee matches this search.'}/></p>}

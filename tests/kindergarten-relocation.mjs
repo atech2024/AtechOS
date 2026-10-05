@@ -8,6 +8,7 @@ const require=createRequire(import.meta.url)
 function compile(path,imports={}){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,require:n=>imports[n]||require(n)});return exports}
 
 const migration=readFileSync('supabase/migrations/20261001001600_kindergarten_private_relocation.sql','utf8')
+const approvals=readFileSync('supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql','utf8')
 for(const fragment of [
  'create table public.kindergarten_relocation_cases',
  'create table public.kindergarten_relocation_events',
@@ -33,9 +34,12 @@ for(const fragment of [
  'relocation_history_immutable',
  'grant execute on function public.kindergarten_relocation_workspace()'
 ])assert.ok(migration.includes(fragment),`migration must enforce: ${fragment}`)
-assert.ok(!migration.includes('insert into public.notifications'),'relocation must not leave a persistent family notification after pickup')
-assert.ok(migration.includes("'message','Please contact the school regarding your child.'"),'family API should expose only a generic message')
-const familyApi=migration.split('create or replace function public.kindergarten_parent_relocation_status()')[1]
+assert.ok(approvals.includes("'relocation_requested'"),'staff requests a relocation before any physical move')
+assert.ok(approvals.includes("private.has_role(sid,array['director'])"),'only the Director may approve or reject a relocation')
+assert.ok(approvals.includes("'relocation_approved'"),'approval is recorded before the move event')
+assert.ok(approvals.includes('Please collect your child urgently.'),'linked families receive an urgent pickup instruction while Direction reviews')
+assert.ok(approvals.includes("'pending_direction'"),'the request remains pending until Direction acts')
+const familyApi=approvals.split('create or replace function public.kindergarten_parent_relocation_status()')[1]
 assert.ok(familyApi&&!familyApi.includes('private_note')&&!familyApi.includes('reason_category')&&!familyApi.includes('kindergarten_relocation_events'),'family response must not expose private notes, reasons, or event history')
 assert.ok(!familyApi.includes('opened_at'),'family response must not expose relocation timing')
 

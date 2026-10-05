@@ -7,7 +7,7 @@ import { T } from '@/components/translation-provider'
 import { createClient } from '@/lib/supabase/client'
 
 type Result = { action:string; first_name:string; last_name:string; class_name:string; check_in_at:string|null; check_out_at:string|null; guard_meeting_required?:boolean }
-const messages:Record<string,string> = { check_in:'Check-in recorded.',check_out:'Check-out recorded.',duplicate_scan:'Already checked in. Check-out opens at 13:00.',already_complete:'Attendance already complete for today.' }
+const messages:Record<string,string> = { check_in:'Check-in recorded.',check_out:'Check-out recorded.',duplicate_scan:'Already checked in. Check-out opens at 13:00.',already_complete:'Attendance already complete for today.',already_picked_up_by_parent:'This student has already been collected by a parent or authorized adult today.' }
 const scanErrors:Record<string,string> = {
  invalid_badge:'Badge not accepted. Ask the school to replace it.',
  kiosk_closed:'Kiosk closed from 08:01 to 12:59. Contact school staff.',

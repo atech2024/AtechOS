@@ -30,7 +30,7 @@ insert into public.student_parents(student_id,parent_id,relationship) values
  ('fa400000-0000-0000-0000-000000000001','fa600000-0000-0000-0000-000000000001','parent');
 
 do $$
-declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; denied boolean; future_installment uuid; class_plan_id uuid; class_charge_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid;
+declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; denied boolean; allocated_before numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid;
 begin
   if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') or has_table_privilege('authenticated','public.finance_payments','DELETE') then raise exception 'authenticated can directly mutate finance payments'; end if;
   if has_table_privilege('authenticated','public.finance_payment_refunds','INSERT') or has_table_privilege('authenticated','public.finance_payment_refunds','UPDATE') or has_table_privilege('authenticated','public.finance_payment_refunds','DELETE') then raise exception 'authenticated can directly mutate finance refunds'; end if;
@@ -138,10 +138,11 @@ begin
   denied:=false;
   begin perform public.refund_finance_payment(pending_payment_id,1,'Pending payments cannot be refunded'); exception when others then denied:=sqlerrm='payment_not_refundable'; end;
   if not denied then raise exception 'pending payment was refundable'; end if;
+  select coalesce(sum(a.amount),0) into allocated_before from public.finance_credit_allocations a where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id);
   refund_id:=public.refund_finance_payment(credit_payment_id,15,'Partial refund from spent student credit');
   if not exists(select 1 from public.finance_payment_refunds r where r.id=refund_id and r.amount=15 and r.credit_amount=15 and r.applied_amount=0) then raise exception 'partial refund did not ledger the credit portion'; end if;
   if not exists(select 1 from public.finance_student_credits cr where cr.source_payment_id=credit_payment_id and cr.amount=5) then raise exception 'partial refund did not reduce the source credit'; end if;
-  if not exists(select 1 from public.finance_credit_allocations a where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id) and a.charge_id=class_charge_id and a.amount=5) then raise exception 'refund did not restore the debt covered by spent credit'; end if;
+  if (select coalesce(sum(a.amount),0) from public.finance_credit_allocations a where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id))<>allocated_before-15 then raise exception 'refund did not restore the debt covered by spent credit'; end if;
   refund_id:=public.refund_finance_payment(credit_payment_id,30,'Complete the remaining payment refund');
   if not exists(select 1 from public.finance_payment_refunds r where r.id=refund_id and r.amount=30 and r.credit_amount=5 and r.applied_amount=25) then raise exception 'full refund did not reverse the remaining applied and credit portions'; end if;
   if not exists(select 1 from public.finance_payments p where p.id=credit_payment_id and p.amount=45 and p.applied_amount=0) then raise exception 'full refund erased the source receipt or left applied value'; end if;

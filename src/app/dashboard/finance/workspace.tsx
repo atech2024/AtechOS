@@ -17,7 +17,7 @@ type Payment = { id: string; charge_id: string; amount: number; applied_amount: 
 type Adjustment = { id: string; charge_id: string; adjustment_type: string; amount: number; currency_code: string; reason: string; valid_from: string | null; valid_until: string | null; status: string; student_name: string; charge_description: string; created_at: string; review_reason: string | null }
 type AuditEvent = { id: number; actor_id: string | null; actor_role: string | null; actor_name: string | null; entity: string; action: string; occurred_at: string; before_data: unknown; after_data: unknown }
 type StudentCredit = { student_id: string; student_name: string; currency_code: string; amount: number }
-type Settings = { currency_code: string; director_can_validate: boolean; proof_required: boolean; restrict_kiosk: boolean; restrict_exams: boolean; restrict_bulletins: boolean; updated_at: string; updated_by: string }
+type Settings = { currency_code: string; director_can_validate: boolean; proof_required: boolean; restrict_kiosk: boolean; restrict_exams: boolean; restrict_bulletins: boolean; moncash_payment_instructions: string; natcash_payment_instructions: string; bank_transfer_instructions: string; general_payment_instructions: string; updated_at: string; updated_by: string }
 type WorkspaceData = { settings: Settings | null; years: Year[]; classes: ClassItem[]; summary: { expected: number; paid: number; pending_payments: number; validated_payment_count: number; balance: number }; plans: Plan[]; charges: Charge[]; payments: Payment[]; adjustments: Adjustment[]; credits: StudentCredit[]; audit: AuditEvent[]; can_manage: boolean; can_validate: boolean; can_record: boolean }
 type InstallmentDraft = { id: string; amount: string; due_date: string }
 
@@ -30,9 +30,10 @@ const haitiToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/P
 function financeErrorMessage(cause: unknown, locale: string) {
   const code = cause && typeof cause === 'object' && 'code' in cause ? String(cause.code) : ''
   const message = typeof cause === 'string' ? cause : cause instanceof Error ? cause.message : ''
-  const known = new Set(['not_authorized','invalid_payment','charge_not_found','payment_not_pending','payment_proof_required','payment_exceeds_balance','overpayment_only_allowed_for_entry_fees','payment_balance_conflict','proof_unavailable','finance_workspace_empty','not_authenticated'])
+  const known = new Set(['payment_reference_required','not_authorized','invalid_payment','charge_not_found','payment_not_pending','payment_proof_required','payment_exceeds_balance','overpayment_only_allowed_for_entry_fees','payment_balance_conflict','proof_unavailable','finance_workspace_empty','not_authenticated'])
   const key = known.has(message) ? message : known.has(code) ? code : 'finance_action_failed'
   const labels: Record<string, [string,string,string]> = {
+    payment_reference_required: ['Add the transaction reference for this digital payment.','Saisissez la référence de cette transaction numérique.','Antre referans tranzaksyon dijital sa a.'],
     not_authorized: ['You are not allowed to do this.','Vous n’êtes pas autorisé à effectuer cette action.','Ou pa gen otorizasyon pou fè aksyon sa a.'],
     invalid_payment: ['Check the payment amount, method and date.','Vérifiez le montant, le mode et la date du paiement.','Verifye montan, mòd ak dat peman an.'],
     charge_not_found: ['The selected fee was not found. Refresh the page.','Les frais sélectionnés sont introuvables. Actualisez la page.','Frè ou chwazi a pa jwenn. Rafrechi paj la.'],
@@ -93,6 +94,8 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
   const [planLabel, setPlanLabel] = useState('')
   const [installments, setInstallments] = useState<InstallmentDraft[]>([{ id: 'installment-1', amount: '', due_date: '' }])
   const [chargeId, setChargeId] = useState('')
+  const [paymentSearch, setPaymentSearch] = useState('')
+  const [paymentOptions, setPaymentOptions] = useState<Charge[]>([])
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
   const [otherPaymentMethod, setOtherPaymentMethod] = useState('')
@@ -111,18 +114,29 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
   const [restrictKiosk, setRestrictKiosk] = useState(false)
   const [restrictExams, setRestrictExams] = useState(false)
   const [restrictBulletins, setRestrictBulletins] = useState(false)
+  const [moncashInstructions, setMoncashInstructions] = useState('')
+  const [natcashInstructions, setNatcashInstructions] = useState('')
+  const [bankInstructions, setBankInstructions] = useState('')
+  const [generalPaymentInstructions, setGeneralPaymentInstructions] = useState('')
   const loadSequence = useRef(0)
 
   const load = useCallback(async () => {
     const sequence = ++loadSequence.current
     setError('')
     try {
-      const { data: result, error: loadError } = await db.rpc('finance_workspace', { p_academic_year_id: yearId || null, p_class_id: classId || null })
-      if (loadError) throw loadError
+      const [workspaceResult, optionsResult] = await Promise.all([
+        db.rpc('finance_workspace', { p_academic_year_id: yearId || null, p_class_id: classId || null }),
+        db.rpc('finance_payment_options', { p_academic_year_id: yearId || null, p_class_id: classId || null }),
+      ])
+      if (workspaceResult.error) throw workspaceResult.error
+      if (optionsResult.error) throw optionsResult.error
+      const result = workspaceResult.data
       if (sequence !== loadSequence.current) return
       const next = (Array.isArray(result) ? result[0] : result) as WorkspaceData | null
       if (!next) throw new Error('finance_workspace_empty')
       setData(current => ({ ...blank, ...next, payments: initialTab === 'payments' ? current.payments : next.payments }))
+      const options = optionsResult.data as { items?: Charge[] } | null
+      setPaymentOptions(options?.items || [])
       if (!yearId && next.years?.length) setYearId(next.years.find(year => year.is_current)?.id || next.years[0].id)
       if (next.settings) {
         setCurrencyCode(next.settings.currency_code)
@@ -131,6 +145,10 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
         setRestrictKiosk(next.settings.restrict_kiosk)
         setRestrictExams(next.settings.restrict_exams)
         setRestrictBulletins(next.settings.restrict_bulletins)
+        setMoncashInstructions(next.settings.moncash_payment_instructions || '')
+        setNatcashInstructions(next.settings.natcash_payment_instructions || '')
+        setBankInstructions(next.settings.bank_transfer_instructions || '')
+        setGeneralPaymentInstructions(next.settings.general_payment_instructions || '')
       }
     } catch (cause) { if (sequence === loadSequence.current) setError(financeErrorMessage(cause, locale)) }
     finally { if (sequence === loadSequence.current) setLoading(false) }
@@ -158,7 +176,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
   const selectedCharges = data.charges
     .filter(item => (!yearId || item.academic_year_id === yearId) && (!classId || item.class_id === classId))
     .sort((a, b) => a.due_date.localeCompare(b.due_date) || a.student_name.localeCompare(b.student_name) || a.description.localeCompare(b.description))
-  const paymentOptions = selectedCharges.filter(charge => remaining(charge) > 0 && charge.due_date <= haitiToday())
+  const filteredPaymentOptions = paymentOptions.filter(charge => !paymentSearch.trim() || [charge.student_name, charge.student_code, charge.class_name].some(value => value.toLocaleLowerCase().includes(paymentSearch.trim().toLocaleLowerCase())))
   const orderedInstallments = [...installments].sort((a, b) => (a.due_date || '9999-12-31').localeCompare(b.due_date || '9999-12-31') || a.id.localeCompare(b.id))
   const installmentTotal = orderedInstallments.reduce((total, item) => total + (Number(item.amount) || 0), 0)
   const totalExpected = Number(data.summary.expected)
@@ -183,6 +201,14 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
       const { error: actionError } = await db.rpc('save_finance_settings', { p_currency_code: currencyCode.trim().toUpperCase(), p_director_can_validate: directorCanValidate, p_proof_required: proofRequired, p_restrict_kiosk: restrictKiosk, p_restrict_exams: restrictExams, p_restrict_bulletins: restrictBulletins })
       if (actionError) throw actionError
     }, 'Finance settings saved.')
+  }
+
+  async function savePaymentInstructions(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await complete(async () => {
+      const { error: actionError } = await db.rpc('save_finance_payment_instructions', { p_moncash: moncashInstructions, p_natcash: natcashInstructions, p_bank_transfer: bankInstructions, p_general: generalPaymentInstructions })
+      if (actionError) throw actionError
+    }, 'Payment instructions saved.')
   }
 
   async function savePlan(event: FormEvent<HTMLFormElement>) {
@@ -218,6 +244,9 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
       const paidAt = schoolDateTimeToISO(`${paymentDate}T12:00`)
       const recordedMethod = paymentMethod === 'Other' ? otherPaymentMethod.trim() : paymentMethod
       if (!recordedMethod) throw new Error('Choose or enter a payment method.')
+      const digitalPayment = ['moncash', 'natcash', 'bank transfer', 'bank_transfer', 'virement', 'virement bancaire'].includes(recordedMethod.toLocaleLowerCase())
+      if (digitalPayment && !paymentReference.trim()) throw new Error('payment_reference_required')
+      if (digitalPayment && !proof) throw new Error('payment_proof_required')
       const { error: actionError } = await db.rpc('record_finance_payment', { p_charge_id: chargeId, p_amount: Number(paymentAmount), p_payment_method: recordedMethod, p_reference: paymentReference || null, p_proof_storage_path: proofPath, p_paid_at: paidAt })
       if (actionError) throw actionError
       setPaymentAmount(''); setPaymentMethod(''); setOtherPaymentMethod(''); setPaymentReference(''); setProof(null)
@@ -324,8 +353,9 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
 
     {tab === 'payments' && <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
       {data.can_record&&<form onSubmit={recordPayment} className={`${cardClass} space-y-4`}><div><h2 className="text-lg font-semibold"><T text="Record a payment"/></h2><p className="mt-1 text-sm text-slate-600"><T text="A recorded payment remains pending until an authorized person validates it."/></p></div>
-        <label className="block text-sm"><T text="Student fee"/><select required className={`${fieldClass} mt-1`} value={chargeId} onChange={event=>setChargeId(event.target.value)}><option value=""><T text="Choose"/></option>{paymentOptions.map(item=><option key={item.id} value={item.id}>{item.student_name} · {item.description} · {dateLabel(item.due_date,locale)} · {money(remaining(item),item.currency_code,locale)}</option>)}</select></label>
-        {paymentOptions.length===0&&<p className="-mt-2 text-xs text-slate-600"><T text="No installment is due yet. Upcoming installments will appear here on their due dates."/></p>}
+        <label className="block text-sm"><T text="Find student by name, AtechOS ID or class"/><input type="search" className={`${fieldClass} mt-1`} value={paymentSearch} onChange={event=>setPaymentSearch(event.target.value)} placeholder="AtechOS ID · élève · classe"/></label>
+        <label className="block text-sm"><T text="Student fee"/><select required className={`${fieldClass} mt-1`} value={chargeId} onChange={event=>setChargeId(event.target.value)}><option value=""><T text="Choose"/></option>{filteredPaymentOptions.map(item=><option key={item.id} value={item.id}>{item.student_name} · {item.student_code} · {item.class_name} · {item.description} · {dateLabel(item.due_date,locale)} · {money(remaining(item),item.currency_code,locale)}</option>)}</select></label>
+        {filteredPaymentOptions.length===0&&<p className="-mt-2 text-xs text-slate-600"><T text={paymentOptions.length===0?'No installment is due yet. Upcoming installments will appear here on their due dates.':'No student or fee matches this search.'}/></p>}
         {paymentOptions.find(item=>item.id===chargeId&&['inscription','rentree'].includes(item.fee_type))&&<p className="-mt-2 text-xs text-slate-600 sm:col-span-2"><T text="If this entry fee is overpaid, the extra amount becomes student credit and is applied automatically to the next outstanding fees."/></p>}
         <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm"><T text="Amount"/> ({code})<input type="number" required min="0.01" step="0.01" className={`${fieldClass} mt-1`} value={paymentAmount} onChange={event=>setPaymentAmount(event.target.value)}/></label><label className="text-sm"><T text="Payment method"/><select required className={`${fieldClass} mt-1`} value={paymentMethod} onChange={event=>setPaymentMethod(event.target.value)}><option value=""><T text="Choose"/></option>{paymentMethods.map(method=><option key={method} value={method}>{tr(method)}</option>)}</select></label>{paymentMethod==='Other'&&<label className="text-sm"><T text="Specify payment method"/><input required minLength={2} maxLength={60} className={`${fieldClass} mt-1`} value={otherPaymentMethod} onChange={event=>setOtherPaymentMethod(event.target.value)}/></label>}</div>
         <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm"><T text="Payment date"/><SchoolDateInput type="date" required className={`${fieldClass} mt-1`} value={paymentDate} max={haitiToday()} onChange={event=>setPaymentDate(event.target.value)}/></label><label className="text-sm"><T text="Reference"/><input maxLength={120} className={`${fieldClass} mt-1`} value={paymentReference} onChange={event=>setPaymentReference(event.target.value)}/></label></div>
@@ -342,7 +372,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
 
     {tab === 'history' && <section className={`${cardClass} space-y-3`}><h2 className="text-lg font-semibold"><T text="Immutable audit history"/></h2><p className="text-sm text-slate-600"><T text="Finance changes keep the actor, role, timestamp and before/after values. Audit rows cannot be edited through the app."/></p><div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="border-b text-xs uppercase text-slate-500"><tr>{['When','Actor','Role','Record','Action','Details'].map(label=><th key={label} className="px-3 py-3"><T text={label}/></th>)}</tr></thead><tbody className="divide-y">{data.audit.map(event=><tr key={event.id}><td className="px-3 py-3">{new Intl.DateTimeFormat(locale==='fr'?'fr-HT':locale==='ht'?'ht-HT':'en-US',{dateStyle:'short',timeStyle:'short',timeZone:'America/Port-au-Prince'}).format(new Date(event.occurred_at))}</td><td className="px-3 py-3">{event.actor_name||'—'}</td><td className="px-3 py-3"><T text={event.actor_role||'System'}/></td><td className="px-3 py-3">{event.entity}</td><td className="px-3 py-3"><T text={event.action}/></td><td className="max-w-md px-3 py-3"><details><summary className="cursor-pointer text-blue-700"><T text="View change"/></summary><pre className="mt-2 max-w-full overflow-auto whitespace-pre-wrap break-all rounded-lg bg-slate-50 p-2 text-xs">{JSON.stringify(event.after_data||event.before_data,null,2)}</pre></details></td></tr>)}</tbody></table>{data.audit.length===0&&<p className="p-6 text-center text-sm text-slate-500"><T text="No finance actions have been recorded."/></p>}</div></section>}
 
-    {tab === 'settings' && (data.can_manage ? <form onSubmit={saveSettings} className={`${cardClass} grid gap-4 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]`}><div><h2 className="text-lg font-semibold"><T text="Finance settings"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Only school managers can change currency and critical finance rules. Secretaries cannot change these settings."/></p></div><div className="space-y-3"><label className="block text-sm"><T text="Currency code"/><input required minLength={3} maxLength={3} pattern="[A-Za-z]{3}" className={`${fieldClass} mt-1 uppercase`} placeholder="HTG" value={currencyCode} onChange={event=>setCurrencyCode(event.target.value.toUpperCase())}/></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={directorCanValidate} onChange={event=>setDirectorCanValidate(event.target.checked)}/><span><T text="Allow the director to validate payments."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={proofRequired} onChange={event=>setProofRequired(event.target.checked)}/><span><T text="Require proof before a payment can be validated."/></span></label><fieldset className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3"><legend className="px-1 text-sm font-semibold text-slate-900"><T text="Optional overdue-fee restrictions"/></legend><p className="text-xs text-slate-700"><T text="A restriction applies only after a fee due date has passed and the remaining balance is positive. Pending payments do not reduce the balance; approved reductions do. Restrictions are off until the school selects them."/></p><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictKiosk} onChange={event=>setRestrictKiosk(event.target.checked)}/><span><T text="Block student KIOS check-in for an overdue balance."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictExams} onChange={event=>setRestrictExams(event.target.checked)}/><span><T text="Hide published exam schedules in the student and parent portals for an overdue balance."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictBulletins} onChange={event=>setRestrictBulletins(event.target.checked)}/><span><T text="Hide current-year bulletins in the student and parent portals for an overdue balance; prior-year bulletins remain available."/></span></label></fieldset><button disabled={saving} className={buttonClass}><T text="Save finance settings"/></button></div></form> : <section className={cardClass}><p className="text-sm text-slate-600"><T text="Only school managers can change finance settings."/></p></section>)}
+    {tab === 'settings' && (data.can_manage ? <><form onSubmit={saveSettings className={`${cardClass} grid gap-4 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]`}><div><h2 className="text-lg font-semibold"><T text="Finance settings"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Only school managers can change currency and critical finance rules. Secretaries cannot change these settings."/></p></div><div className="space-y-3"><label className="block text-sm"><T text="Currency code"/><input required minLength={3} maxLength={3} pattern="[A-Za-z]{3}" className={`${fieldClass} mt-1 uppercase`} placeholder="HTG" value={currencyCode} onChange={event=>setCurrencyCode(event.target.value.toUpperCase())}/></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={directorCanValidate} onChange={event=>setDirectorCanValidate(event.target.checked)}/><span><T text="Allow the director to validate payments."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={proofRequired} onChange={event=>setProofRequired(event.target.checked)}/><span><T text="Require proof before a payment can be validated."/></span></label><fieldset className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3"><legend className="px-1 text-sm font-semibold text-slate-900"><T text="Optional overdue-fee restrictions"/></legend><p className="text-xs text-slate-700"><T text="A restriction applies only after a fee due date has passed and the remaining balance is positive. Pending payments do not reduce the balance; approved reductions do. Restrictions are off until the school selects them."/></p><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictKiosk} onChange={event=>setRestrictKiosk(event.target.checked)}/><span><T text="Block student KIOS check-in for an overdue balance."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictExams} onChange={event=>setRestrictExams(event.target.checked)}/><span><T text="Hide published exam schedules in the student and parent portals for an overdue balance."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictBulletins} onChange={event=>setRestrictBulletins(event.target.checked)}/><span><T text="Hide current-year bulletins in the student and parent portals for an overdue balance; prior-year bulletins remain available."/></span></label></fieldset><button disabled={saving} className={buttonClass}><T text="Save finance settings"/></button></div></form><form onSubmit={savePaymentInstructions} className={`${cardClass} grid gap-4 lg:grid-cols-2`}><div><h2 className="text-lg font-semibold"><T text="Digital payment instructions"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Enter the account, phone number or bank details parents must use. Only linked parents see these instructions."/></p></div><label className="block text-sm">MonCash — <T text="Account name and number"/><textarea maxLength={1200} rows={3} className={`${fieldClass} mt-1`} value={moncashInstructions} onChange={event=>setMoncashInstructions(event.target.value)}/></label><label className="block text-sm">NatCash — <T text="Account name and number"/><textarea maxLength={1200} rows={3} className={`${fieldClass} mt-1`} value={natcashInstructions} onChange={event=>setNatcashInstructions(event.target.value)}/></label><label className="block text-sm"><T text="Bank transfer details"/><textarea maxLength={1200} rows={3} className={`${fieldClass} mt-1`} value={bankInstructions} onChange={event=>setBankInstructions(event.target.value)}/></label><label className="block text-sm"><T text="General payment instructions or payment location"/><textarea maxLength={1200} rows={3} className={`${fieldClass} mt-1`} value={generalPaymentInstructions} onChange={event=>setGeneralPaymentInstructions(event.target.value)}/></label><button disabled={saving} className={`${buttonClass} lg:col-span-2`}><T text="Save payment instructions"/></button></form></> : <section className={cardClass}><p className="text-sm text-slate-600"><T text="Only school managers can change finance settings."/></p></section>)}
 
   </main>
 }

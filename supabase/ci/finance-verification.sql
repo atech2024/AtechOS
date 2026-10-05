@@ -30,7 +30,7 @@ insert into public.student_parents(student_id,parent_id,relationship) values
  ('fa400000-0000-0000-0000-000000000001','fa600000-0000-0000-0000-000000000001','parent');
 
 do $$
-declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; setup jsonb; ledger jsonb; denied boolean; allocated_before numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid;
+declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; setup jsonb; ledger jsonb; denied boolean; allocated_before numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid; cross_plan_id uuid; cross_charge_id uuid; cross_payment_id uuid;
 begin
   if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') or has_table_privilege('authenticated','public.finance_payments','DELETE') then raise exception 'authenticated can directly mutate finance payments'; end if;
   if has_table_privilege('authenticated','public.finance_payment_refunds','INSERT') or has_table_privilege('authenticated','public.finance_payment_refunds','UPDATE') or has_table_privilege('authenticated','public.finance_payment_refunds','DELETE') then raise exception 'authenticated can directly mutate finance refunds'; end if;
@@ -212,12 +212,32 @@ begin
   denied:=false;
   begin perform public.submit_family_finance_payment(entry_charge_id,5,'PayPal','CI-PARENT-DISABLED',''); exception when others then denied:=sqlerrm='payment_method_disabled'; end;
   if not denied then raise exception 'parent submitted a disabled payment method'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  perform public.save_finance_payment_methods(jsonb_build_object(
+    'moncash',jsonb_build_object('enabled',true,'account_name','Finance CI','phone','50937000001','max_htg',2500),
+    'natcash',jsonb_build_object('enabled',true,'account_name','Finance CI','phone','50937000002','max_htg',1800),
+    'paypal',jsonb_build_object('enabled',true,'account_name','Finance CI','email','finance-ci@example.test'),
+    'zelle',jsonb_build_object('enabled',true,'account_name','Finance CI','email','finance-ci@example.test'),
+    'bank_transfer_htg',jsonb_build_object('enabled',true,'bank_name','CI HTG Bank','account_name','Finance CI','account_number','HTG-001'),
+    'bank_transfer_usd',jsonb_build_object('enabled',true,'bank_name','CI USD Bank','account_name','Finance CI','account_number','USD-001')));
+  cross_plan_id:=public.create_finance_fee_plan('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001','class_fee','HTG fee paid in USD','[{"amount":2000,"due_date":"2026-09-01"}]'::jsonb);
+  if public.issue_finance_fee_plan(cross_plan_id)<>1 then raise exception 'USD-to-HTG test charge was not generated'; end if;
+  select id into cross_charge_id from public.finance_charges where fee_plan_id=cross_plan_id;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000005',true);
   insert into storage.objects(bucket_id,name,owner_id,metadata)
   values('finance-proofs','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf','fa300000-0000-0000-0000-000000000005','{}'::jsonb);
   payment_id:=public.submit_family_finance_payment(entry_charge_id,10,'MonCash','CI-PARENT-MONCASH','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf');
   if not exists(select 1 from public.finance_payments p where p.id=payment_id and p.status='pending' and p.recorded_by='fa300000-0000-0000-0000-000000000005' and p.reference='CI-PARENT-MONCASH' and p.proof_storage_path is not null) then raise exception 'parent digital payment was not submitted for school approval with proof'; end if;
   workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
   if not exists(select 1 from jsonb_array_elements(workspace->'payments') p where p->>'id'=payment_id::text) then raise exception 'parent did not see their own submitted payment request'; end if;
+  cross_payment_id:=public.submit_family_finance_payment(cross_charge_id,10,'PayPal','CI-PARENT-USD-TO-HTG','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf');
+  if not exists(select 1 from public.finance_payments p where p.id=cross_payment_id and p.status='pending' and p.amount=10 and p.currency_code='USD' and p.applied_currency_code='HTG' and p.applied_amount=1305.58) then raise exception 'parent USD tender was not reserved against its HTG fee using the BRH rate'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
+  perform public.review_finance_payment(cross_payment_id,'validated',null);
+  if not exists(select 1 from public.finance_payments p where p.id=cross_payment_id and p.status='validated' and p.applied_amount=1305.58 and p.exchange_rate_snapshot=130.5583 and p.applied_currency_code='HTG') then raise exception 'USD parent payment did not settle the HTG charge using its validation snapshot'; end if;
+  refund_id:=public.refund_finance_payment(cross_payment_id,2,'Partial USD refund for HTG fee');
+  if not exists(select 1 from public.finance_payment_refunds r where r.id=refund_id and r.amount=2 and r.applied_amount=261.12 and r.credit_amount=0) then raise exception 'USD refund was not converted into the HTG fee currency'; end if;
+  if not exists(select 1 from public.finance_payments p where p.id=cross_payment_id and p.applied_amount=1044.46) then raise exception 'USD refund did not restore the converted HTG balance'; end if;
 end $$;
 
 rollback;

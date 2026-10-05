@@ -39,6 +39,7 @@ begin
 
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
   perform public.save_finance_settings('HTG',false,false);
+  perform public.save_finance_payment_instructions('Finance MonCash','Finance NatCash','CI bank account','Pay at the school office');
   workspace:=public.finance_workspace('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001');
   if (workspace->'settings'->>'restrict_kiosk')::boolean or (workspace->'settings'->>'restrict_exams')::boolean or (workspace->'settings'->>'restrict_bulletins')::boolean then raise exception 'finance restrictions must default off'; end if;
   plan_id:=public.create_finance_fee_plan('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001','rentree','Rentrée 2026',
@@ -63,6 +64,12 @@ begin
   values('fa000000-0000-0000-0000-000000000001','fa400000-0000-0000-0000-000000000002','fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001',plan_id,future_installment,'Future installment',200,'HTG','2027-01-15','fa300000-0000-0000-0000-000000000002') returning id into future_charge;
 
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000003',true);
+  denied:=false;
+  begin perform public.record_finance_payment(charge_id,5,'MonCash',null,null,'2026-09-01 12:00:00-04'); exception when others then denied:=sqlerrm='payment_reference_required'; end;
+  if not denied then raise exception 'staff digital payment without a transaction reference was accepted'; end if;
+  denied:=false;
+  begin perform public.record_finance_payment(charge_id,5,'NatCash','CI-MISSING-PROOF',null,'2026-09-01 12:00:00-04'); exception when others then denied:=sqlerrm='payment_proof_required'; end;
+  if not denied then raise exception 'staff digital payment without proof was accepted'; end if;
   payment_id:=public.record_finance_payment(charge_id,50,'Cash','CI-PARTIAL-1',null,'2026-09-01 12:00:00-04');
   denied:=false;
   begin perform public.review_finance_payment(payment_id,'validated',null); exception when others then denied:=sqlerrm='not_authorized'; end;
@@ -157,6 +164,20 @@ begin
   denied:=false;
   begin perform public.finance_workspace(); exception when others then denied:=sqlerrm='not_authorized'; end;
   if not denied then raise exception 'parent accessed internal finance workspace'; end if;
+  workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
+  if workspace->'student'->>'id'<>'fa400000-0000-0000-0000-000000000001' or workspace->'settings'->>'moncash_payment_instructions'<>'Finance MonCash' then raise exception 'linked parent finance details or payment instructions were not returned'; end if;
+  denied:=false;
+  begin perform public.family_finance_workspace('fa400000-0000-0000-0000-000000000002'); exception when others then denied:=sqlerrm='not_authorized'; end;
+  if not denied then raise exception 'parent accessed an unrelated student finance workspace'; end if;
+  denied:=false;
+  begin perform public.submit_family_finance_payment(entry_charge_id,5,'Cash','CI-PARENT-CASH',''); exception when others then denied:=sqlerrm='invalid_payment_method'; end;
+  if not denied then raise exception 'parent submitted a non-digital payment method'; end if;
+  insert into storage.objects(bucket_id,name,owner_id,metadata)
+  values('finance-proofs','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf','fa300000-0000-0000-0000-000000000005','{}'::jsonb);
+  payment_id:=public.submit_family_finance_payment(entry_charge_id,10,'MonCash','CI-PARENT-MONCASH','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf');
+  if not exists(select 1 from public.finance_payments p where p.id=payment_id and p.status='pending' and p.recorded_by='fa300000-0000-0000-0000-000000000005' and p.reference='CI-PARENT-MONCASH' and p.proof_storage_path is not null) then raise exception 'parent digital payment was not submitted for school approval with proof'; end if;
+  workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
+  if not exists(select 1 from jsonb_array_elements(workspace->'payments') p where p->>'id'=payment_id::text) then raise exception 'parent did not see their own submitted payment request'; end if;
 end $$;
 
 rollback;

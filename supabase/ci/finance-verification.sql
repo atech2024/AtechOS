@@ -160,7 +160,7 @@ begin
   if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and entity='finance_payment_refunds' and action='created') then raise exception 'refund did not create an audit event'; end if;
   if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000001' and actor_role='director' and entity='finance_payment_refunds' and action='created') then raise exception 'refund audit did not retain the approving actor role'; end if;
 
-  if has_column_privilege('authenticated','public.finance_payments','INSERT') or has_column_privilege('authenticated','public.finance_payments','UPDATE') then raise exception 'parent can directly mutate finance payments'; end if;
+  if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') then raise exception 'parent can directly mutate finance payments'; end if;
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000005',true);
   denied:=false;
   begin perform public.finance_workspace(); exception when others then denied:=sqlerrm='not_authorized'; end;

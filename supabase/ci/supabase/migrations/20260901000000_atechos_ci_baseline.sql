@@ -313,7 +313,7 @@ begin
   if a.id is null then return jsonb_build_object('error','current_class_required');end if;result:='check_in';
  end if;
  if result in ('check_in','check_out') then insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date) values(a.id,s.id,'KIOS',s.user_id,s.first_name||' '||s.last_name,'student',result,d);end if;
- return jsonb_build_object('action',result,'name',s.first_name||' '||s.last_name);
+ return jsonb_build_object('action',result,'atechos_id',s.atechos_id,'name',s.first_name||' '||s.last_name);
 end $$;
 
 create or replace function public.scan_student_code(p_code text,p_school uuid) returns jsonb

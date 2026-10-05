@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const migration=readFileSync('supabase/migrations/20261005044450_student_sanctions_emergency_release.sql','utf8')
+const verification=readFileSync('supabase/ci/student-followup-verification.sql','utf8')
+const workflow=readFileSync('.github/workflows/supabase-migration-check.yml','utf8')
+const page=readFileSync('src/app/dashboard/sanctions/page.tsx','utf8')
+const nav=readFileSync('src/lib/navigation.ts','utf8')
+const translations=readFileSync('src/lib/translations.ts','utf8')
+const extraTranslations=readFileSync('src/lib/translations-extra.ts','utf8')
+
+assert.match(nav,/{label:'Sanctions and departures',href:'\/dashboard\/sanctions',icon:'requests',roles:administration,group:'followup'}/)
+assert.match(page,/student_followup_workspace/)
+for(const rpc of ['save_student_sanction_type','create_student_sanction','resolve_student_sanction','save_student_release_contact','request_student_release','review_student_release','record_student_release','confirm_student_return']) assert.ok(page.includes(`'${rpc}'`),`UI must use ${rpc}`)
+assert.match(page,/Approve/);assert.match(page,/Reject/);assert.match(page,/Confirm student return/)
+assert.match(migration,/array\['school_admin','director','secretary'\]/)
+assert.match(migration,/foreign key\(contact_id,student_id,school_id\)/)
+assert.match(migration,/student_followup_events_immutable/)
+assert.match(migration,/revoke all on public\.student_sanction_types,public\.student_sanctions,public\.student_release_contacts,/)
+assert.match(migration,/grant execute on function public\.student_followup_workspace\(\)[\s\S]*?to authenticated/)
+assert.match(verification,/rollback;\s*$/i)
+for(const assertion of ['teacher accessed follow-up workspace','parent accessed staff follow-up workspace','another school manager modified this school student','contact registered for another student was accepted','release request did not notify the other authorized staff','rejection without a reason was accepted','medical release/return actor timeline was not recorded','follow-up audit record was changed'])assert.ok(verification.includes(assertion),`SQL test must include: ${assertion}`)
+assert.match(workflow,/20261005044450_student_sanctions_emergency_release\.sql/)
+assert.match(workflow,/student-followup-verification\.sql/)
+for(const text of ['Sanctions and departures','Sanctions and student departures','Register authorized adult','Departure requests','Confirm student return']) assert.ok((translations+extraTranslations).includes(text),`FR/HT translation required: ${text}`)
+console.log('PASS sanctions and emergency release contract: admin roles, staff validation, authorized alternate contact, tenant-scoped SQL fixture and FR/HT UI.')

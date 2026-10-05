@@ -8,6 +8,7 @@ on:
       - feature/preschool-grade-labels
       - feature/build01-navigation-shell
       - fix/progression-points-integrity
+      - feature/sanctions-emergency-release
     paths:
       - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
       - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
@@ -52,6 +53,7 @@ on:
       - "supabase/ci-badge/**"
       - "supabase/ci-progression/**"
       - "supabase/migrations/20261005040000_progression_points_weighted_year_average.sql"
+      - "supabase/migrations/20261005044450_student_sanctions_emergency_release.sql"
       - ".github/workflows/supabase-migration-check.yml"
   pull_request:
     paths:
@@ -97,6 +99,7 @@ on:
       - "supabase/ci-badge/**"
       - "supabase/ci-progression/**"
       - "supabase/migrations/20261005040000_progression_points_weighted_year_average.sql"
+      - "supabase/migrations/20261005044450_student_sanctions_emergency_release.sql"
       - ".github/workflows/supabase-migration-check.yml"
   workflow_dispatch:
 
@@ -152,6 +155,7 @@ jobs:
           cp supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004220000_finance_payment_refunds.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005013350_parent_finance_payment_portal.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005044450_student_sanctions_emergency_release.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
@@ -170,6 +174,7 @@ jobs:
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < official-exam-confirmation-verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < class-section-verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < finance-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < student-followup-verification.sql
       - name: Stop local Supabase
         if: always()
         working-directory: supabase/ci

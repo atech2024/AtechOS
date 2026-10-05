@@ -2,7 +2,7 @@ import type {Locale} from './i18n'
 import {extraTranslations} from './translations-extra'
 export const translations:Record<string,[string,string]> = {
  ...extraTranslations,
- "Review this child\u0027s due fees and submit proof of a digital payment. The school will verify it before posting it.":['Consultez les frais échus de cet enfant et joignez la preuve de paiement. L’école la vérifiera avant de l’enregistrer.','Gade frè pitit sa a ki rive dat yo, epi mete prèv peman an. Lekòl la ap verifye li anvan li anrejistre peman an.'],
+ "Review this child's due fees and submit proof of a digital payment. The school will verify it before posting it.":['Consultez les frais échus de cet enfant et joignez la preuve de paiement. L’école la vérifiera avant de l’enregistrer.','Gade frè pitit sa a ki rive dat yo, epi mete prèv peman an. Lekòl la ap verifye li anvan li anrejistre peman an.'],
  "School payments":['Paiements scolaires','Peman lekòl'],
  "No finance information is available for this child.":['Aucune information financière n’est disponible pour cet enfant.','Pa gen enfòmasyon finans ki disponib pou pitit sa a.'],
  "Submit a payment request":['Soumettre une demande de paiement','Soumèt yon demann peman'],

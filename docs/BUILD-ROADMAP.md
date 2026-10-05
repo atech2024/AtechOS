@@ -2,11 +2,11 @@
 
 Updated: 2026-10-05
 
-Statuses use only `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`. A build is not done until its acceptance criteria and relevant tests pass. Existing code is not proof that a build meets the product requirements; unreviewed areas remain explicitly unaudited.
+Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION REQUIRED` when a missing business rule changes permissions, audit, or user-visible behavior. A build is not done until its acceptance criteria and relevant tests pass. Existing code is not proof that a build meets the product requirements; unreviewed areas remain explicitly unaudited.
 
 ## Current state
 
-- Current production commit: `01292e15048a5c84346f5fdaf1bde464f75f5102` (PR #69), deployed Ready to Vercel Production. BUILD 08 Fin d’année / Relevé / 9e AF remains active for field validation after Finance's core became Production-ready.
+- BUILD 08 application change: `01292e15048a5c84346f5fdaf1bde464f75f5102` (PR #69); Vercel Production is Ready on the implementation and latest documentation commits. BUILD 08 remains active for director field validation after Finance's core became Production-ready.
 - The separate documentation PR branch `docs/current-workflows-deployment` remains unchanged; its PR is not part of this implementation branch.
 - Live review: `https://atech-os-kog7.vercel.app/dashboard` was accessible in the authenticated browser on 2026-10-02. It showed a flat sidebar, a duplicate “Vos modules” dashboard catalog, no breadcrumb or academic-year control, and a Haitian-Creole date in a French UI. This records the observed page only; it does not identify the live deployment's source commit.
 - No database or RLS changes are in scope for BUILD 01. The topbar reads the existing current academic-year label when available; year selection and applying a selected year across domains belong to BUILD 03.
@@ -34,6 +34,7 @@ Statuses use only `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`. A build is
 | 12 — Student Life & Calendar | IN PROGRESS | — | — | BUILDS 03, 04 | School-calendar, official-calendar-sources, kiosk/attendance, date tests | Calendar and official-source proposal workflows exist. Staff confirmation of saved official exam proposals passed local tests, typecheck, build, and isolated hosted SQL verification; authenticated role-by-role review remains pending. Audit annual setup, closures, and holidays. |
 | 13 — Parent/Student Portals | IN PROGRESS | — | — | BUILDS 05, 06, 08, 12 | Student-edge/privacy, report-card, assignment, portal and attendance tests | Student and parent views exist; audit identity, published-only bulletins, linked-child isolation, assignments, and attendance visibility. |
 | 14 — Premium Polish | NOT STARTED | — | — | BUILDS 01–13 | Full product test suite, localization audit, desktop/tablet/mobile review, production build | Final consistency, loading/error/empty states, responsive behavior, and accessible interaction audit. |
+| 15 — Sanctions & Emergency Student Release | IN PROGRESS | 2026-10-05 | — | BUILDS 06, 10, 11 | `tests/student-followup.mjs`, `supabase/ci/student-followup-verification.sql`, isolated Supabase CI, FR/HT audit | Added the staff-only `/dashboard/sanctions` page, school-specific sanction types and resolution, authorized alternate contacts, reviewable medical/exceptional departure, release/return timestamps, immutable actor/role audit and staff notifications. User confirmed director, school administrator, and secretary manage records/contacts; sanctions are school-defined. Local tests, isolated SQL CI (run 37269612947), and Vercel check passed; keep IN PROGRESS until production migration postflight and deployment runtime verification pass. |
 
 ### BUILD 09 — Finance & Accounting progress (2026-10-03)
 
@@ -46,6 +47,13 @@ Statuses use only `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`. A build is
 | --- | --- | --- | --- | --- | --- | --- |
 | 09 — Finance & Accounting | FIELD VALIDATION | YES — production payment, parent proof submission, review, refund and audit workflow | Role-by-role manual walkthrough; responsive/validation review; confirm school payment instructions | None identified in core workflow | Linked-parent and staff accounts required | YES |
 | 08 — Fin d’année / Relevé / 9e AF | IN PROGRESS | YES — annual points average, published-grade completeness, configurable passing threshold, director-reviewed recommendation | Test with a director using representative school records; verify AF9→NS1 and other level outcomes and the explicit director approval step | None identified after isolated SQL CI and production migration verification | Director and school data required for live field validation | YES |
+
+### Next Must-Have priority checkpoint (2026-10-05)
+
+- BUILD 08 is FUNCTIONALLY VIABLE and Production-deployed. Its only open work is a Return Pass with a director using representative school records; class changes remain explicitly director-reviewed. Do not hold the roadmap on cosmetic or optional BUILD 08 work.
+- Next Must-Have by the user's priority order: sanctions, medical/exceptional student departure, and Emergency Release. Repository audit found no dedicated route, data model, or RPC for these workflows. Reuse school membership, audit conventions, and existing notifications/approvals where they fit; do not treat the teacher-access approval engine or Preschool pickup flow as a general student-release system.
+- User confirmed the rules for the first implementation pass: school-specific sanction catalog, case/contact management by Direction/school_admin/secretary, and medical/exceptional release validated by an authorized responsible person with an authorized alternate contact, reason, departure time, and return time. Only Direction/school_admin/secretary may register alternate contacts. Implementation is now active; don't require a government ID number or extra approvals that the user didn't request.
+- Current branch implements the staff UI and SQL RPC surface. Local typecheck, test suite and build passed; rollback-only Supabase role/isolation/audit workflow passed on hosted CI run 37269612947, and Vercel's PR check passed. Production migration/deployment postflight remains; do not mark complete until those checks pass.
 
 ### BUILD 08 — Fin d’année / Relevé / 9e AF production checkpoint (2026-10-05)
 

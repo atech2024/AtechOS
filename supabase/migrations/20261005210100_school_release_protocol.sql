@@ -68,24 +68,17 @@ begin
   src:=regexp_replace(src,'(declare\s+)','\1protocol_id uuid; ', 'i');
  end if;
  if position('protocol_id uuid;' in lower(src))=0 then raise exception 'school_release_protocol_declaration_anchor_missing';end if;
- window_anchor:='/* student_release_kiosk_checkout */ if window_name=''blocked'' and exists(';
- if position(window_anchor in src)=0 then raise exception 'school_release_protocol_window_anchor_missing';end if;
- src:=replace(src,window_anchor,
+ window_anchor:='if window_name=''blocked''';
+ if position(window_anchor in lower(src))=0 then raise exception 'school_release_protocol_window_anchor_missing';end if;
+ src:=regexp_replace(src,window_anchor,
   '/* school_release_protocol_checkout */ select p.id into protocol_id from public.school_release_protocols p where p.school_id=s.school_id and p.protocol_date=d;'
   ||'if protocol_id is not null and not private.is_preschool_student(s.id) then window_name:=''checkout'';end if;'
-  ||window_anchor);
- event_anchor:='insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date) values(a.id,s.id,''KIOS'',s.user_id,s.first_name||'' ''||s.last_name,''student'',result,d);';
- if position(event_anchor in src)>0 then
-  src:=replace(src,event_anchor,
-   'insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date,school_release_protocol_id) '
-   ||'values(a.id,s.id,''KIOS'',s.user_id,s.first_name||'' ''||s.last_name,''student'',result,d,case when result=''check_out'' and protocol_id is not null and not private.is_preschool_student(s.id) then protocol_id end);');
- else
-  event_anchor:='insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action) values(a.id,s.id,''KIOS'',s.user_id,s.first_name||'' ''||s.last_name,''student'',result);';
-  if position(event_anchor in src)=0 then raise exception 'school_release_protocol_event_anchor_missing';end if;
-  src:=replace(src,event_anchor,
-   'insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,school_release_protocol_id) '
-   ||'values(a.id,s.id,''KIOS'',s.user_id,s.first_name||'' ''||s.last_name,''student'',result,case when result=''check_out'' and protocol_id is not null and not private.is_preschool_student(s.id) then protocol_id end);');
- end if;
+  ||window_anchor,'i');
+ event_anchor:='(insert into public[.]attendance_events\s*[(]\s*attendance_id\s*,\s*student_id\s*,\s*source\s*,\s*actor_id\s*,\s*actor_name\s*,\s*actor_role\s*,\s*action)(\s*,\s*attendance_date)?\s*[)]\s*values\s*[(]\s*(a[.]id\s*,\s*s[.]id\s*,\s*''KIOS''\s*,\s*s[.]user_id\s*,\s*s[.]first_name\s*[|][|]\s*'' ''\s*[|][|]\s*s[.]last_name\s*,\s*''student''\s*,\s*result)(\s*,\s*d)?\s*[)]\s*;';
+ if position('school_release_protocol_id)' in src)>0 then raise exception 'school_release_protocol_event_already_patched';end if;
+ src:=regexp_replace(src,event_anchor,
+  '\1\2,school_release_protocol_id) values(\3\4,case when result=''check_out'' and protocol_id is not null and not private.is_preschool_student(s.id) then protocol_id end);','i');
+ if position('school_release_protocol_id)' in src)=0 then raise exception 'school_release_protocol_event_anchor_missing';end if;
  result_anchor:='return jsonb_build_object(''guard_meeting_required'',exists(';
  if position(result_anchor in src)=0 then raise exception 'school_release_protocol_result_anchor_missing';end if;
  src:=replace(src,result_anchor,'return jsonb_build_object(''school_release_protocol_active'',protocol_id is not null and not private.is_preschool_student(s.id),''guard_meeting_required'',exists(');

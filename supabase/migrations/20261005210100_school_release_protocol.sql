@@ -60,24 +60,32 @@ end $$;
 -- check out regardless of the normal KIOS time window. Students without a
 -- check-in stay blocked; Preschool must use the separate staff pickup workflow.
 do $school_release_kiosk$
-declare src text;declaration_anchor text;window_anchor text;event_anchor text;result_anchor text;
+declare src text;window_anchor text;event_anchor text;result_anchor text;
 begin
  select pg_get_functiondef('private.record_student_kiosk(uuid)'::regprocedure) into src;
  if position('school_release_protocol_checkout' in src)>0 then return;end if;
- declaration_anchor:='class_count integer; window_name text:=private.kiosk_window((now() at time zone ''America/Port-au-Prince'')::time);';
- if position(declaration_anchor in src)=0 then raise exception 'school_release_protocol_declaration_anchor_missing';end if;
- src:=replace(src,declaration_anchor,'class_count integer; protocol_id uuid; window_name text:=private.kiosk_window((now() at time zone ''America/Port-au-Prince'')::time);');
+ if position('protocol_id uuid;' in lower(src))=0 then
+  src:=regexp_replace(src,'(declare\s+)','\1protocol_id uuid; ', 'i');
+ end if;
+ if position('protocol_id uuid;' in lower(src))=0 then raise exception 'school_release_protocol_declaration_anchor_missing';end if;
  window_anchor:='/* student_release_kiosk_checkout */ if window_name=''blocked'' and exists(';
  if position(window_anchor in src)=0 then raise exception 'school_release_protocol_window_anchor_missing';end if;
  src:=replace(src,window_anchor,
   '/* school_release_protocol_checkout */ select p.id into protocol_id from public.school_release_protocols p where p.school_id=s.school_id and p.protocol_date=d;'
   ||'if protocol_id is not null and not private.is_preschool_student(s.id) then window_name:=''checkout'';end if;'
   ||window_anchor);
- event_anchor:='insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action) values(a.id,s.id,''KIOS'',s.user_id,s.first_name||'' ''||s.last_name,''student'',result);';
- if position(event_anchor in src)=0 then raise exception 'school_release_protocol_event_anchor_missing';end if;
- src:=replace(src,event_anchor,
-  'insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,school_release_protocol_id) '
-  ||'values(a.id,s.id,''KIOS'',s.user_id,s.first_name||'' ''||s.last_name,''student'',result,case when result=''check_out'' and protocol_id is not null and not private.is_preschool_student(s.id) then protocol_id end);');
+ event_anchor:='insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date) values(a.id,s.id,''KIOS'',s.user_id,s.first_name||'' ''||s.last_name,''student'',result,d);';
+ if position(event_anchor in src)>0 then
+  src:=replace(src,event_anchor,
+   'insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date,school_release_protocol_id) '
+   ||'values(a.id,s.id,''KIOS'',s.user_id,s.first_name||'' ''||s.last_name,''student'',result,d,case when result=''check_out'' and protocol_id is not null and not private.is_preschool_student(s.id) then protocol_id end);');
+ else
+  event_anchor:='insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action) values(a.id,s.id,''KIOS'',s.user_id,s.first_name||'' ''||s.last_name,''student'',result);';
+  if position(event_anchor in src)=0 then raise exception 'school_release_protocol_event_anchor_missing';end if;
+  src:=replace(src,event_anchor,
+   'insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,school_release_protocol_id) '
+   ||'values(a.id,s.id,''KIOS'',s.user_id,s.first_name||'' ''||s.last_name,''student'',result,case when result=''check_out'' and protocol_id is not null and not private.is_preschool_student(s.id) then protocol_id end);');
+ end if;
  result_anchor:='return jsonb_build_object(''guard_meeting_required'',exists(';
  if position(result_anchor in src)=0 then raise exception 'school_release_protocol_result_anchor_missing';end if;
  src:=replace(src,result_anchor,'return jsonb_build_object(''school_release_protocol_active'',protocol_id is not null and not private.is_preschool_student(s.id),''guard_meeting_required'',exists(');

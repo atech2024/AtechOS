@@ -17,6 +17,9 @@ const publishedOnlyMigration = readFileSync('supabase/migrations/20261003023548_
 const badgeBaseline = readFileSync('supabase/ci-badge/supabase/migrations/20260901000000_badge_pre_lifecycle_baseline.sql', 'utf8');
 const badgeVerification = readFileSync('supabase/ci-badge/badge-verification.sql', 'utf8');
 const badgeLifecycleMigration = readFileSync('supabase/migrations/20260928004221_badge_lifecycle_history.sql', 'utf8');
+const progressionBaseline = readFileSync('supabase/ci-progression/supabase/migrations/20260901000000_progression_integrity_baseline.sql', 'utf8');
+const progressionVerification = readFileSync('supabase/ci-progression/progression-verification.sql', 'utf8');
+const progressionMigration = readFileSync('supabase/migrations/20261005040000_progression_points_weighted_year_average.sql', 'utf8');
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
 assert.match(workflow, /version:\s*2\.119\.0/);
@@ -112,5 +115,20 @@ assert.match(badgeVerification.trim(), /^begin;/i);
 assert.match(badgeVerification, /rollback;\s*$/i);
 for(const assertion of ['active badge QR must be stable for physical reprint','parent received private operational QR','lost badge QR must stop working immediately','unrelated parent accessed badge workspace','teacher accessed badge workspace','replacement must rotate private QR','old QR accepted after replacement','duplicate scan toggled a KIOS checkout','direct badge reactivation bypassed lifecycle RPC']) assert.ok(badgeVerification.includes(assertion), `badge lifecycle SQL fixture must check: ${assertion}`);
 assert.doesNotMatch(badgeVerification, /https:\/\/[^\s]*supabase\.co/);
+
+assert.match(pushBranches, /- fix\/progression-points-integrity/);
+assert.match(workflow, /progression-integrity:/);
+assert.match(workflow, /cp \.\.\/migrations\/20261005040000_progression_points_weighted_year_average\.sql supabase\/migrations\//);
+assert.match(workflow, /< progression-verification\.sql/);
+assert.match(progressionMigration, /sum\(g\.score\*coalesce\(g\.assessment_weight,100\)\/100\)/i);
+assert.match(progressionMigration, /sum\(g\.max_score\*coalesce\(g\.assessment_weight,100\)\/100\)/i);
+assert.match(progressionMigration, /case when r\.complete then m\.general_average end/i);
+assert.match(progressionVerification, /year average must use earned points \/ possible points/i);
+assert.match(progressionVerification, /incomplete bulletin must not show a promotion average or recommendation/i);
+assert.match(progressionVerification, /one published grade per active subject and period is complete; controls_per_period is a maximum/i);
+assert.match(progressionVerification, /a passing AF9 student must be recommended to NS1 for director review/i);
+assert.match(progressionVerification, /cross-school progression preview was not denied/i);
+assert.match(progressionBaseline, /create or replace function private\.has_role/i);
+assert.match(progressionBaseline, /create table public\.grades/i);
 
 console.log('PASS free, isolated Supabase CI contract: synthetic baseline, only targeted migrations, rollback-only data checks, no production credentials or remote database commands.');

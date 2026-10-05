@@ -39,8 +39,13 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 ### BUILD 13 — Family portal follow-up (2026-10-05)
 
 - PR #79 (`1f8c569`) adds paginated, date-filtered attendance history with a 366-day maximum window and verified school/parent isolation. Supabase migration `20261005155314` is applied in production; isolated SQL, application CI, and Vercel Production passed. The live parent route returned its no-linked-child state when opened under a director account, so parent-specific data rendering still needs a linked-parent walkthrough.
-- PR #80 adds the ten newest family-routed notifications to the parent portal and a mark-as-read action through the existing RPC. It adds no database migration or access grants. Local full tests, typecheck, focused lint, and production build passed; hosted Application CI and Vercel Preview passed for implementation commit `119b83f`.
+- PR #80 adds the ten newest family-routed notifications to the parent portal and a mark-as-read action through the existing RPC. It adds no database migration or access grants. It was squash-merged as `ae00f33` and Vercel marked its Production deployment Ready. Authenticated parent data rendering still needs a linked-parent walkthrough.
 - Remaining Family Command Center work is IN PROGRESS: linked-parent acceptance walkthrough, guardian-only badge history, fuller exams/calendar summary and bulletin grouping, broad access audit, responsive review, and action-oriented overview.
+
+### BUILD 09 — Parent USD method visibility regression guard (2026-10-05)
+
+- The parent payment selector now uses one tested currency-compatibility helper: enabled USD methods remain selectable for HTG fees, while HTG-only methods cannot be used for USD fees. This protects the behavior released in PR #78 and preserves the school’s enabled-method settings.
+- Added a regression test covering HTG fees, USD fees, unsupported currencies, and missing settings. Local full tests, typecheck, focused lint, production build, and whitespace checks pass. No database migration or production configuration change is required.
 
 ### BUILD 09 — Finance & Accounting progress (2026-10-03)
 

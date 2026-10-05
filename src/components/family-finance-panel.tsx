@@ -3,7 +3,7 @@
 import {useCallback,useEffect,useMemo,useState,type FormEvent} from 'react'
 import {T} from '@/components/translation-provider'
 import {createClient} from '@/lib/supabase/client'
-import {FINANCE_PAYMENT_METHODS,type FinancePaymentMethods} from '@/lib/finance-payment-methods'
+import {FINANCE_PAYMENT_METHODS,familyPaymentMethodsForCurrency,type FinancePaymentMethods} from '@/lib/finance-payment-methods'
 
 type Charge={id:string;description:string;class_name:string;currency_code:string;due_date:string;remaining_amount:number;pending_amount:number;settled_amount:number}
 type Payment={id:string;amount:number;applied_amount?:number;currency_code:string;applied_currency_code?:string;payment_method:string;reference:string|null;paid_at:string;status:string;review_reason:string|null;recorded_at:string;charge_description:string;class_name:string;exchange_rate_snapshot?:number|null;exchange_rate_effective_date?:string|null;exchange_rate_source_url?:string|null}
@@ -22,12 +22,7 @@ export default function FamilyFinancePanel({studentId}:{studentId:string}){
  const load=useCallback(async()=>{if(!studentId){setData(null);setLoading(false);return}setLoading(true);setError('');const {data:result,error:loadError}=await db.rpc('family_finance_workspace',{p_student_id:studentId});if(loadError){setError('Impossible de charger les frais de cet enfant.');setData(null)}else{const value=(Array.isArray(result)?result[0]:result) as Workspace|null;setData(value);if(value?.charges?.length&&!value.charges.some(item=>item.id===chargeId))setChargeId(value.charges[0].id)}setLoading(false)},[db,studentId,chargeId])
  useEffect(()=>{void load()},[load])
  const selectedCharge=data?.charges.find(item=>item.id===chargeId)
- const enabledMethods=FINANCE_PAYMENT_METHODS.filter(item=>{
-  const configured=data?.settings.payment_methods?.[item.key]
-  if(!configured?.enabled)return false
-  const methodCurrency=item.key.endsWith('_usd')||item.key==='paypal'||item.key==='zelle'?'USD':'HTG'
-  return methodCurrency==='USD'?selectedCharge?.currency_code==='USD'||selectedCharge?.currency_code==='HTG':selectedCharge?.currency_code==='HTG'
- })
+ const enabledMethods=familyPaymentMethodsForCurrency(data?.settings.payment_methods,selectedCharge?.currency_code)
  const paymentInstructions=method&&data?destinationText(method,data.settings.payment_methods):''
  const tenderCurrency=selectedCharge?paymentCurrency(method,selectedCharge.currency_code):data?.settings.currency_code||'HTG'
  const usdNeedsRate=tenderCurrency==='USD'&&!data?.settings.brh_rate

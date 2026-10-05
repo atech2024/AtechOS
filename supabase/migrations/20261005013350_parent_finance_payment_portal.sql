@@ -112,7 +112,7 @@ begin
   from public.students s left join lateral (
     select c.name from public.enrollments e join public.classes c on c.id=e.class_id and c.school_id=sid
     where e.student_id=s.id and e.school_id=sid and e.status='active'
-    order by e.enrolled_at desc nulls last limit 1
+    limit 1
   ) cl on true where s.id=p_student_id and s.school_id=sid;
   select jsonb_build_object(
     'currency_code',coalesce(f.currency_code,'HTG'),

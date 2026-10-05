@@ -9,6 +9,7 @@ on:
       - feature/build01-navigation-shell
       - fix/progression-points-integrity
       - feature/sanctions-emergency-release
+      - feat/family-attendance-history
     paths:
       - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
       - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
@@ -50,6 +51,8 @@ on:
       - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
       - "supabase/migrations/20261005121811_update_brh_rate_source_url.sql"
       - "supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql"
+      - "supabase/migrations/20261005153000_family_attendance_history_pagination.sql"
+      - "supabase/ci-parent/**"
       - "supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
@@ -101,6 +104,8 @@ on:
       - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
       - "supabase/migrations/20261005121811_update_brh_rate_source_url.sql"
       - "supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql"
+      - "supabase/migrations/20261005153000_family_attendance_history_pagination.sql"
+      - "supabase/ci-parent/**"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
@@ -246,5 +251,33 @@ jobs:
       - name: Stop progression verification Supabase
         if: always()
         working-directory: supabase/ci-progression
+        run: supabase stop --no-backup
+
+  family-attendance-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Stage the attendance-history migration over a synthetic family schema
+        working-directory: supabase/ci-parent
+        run: cp ../migrations/20261005153000_family_attendance_history_pagination.sql supabase/migrations/
+      - name: Start isolated Supabase and apply attendance-history migration
+        working-directory: supabase/ci-parent
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Verify date filters, pagination, linked-family scope and grants
+        working-directory: supabase/ci-parent
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-family-attendance-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < attendance-verification.sql
+      - name: Stop family attendance verification Supabase
+        if: always()
+        working-directory: supabase/ci-parent
         run: supabase stop --no-backup
 

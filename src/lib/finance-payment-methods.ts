@@ -20,6 +20,14 @@ export const FINANCE_PAYMENT_METHODS: {key:FinancePaymentMethodKey;title:string;
   {key:'bank_transfer_usd',title:'Bank transfer USD',paymentMethod:'Bank transfer USD',fields:['bank_name','account_name','account_number','branch']},
 ]
 
+export function familyPaymentMethodsForCurrency(methods:FinancePaymentMethods|undefined|null,chargeCurrency:string|undefined|null){
+  return FINANCE_PAYMENT_METHODS.filter(item=>{
+    if(!methods?.[item.key]?.enabled)return false
+    const tenderCurrency=item.key.endsWith('_usd')||item.key==='paypal'||item.key==='zelle'?'USD':'HTG'
+    return tenderCurrency==='USD'?chargeCurrency==='USD'||chargeCurrency==='HTG':chargeCurrency==='HTG'
+  })
+}
+
 export const EMPTY_FINANCE_PAYMENT_METHODS:FinancePaymentMethods={
   moncash:{enabled:false},natcash:{enabled:false},paypal:{enabled:false},zelle:{enabled:false},
   bank_transfer_htg:{enabled:false},bank_transfer_usd:{enabled:false},

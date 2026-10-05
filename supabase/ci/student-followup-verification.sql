@@ -146,7 +146,7 @@ begin
  insert into public.student_badges(id,school_id,student_id,badge_uid,badge_type,active,state)
  values('fb700000-0000-0000-0000-000000000002','fb000000-0000-0000-0000-000000000002','fb400000-0000-0000-0000-000000000003','SCHOOL-RELEASE-CI','qr',true,'active');
  insert into public.student_badges(id,school_id,student_id,badge_uid,badge_type,active,state)
- values('fb700000-0000-0000-0000-000000000003','fb000000-0000-0000-0000-000000000001','fb400000-0000-0000-0000-000000000001','SCHOOL-RELEASE-PRESCHOOL-CI','qr',true,'active');
+ values('fb700000-0000-0000-0000-000000000003','fb000000-0000-0000-0000-000000000001','fb400000-0000-0000-0000-000000000002','SCHOOL-RELEASE-PRESCHOOL-CI','qr',true,'active');
  insert into private.badge_token_history(token_hash,badge_id) values(encode(extensions.digest(repeat('b',64),'sha256'),'hex'),'fb700000-0000-0000-0000-000000000002');
  insert into private.badge_token_history(token_hash,badge_id) values(encode(extensions.digest(repeat('c',64),'sha256'),'hex'),'fb700000-0000-0000-0000-000000000003');
  -- Fix the regular KIOS schedule so this integration assertion is independent

@@ -30,16 +30,24 @@ insert into public.student_parents(student_id,parent_id,relationship) values
  ('fa400000-0000-0000-0000-000000000001','fa600000-0000-0000-0000-000000000001','parent');
 
 do $$
-declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; denied boolean; allocated_before numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid;
+declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; setup jsonb; ledger jsonb; denied boolean; allocated_before numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid;
 begin
   if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') or has_table_privilege('authenticated','public.finance_payments','DELETE') then raise exception 'authenticated can directly mutate finance payments'; end if;
   if has_table_privilege('authenticated','public.finance_payment_refunds','INSERT') or has_table_privilege('authenticated','public.finance_payment_refunds','UPDATE') or has_table_privilege('authenticated','public.finance_payment_refunds','DELETE') then raise exception 'authenticated can directly mutate finance refunds'; end if;
   if has_table_privilege('authenticated','public.finance_audit_events','UPDATE') or has_table_privilege('authenticated','public.finance_audit_events','DELETE') then raise exception 'finance audit events are mutable through the Data API'; end if;
+  if has_function_privilege('authenticated','private.finance_method_enabled(uuid,text)','EXECUTE') or has_function_privilege('authenticated','private.finance_payment_htg_limit(uuid,text)','EXECUTE') then raise exception 'authenticated users can probe another school payment configuration'; end if;
   if not (select relrowsecurity from pg_class where oid='public.finance_payments'::regclass) or not (select relrowsecurity from pg_class where oid='public.finance_audit_events'::regclass) then raise exception 'finance RLS is disabled'; end if;
 
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
   perform public.save_finance_settings('HTG',false,false);
   perform public.save_finance_payment_instructions('Finance MonCash','Finance NatCash','CI bank account','Pay at the school office');
+  setup:=public.finance_payment_setup();
+  if (setup->>'can_manage')::boolean is distinct from true or exists(select 1 from jsonb_each(setup->'payment_methods') where value->>'enabled'='true') then raise exception 'payment methods must default off and managers must see their setup'; end if;
+  perform public.save_finance_payment_methods(jsonb_build_object(
+    'moncash',jsonb_build_object('enabled',true,'account_name','Finance CI','phone','50937000001','max_htg',2500),
+    'natcash',jsonb_build_object('enabled',true,'account_name','Finance CI','phone','50937000002','max_htg',1800),
+    'paypal',jsonb_build_object('enabled',false),'zelle',jsonb_build_object('enabled',false),
+    'bank_transfer_htg',jsonb_build_object('enabled',false),'bank_transfer_usd',jsonb_build_object('enabled',false)));
   workspace:=public.finance_workspace('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001');
   if (workspace->'settings'->>'restrict_kiosk')::boolean or (workspace->'settings'->>'restrict_exams')::boolean or (workspace->'settings'->>'restrict_bulletins')::boolean then raise exception 'finance restrictions must default off'; end if;
   plan_id:=public.create_finance_fee_plan('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001','rentree','Rentrée 2026',
@@ -64,6 +72,9 @@ begin
   values('fa000000-0000-0000-0000-000000000001','fa400000-0000-0000-0000-000000000002','fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001',plan_id,future_installment,'Future installment',200,'HTG','2027-01-15','fa300000-0000-0000-0000-000000000002') returning id into future_charge;
 
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000003',true);
+  denied:=false;
+  begin perform public.save_finance_payment_methods('{}'::jsonb); exception when others then denied:=sqlerrm='not_authorized'; end;
+  if not denied then raise exception 'secretary changed digital payment destinations'; end if;
   denied:=false;
   begin perform public.record_finance_payment(charge_id,5,'MonCash',null,null,'2026-09-01 12:00:00-04'); exception when others then denied:=sqlerrm='payment_reference_required'; end;
   if not denied then raise exception 'staff digital payment without a transaction reference was accepted'; end if;
@@ -162,19 +173,45 @@ begin
   if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and entity='finance_payment_refunds' and action='created') then raise exception 'refund did not create an audit event'; end if;
   if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000001' and actor_role='director' and entity='finance_payment_refunds' and action='created') then raise exception 'refund audit did not retain the approving actor role'; end if;
 
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  perform public.save_finance_settings('USD',false,false,false,false,false);
+  fx_plan_id:=public.create_finance_fee_plan('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001','class_fee','USD CI fee','[{"amount":100,"due_date":"2026-09-01"}]'::jsonb);
+  if public.issue_finance_fee_plan(fx_plan_id)<>1 then raise exception 'USD test charge was not generated'; end if;
+  select id into fx_charge_id from public.finance_charges where fee_plan_id=fx_plan_id;
+  denied:=false;
+  begin perform public.record_finance_payment(fx_charge_id,20,'Cash','CI-USD-NO-RATE',null,now()); exception when others then denied:=sqlerrm='brh_rate_unavailable'; end;
+  if not denied then raise exception 'USD payment was recorded without a current BRH reference rate'; end if;
+  perform set_config('request.jwt.claim.role','service_role',true);
+  perform public.record_brh_reference_rate((now() at time zone 'America/Port-au-Prince')::date,130.5583,'https://www.brh.ht/politique-monetaire/taux-de-change/');
+  perform set_config('request.jwt.claim.role','authenticated',true);
+  payment_id:=public.record_finance_payment(fx_charge_id,20,'Cash','CI-USD-BRH-SNAPSHOT',null,now());
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
+  perform public.review_finance_payment(payment_id,'validated',null);
+  if not exists(select 1 from public.finance_payments where id=payment_id and exchange_rate_snapshot=130.5583 and exchange_rate_effective_date=(now() at time zone 'America/Port-au-Prince')::date and exchange_rate_source_url='https://www.brh.ht/politique-monetaire/taux-de-change/') then raise exception 'USD validation did not save its BRH rate, date and official source'; end if;
+  ledger:=public.finance_payment_ledger(null,null,null,'CI-USD-BRH-SNAPSHOT',0,50);
+  if not exists(select 1 from jsonb_array_elements(ledger->'items') item where item->>'id'=payment_id::text and item->>'exchange_rate_snapshot'='130.558300' and item->>'exchange_rate_effective_date'=(now() at time zone 'America/Port-au-Prince')::date::text) then raise exception 'staff payment history omitted its immutable BRH snapshot'; end if;
+  denied:=false;
+  begin update public.finance_payments set exchange_rate_snapshot=130.5584 where id=payment_id; exception when others then denied:=sqlerrm='finance_payment_fx_snapshot_is_immutable'; end;
+  if not denied then raise exception 'validated payment BRH snapshot was mutable'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  perform public.save_finance_settings('HTG',false,false,false,false,false);
+
   if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') then raise exception 'parent can directly mutate finance payments'; end if;
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000005',true);
   denied:=false;
   begin perform public.finance_workspace(); exception when others then denied:=sqlerrm='not_authorized'; end;
   if not denied then raise exception 'parent accessed internal finance workspace'; end if;
   workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
-  if workspace->'student'->>'id'<>'fa400000-0000-0000-0000-000000000001' or workspace->'settings'->>'moncash_payment_instructions'<>'Finance MonCash' then raise exception 'linked parent finance details or payment instructions were not returned'; end if;
+  if workspace->'student'->>'id'<>'fa400000-0000-0000-0000-000000000001' or workspace->'settings'->>'moncash_payment_instructions'<>'Finance MonCash' or workspace->'settings'->'payment_methods'->'moncash'->>'phone'<>'50937000001' then raise exception 'linked parent finance details or enabled payment destinations were not returned'; end if;
   denied:=false;
   begin perform public.family_finance_workspace('fa400000-0000-0000-0000-000000000002'); exception when others then denied:=sqlerrm='not_authorized'; end;
   if not denied then raise exception 'parent accessed an unrelated student finance workspace'; end if;
   denied:=false;
   begin perform public.submit_family_finance_payment(entry_charge_id,5,'Cash','CI-PARENT-CASH',''); exception when others then denied:=sqlerrm='invalid_payment_method'; end;
   if not denied then raise exception 'parent submitted a non-digital payment method'; end if;
+  denied:=false;
+  begin perform public.submit_family_finance_payment(entry_charge_id,5,'PayPal','CI-PARENT-DISABLED',''); exception when others then denied:=sqlerrm='payment_method_disabled'; end;
+  if not denied then raise exception 'parent submitted a disabled payment method'; end if;
   insert into storage.objects(bucket_id,name,owner_id,metadata)
   values('finance-proofs','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf','fa300000-0000-0000-0000-000000000005','{}'::jsonb);
   payment_id:=public.submit_family_finance_payment(entry_charge_id,10,'MonCash','CI-PARENT-MONCASH','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf');

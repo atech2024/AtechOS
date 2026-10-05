@@ -135,7 +135,7 @@ begin
       and greatest(0,c.amount-coalesce((select sum(a.amount) from public.finance_adjustments a where a.charge_id=c.id and a.status='approved' and a.adjustment_type<>'temporary_clearance'),0)
         -coalesce((select sum(p.applied_amount) from public.finance_payments p where p.charge_id=c.id and p.status in ('pending','validated')),0)
         -coalesce((select sum(a.amount) from public.finance_credit_allocations a where a.charge_id=c.id),0))>0
-    order by c.due_date,c.created_at limit 200
+    order by c.due_date,cl.name,c.description limit 200
   ) q;
   select coalesce(jsonb_agg(to_jsonb(q) order by q.recorded_at desc),'[]'::jsonb) into payments
   from (

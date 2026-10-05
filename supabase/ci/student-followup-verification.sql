@@ -164,7 +164,7 @@ begin
  protocol:=public.activate_school_release_protocol('Authorized school-wide dismissal');
  if protocol->>'active'<>'true' or protocol->>'can_activate'<>'true' or protocol->'protocol'->>'activated_role'<>'school_admin' then raise exception 'school release protocol activation and actor audit failed';end if;
  kiosk:=public.student_kiosk_badge('AOSQ1.'||repeat('b',64));
- if kiosk->>'action'<>'check_out' or kiosk->>'check_out_at' is null then raise exception 'school release protocol did not let a checked-in non-Preschool student check out: %',kiosk;end if;
+ if kiosk->>'action'<>'check_out' or not exists(select 1 from public.attendance a where a.student_id='fb400000-0000-0000-0000-000000000003' and a.attendance_date=(now() at time zone 'America/Port-au-Prince')::date and a.check_out_at is not null) then raise exception 'school release protocol did not let a checked-in non-Preschool student check out: %',kiosk;end if;
  kiosk:=public.student_kiosk_badge('AOSQ1.'||repeat('c',64));
  if kiosk->>'error'<>'kiosk_closed' then raise exception 'school-wide dismissal incorrectly bypassed the Preschool pickup workflow: %',kiosk;end if;
  if not exists(select 1 from public.attendance_events e where e.student_id='fb400000-0000-0000-0000-000000000003' and e.source='KIOS' and e.action='check_out' and e.school_release_protocol_id=(protocol->'protocol'->>'id')::uuid) then raise exception 'school dismissal KIOS checkout was not linked to its protocol audit';end if;

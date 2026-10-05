@@ -35,7 +35,7 @@ assert.ok(migration.includes('school_release_protocol_declaration_anchor_missing
 assert.ok(!migration.includes('finance_override')&&!migration.includes('guard_override'),'school dismissal must not create Finance or GUARD bypasses')
 
 const fixture=readFileSync('supabase/ci/student-followup-verification.sql','utf8')
-for(const contract of ['teacher activated a school-wide dismissal','KIOS departure was allowed before the school protocol was activated','school release protocol activation and actor audit failed','school dismissal KIOS checkout was not linked to its protocol audit','family read another school release protocol','school release protocol audit record was mutable'])assert.ok(fixture.includes(contract),`isolated SQL verification must cover: ${contract}`)
+for(const contract of ['teacher activated a school-wide dismissal','KIOS departure was allowed before the school protocol was activated','school release protocol activation and actor audit failed','school dismissal KIOS checkout was not linked to its protocol audit','school-wide dismissal incorrectly bypassed the Preschool pickup workflow','family read another school release protocol','school release protocol audit record was mutable','select \'blocked\'::text'])assert.ok(fixture.includes(contract),`isolated SQL verification must cover: ${contract}`)
 const workflow=readFileSync('.github/workflows/supabase-migration-check.yml','utf8')
 assert.ok(workflow.includes('20261005210100_school_release_protocol.sql'),'isolated Supabase CI must stage the school release migration')
 

@@ -140,9 +140,15 @@ begin
  -- enabled by a teacher. It permits checked-in non-Preschool students only.
  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at)
  values('fb000000-0000-0000-0000-000000000002','fb400000-0000-0000-0000-000000000003','fb200000-0000-0000-0000-000000000002',(now() at time zone 'America/Port-au-Prince')::date,'present',now()-interval '1 hour');
+ insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at)
+ values('fb000000-0000-0000-0000-000000000001','fb400000-0000-0000-0000-000000000001','fb200000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date,'present',now()-interval '1 hour')
+ on conflict(student_id,attendance_date) do update set status='present',check_in_at=excluded.check_in_at,check_out_at=null;
  insert into public.student_badges(id,school_id,student_id,badge_uid,badge_type,active,state)
  values('fb700000-0000-0000-0000-000000000002','fb000000-0000-0000-0000-000000000002','fb400000-0000-0000-0000-000000000003','SCHOOL-RELEASE-CI','qr',true,'active');
+ insert into public.student_badges(id,school_id,student_id,badge_uid,badge_type,active,state)
+ values('fb700000-0000-0000-0000-000000000003','fb000000-0000-0000-0000-000000000001','fb400000-0000-0000-0000-000000000001','SCHOOL-RELEASE-PRESCHOOL-CI','qr',true,'active');
  insert into private.badge_token_history(token_hash,badge_id) values(encode(extensions.digest(repeat('b',64),'sha256'),'hex'),'fb700000-0000-0000-0000-000000000002');
+ insert into private.badge_token_history(token_hash,badge_id) values(encode(extensions.digest(repeat('c',64),'sha256'),'hex'),'fb700000-0000-0000-0000-000000000003');
  -- Fix the regular KIOS schedule so this integration assertion is independent
  -- of the hosted runner's clock. The surrounding fixture rolls back.
  create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $$ select 'blocked'::text $$;
@@ -159,6 +165,8 @@ begin
  if protocol->>'active'<>'true' or protocol->>'can_activate'<>'true' or protocol->'protocol'->>'activated_role'<>'school_admin' then raise exception 'school release protocol activation and actor audit failed';end if;
  kiosk:=public.student_kiosk_badge('AOSQ1.'||repeat('b',64));
  if kiosk->>'action'<>'check_out' or kiosk->>'check_out_at' is null then raise exception 'school release protocol did not let a checked-in non-Preschool student check out: %',kiosk;end if;
+ kiosk:=public.student_kiosk_badge('AOSQ1.'||repeat('c',64));
+ if kiosk->>'error'<>'kiosk_closed' then raise exception 'school-wide dismissal incorrectly bypassed the Preschool pickup workflow: %',kiosk;end if;
  if not exists(select 1 from public.attendance_events e where e.student_id='fb400000-0000-0000-0000-000000000003' and e.source='KIOS' and e.action='check_out' and e.school_release_protocol_id=(protocol->'protocol'->>'id')::uuid) then raise exception 'school dismissal KIOS checkout was not linked to its protocol audit';end if;
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000005',true);
  denied:=false;begin perform public.school_release_protocol_workspace();exception when others then denied:=sqlerrm='not_authorized';end;

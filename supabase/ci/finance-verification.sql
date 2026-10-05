@@ -182,12 +182,12 @@ begin
   begin perform public.record_finance_payment(fx_charge_id,20,'Cash','CI-USD-NO-RATE',null,now()); exception when others then denied:=sqlerrm='brh_rate_unavailable'; end;
   if not denied then raise exception 'USD payment was recorded without a current BRH reference rate'; end if;
   perform set_config('request.jwt.claim.role','service_role',true);
-  perform public.record_brh_reference_rate((now() at time zone 'America/Port-au-Prince')::date,130.5583,'https://www.brh.ht/politique-monetaire/taux-de-change/');
+  perform public.record_brh_reference_rate((now() at time zone 'America/Port-au-Prince')::date,130.5583,'https://www.brh.ht/taux-du-jour/');
   perform set_config('request.jwt.claim.role','authenticated',true);
   payment_id:=public.record_finance_payment(fx_charge_id,20,'Cash','CI-USD-BRH-SNAPSHOT',null,now());
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
   perform public.review_finance_payment(payment_id,'validated',null);
-  if not exists(select 1 from public.finance_payments where id=payment_id and exchange_rate_snapshot=130.5583 and exchange_rate_effective_date=(now() at time zone 'America/Port-au-Prince')::date and exchange_rate_source_url='https://www.brh.ht/politique-monetaire/taux-de-change/') then raise exception 'USD validation did not save its BRH rate, date and official source'; end if;
+  if not exists(select 1 from public.finance_payments where id=payment_id and exchange_rate_snapshot=130.5583 and exchange_rate_effective_date=(now() at time zone 'America/Port-au-Prince')::date and exchange_rate_source_url='https://www.brh.ht/taux-du-jour/') then raise exception 'USD validation did not save its BRH rate, date and official source'; end if;
   ledger:=public.finance_payment_ledger(null,null,null,'CI-USD-BRH-SNAPSHOT',0,50);
   if not exists(select 1 from jsonb_array_elements(ledger->'items') item where item->>'id'=payment_id::text and item->>'exchange_rate_snapshot'='130.558300' and item->>'exchange_rate_effective_date'=(now() at time zone 'America/Port-au-Prince')::date::text) then raise exception 'staff payment history omitted its immutable BRH snapshot'; end if;
   denied:=false;

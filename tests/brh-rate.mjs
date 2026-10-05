@@ -20,7 +20,7 @@ assert.match(route,/setup\?\.can_manage/)
 assert.match(migration,/finance_payment_fx_snapshot_immutable/)
 assert.match(migration,/grant execute on function public\.record_brh_reference_rate\(date,numeric,text\) to service_role/)
 const sourceUrl='https://www.brh.ht/taux-du-jour/'
-const sourceMigration=readFileSync('supabase/migrations/20261005130500_update_brh_rate_source_url.sql','utf8')
+const sourceMigration=readFileSync('supabase/migrations/20261005121811_update_brh_rate_source_url.sql','utf8')
 assert.ok(sourceMigration.includes(sourceUrl))
 assert.match(sourceMigration,/https:\/\/www\.brh\.ht\/politique-monetaire\/taux-de-change\//)
 assert.match(migration,/brh_rate_unavailable/)

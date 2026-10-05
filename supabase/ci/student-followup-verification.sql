@@ -81,7 +81,7 @@ begin
  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at)
  values('fb000000-0000-0000-0000-000000000001','fb400000-0000-0000-0000-000000000002','fb200000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date,'present',now()-interval '1 hour');
  -- student_release_kiosk_ci_window: isolate the exact 08:01-12:59 denial deterministically.
- create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $$select 'blocked'::text$$;
+ create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $window$ select 'blocked'::text; $window$;
  kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
  if kiosk->>'error'<>'kiosk_closed' then raise exception 'unreleased student bypassed the blocked KIOS window'; end if;
  perform public.record_student_release(release2_id,now()+interval '2 hours');

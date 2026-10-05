@@ -30,7 +30,7 @@ insert into public.student_parents(student_id,parent_id,relationship) values
  ('fa400000-0000-0000-0000-000000000001','fa600000-0000-0000-0000-000000000001','parent');
 
 do $$
-declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; denied boolean; allocated_before numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid;
+declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; denied boolean; allocated_before numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid;
 begin
   if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') or has_table_privilege('authenticated','public.finance_payments','DELETE') then raise exception 'authenticated can directly mutate finance payments'; end if;
   if has_table_privilege('authenticated','public.finance_payment_refunds','INSERT') or has_table_privilege('authenticated','public.finance_payment_refunds','UPDATE') or has_table_privilege('authenticated','public.finance_payment_refunds','DELETE') then raise exception 'authenticated can directly mutate finance refunds'; end if;
@@ -77,9 +77,8 @@ begin
   denied:=false;
   begin perform public.refund_finance_payment(payment_id,1,'Secretary must not refund directly'); exception when others then denied:=sqlerrm='not_authorized'; end;
   if not denied then raise exception 'secretary refunded a payment'; end if;
-  denied:=false;
-  begin perform public.record_finance_payment(class_charge_id,11,'Cash','CI-CLASS-OVERPAY',null,'2026-09-01 12:00:00-04'); exception when others then denied:=sqlerrm='overpayment_only_allowed_for_entry_fees'; end;
-  if not denied then raise exception 'non-entry fee unexpectedly accepted an overpayment'; end if;
+  class_overpayment_id:=public.record_finance_payment(class_charge_id,11,'Cash','CI-CLASS-OVERPAY',null,'2026-09-01 12:00:00-04');
+  if not exists(select 1 from public.finance_payments where id=class_overpayment_id and applied_amount=10 and amount=11) then raise exception 'ordinary class-fee overpayment was not split into applied amount and student credit'; end if;
   credit_payment_id:=public.record_finance_payment(entry_charge_id,45,'Cash','CI-ENTRY-OVERPAY',null,'2026-09-01 12:00:00-04');
   if (select applied_amount from public.finance_payments where id=credit_payment_id)<>25 then raise exception 'entry overpayment was not split into charge payment and student credit'; end if;
   second_payment_id:=public.record_finance_payment(second_entry_charge_id,300,'Cash','CI-UNAPPLIED-CREDIT',null,'2026-09-01 12:00:00-04');
@@ -92,6 +91,9 @@ begin
 
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
   perform public.review_finance_payment(credit_payment_id,'validated',null);
+  perform public.review_finance_payment(class_overpayment_id,'validated',null);
+  if not exists(select 1 from public.finance_student_credits cr where cr.source_payment_id=class_overpayment_id and cr.student_id='fa400000-0000-0000-0000-000000000001' and cr.amount=1) then raise exception 'ordinary fee overpayment did not create student-scoped credit'; end if;
+  if not exists(select 1 from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where a.credit_id=(select id from public.finance_student_credits where source_payment_id=class_overpayment_id) and c.student_id='fa400000-0000-0000-0000-000000000001') then raise exception 'ordinary fee credit was not confined to its student'; end if;
   if not exists(select 1 from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id) and c.id=class_charge_id and a.amount=10) then raise exception 'overpayment credit was not automatically applied'; end if;
   perform public.review_finance_payment(second_payment_id,'validated',null);
   if not exists(select 1 from public.finance_credit_allocations a where a.credit_id=(select id from public.finance_student_credits where source_payment_id=second_payment_id) and a.charge_id=future_charge and a.amount=200) then raise exception 'student credit was not applied to the future fee'; end if;
@@ -131,7 +133,7 @@ begin
   workspace:=public.finance_workspace('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001');
   raise notice 'Finance fixture summary %, charges %, credits %',workspace->'summary',workspace->'charges',workspace->'credits';
   raise notice 'Finance fixture payments %, credit records %, allocations %',(select coalesce(jsonb_agg(jsonb_build_object('charge_id',p.charge_id,'amount',p.amount,'applied',p.applied_amount,'status',p.status)), '[]'::jsonb) from public.finance_payments p where p.school_id='fa000000-0000-0000-0000-000000000001'),(select coalesce(jsonb_agg(jsonb_build_object('payment',cr.source_payment_id,'amount',cr.amount)), '[]'::jsonb) from public.finance_student_credits cr where cr.school_id='fa000000-0000-0000-0000-000000000001'),(select coalesce(jsonb_agg(jsonb_build_object('charge',a.charge_id,'amount',a.amount)), '[]'::jsonb) from public.finance_credit_allocations a where a.school_id='fa000000-0000-0000-0000-000000000001');
-  if (workspace->'summary'->>'expected')::numeric<>535 or (workspace->'summary'->>'paid')::numeric<>420 or (workspace->'summary'->>'balance')::numeric<>115 then raise exception 'finance totals mismatch; got expected %, paid %, balance %', workspace->'summary'->>'expected', workspace->'summary'->>'paid', workspace->'summary'->>'balance'; end if;
+  if (workspace->'summary'->>'expected')::numeric<>535 or (workspace->'summary'->>'paid')::numeric<>430 or (workspace->'summary'->>'balance')::numeric<>105 then raise exception 'finance totals mismatch; got expected %, paid %, balance %', workspace->'summary'->>'expected', workspace->'summary'->>'paid', workspace->'summary'->>'balance'; end if;
   if (workspace->>'can_manage')::boolean is distinct from true or (workspace->>'can_validate')::boolean is distinct from false then raise exception 'director validation must remain disabled unless the school enables it'; end if;
   if workspace::text ilike '%atechos_id%' or workspace::text ilike '%nis%' then raise exception 'finance workspace exposed unnecessary student identity fields'; end if;
   if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000003' and actor_role='secretary' and entity='finance_payments' and action='created') then raise exception 'payment creation audit did not retain secretary identity and role'; end if;
@@ -182,3 +184,4 @@ begin
 end $$;
 
 rollback;
+

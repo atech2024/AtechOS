@@ -36,9 +36,10 @@ insert into public.enrollments(id,school_id,student_id,class_id,status) values
  ('fb500000-0000-0000-0000-000000000002','fb000000-0000-0000-0000-000000000001','fb400000-0000-0000-0000-000000000002','fb200000-0000-0000-0000-000000000001','active'),
  ('fb500000-0000-0000-0000-000000000003','fb000000-0000-0000-0000-000000000002','fb400000-0000-0000-0000-000000000003','fb200000-0000-0000-0000-000000000002','active');
 update public.classes set grade_level='PS1' where id='fb200000-0000-0000-0000-000000000001';
+update public.classes set grade_level='NS1' where id='fb200000-0000-0000-0000-000000000002';
 
 do $$
-declare sanction_type uuid; contact_id uuid; contact2_id uuid; release_id uuid; release2_id uuid; relocation_id uuid; pickup_authorization uuid; kiosk_badge uuid; sanction_id uuid; workspace jsonb; denied boolean; kiosk jsonb; home jsonb; family_relocation jsonb; student_token text:='home-arrival-ci-token-00000000000000000000000000000000';
+declare sanction_type uuid; contact_id uuid; contact2_id uuid; release_id uuid; release2_id uuid; relocation_id uuid; pickup_authorization uuid; kiosk_badge uuid; sanction_id uuid; workspace jsonb; denied boolean; kiosk jsonb; home jsonb; protocol jsonb; family_relocation jsonb; student_token text:='home-arrival-ci-token-00000000000000000000000000000000';
 begin
  if not (select relrowsecurity from pg_class where oid='public.student_sanctions'::regclass)
     or has_table_privilege('authenticated','public.student_sanctions','SELECT')
@@ -135,6 +136,36 @@ begin
  if not exists(select 1 from public.student_release_cases where id=release2_id and status='released' and departure_source='KIOS' and released_by is null and expected_return_at is null) then raise exception 'approved KIOS scan did not record the release state';end if;
  perform public.confirm_student_return(release2_id);
  if not exists(select 1 from public.student_release_cases where id=release2_id and status='returned' and departure_source='KIOS') then raise exception 'staff return confirmation did not close the KIOS release';end if;
+ -- The school-wide protocol is tenant-scoped, audit-linked, and cannot be
+ -- enabled by a teacher. It permits checked-in non-Preschool students only.
+ insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at)
+ values('fb000000-0000-0000-0000-000000000002','fb400000-0000-0000-0000-000000000003','fb200000-0000-0000-0000-000000000002',(now() at time zone 'America/Port-au-Prince')::date,'present',now()-interval '1 hour');
+ insert into public.student_badges(id,school_id,student_id,badge_uid,badge_type,active,state)
+ values('fb700000-0000-0000-0000-000000000002','fb000000-0000-0000-0000-000000000002','fb400000-0000-0000-0000-000000000003','SCHOOL-RELEASE-CI','qr',true,'active');
+ insert into private.badge_token_history(token_hash,badge_id) values(encode(extensions.digest(repeat('b',64),'sha256'),'hex'),'fb700000-0000-0000-0000-000000000002');
+ -- Fix the regular KIOS schedule so this integration assertion is independent
+ -- of the hosted runner's clock. The surrounding fixture rolls back.
+ create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $$ select 'blocked'::text $$;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000006',true);
+ protocol:=public.school_release_protocol_workspace();
+ if protocol->>'active'<>'false' or protocol->>'can_activate'<>'true' then raise exception 'other-school release protocol leaked or failed to initialize';end if;
+ kiosk:=public.student_kiosk_badge('AOSQ1.'||repeat('b',64));
+ if kiosk->>'error'<>'kiosk_closed' then raise exception 'KIOS departure was allowed before the school protocol was activated: %',kiosk;end if;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000004',true);
+ denied:=false;begin perform public.activate_school_release_protocol('Unauthorized teacher dismissal');exception when others then denied:=sqlerrm='not_authorized';end;
+ if not denied then raise exception 'teacher activated a school-wide dismissal';end if;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000006',true);
+ protocol:=public.activate_school_release_protocol('Authorized school-wide dismissal');
+ if protocol->>'active'<>'true' or protocol->>'can_activate'<>'true' or protocol->'protocol'->>'activated_role'<>'school_admin' then raise exception 'school release protocol activation and actor audit failed';end if;
+ kiosk:=public.student_kiosk_badge('AOSQ1.'||repeat('b',64));
+ if kiosk->>'action'<>'check_out' or kiosk->>'check_out_at' is null then raise exception 'school release protocol did not let a checked-in non-Preschool student check out: %',kiosk;end if;
+ if not exists(select 1 from public.attendance_events e where e.student_id='fb400000-0000-0000-0000-000000000003' and e.source='KIOS' and e.action='check_out' and e.school_release_protocol_id=(protocol->'protocol'->>'id')::uuid) then raise exception 'school dismissal KIOS checkout was not linked to its protocol audit';end if;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000005',true);
+ denied:=false;begin perform public.school_release_protocol_workspace();exception when others then denied:=sqlerrm='not_authorized';end;
+ if not denied then raise exception 'family read another school release protocol';end if;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000006',true);
+ denied:=false;begin update public.school_release_protocols set reason='tampered' where id=(protocol->'protocol'->>'id')::uuid;exception when others then denied:=sqlerrm='school_release_protocol_immutable';end;
+ if not denied then raise exception 'school release protocol audit record was mutable';end if;
  if (select count(*) from public.student_followup_events where entity_id in (sanction_type,sanction_id,contact_id,release_id))<7 then raise exception 'audit trail is incomplete'; end if;
  denied:=false; begin update public.student_followup_events set action='tampered' where entity_id=release_id; exception when others then denied:=sqlerrm='student_followup_event_immutable'; end;
  if not denied then raise exception 'immutable follow-up audit record was changed'; end if;

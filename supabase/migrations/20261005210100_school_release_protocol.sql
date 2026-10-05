@@ -45,11 +45,9 @@ declare sid uuid:=public.get_my_school_id();actor_role text;actor_name text;toda
 begin
  if auth.uid() is null or sid is null or not private.has_role(sid,array['school_admin','director','secretary']) then raise exception 'not_authorized';end if;
  if length(trim(coalesce(p_reason,'')))<3 or length(p_reason)>500 then raise exception 'reason_required';end if;
- if exists(select 1 from public.schools where id=sid and owner_user_id=auth.uid()) then actor_role:='school_admin';
- else
-  select role::text into actor_role from public.school_members where school_id=sid and user_id=auth.uid() and enabled
-  order by case role::text when 'school_admin' then 0 when 'director' then 1 when 'secretary' then 2 else 3 end limit 1;
- end if;
+ select role::text into actor_role from public.school_members where school_id=sid and user_id=auth.uid() and enabled
+ order by case role::text when 'school_admin' then 0 when 'director' then 1 when 'secretary' then 2 else 3 end limit 1;
+ if actor_role is null then actor_role:='school_admin'; end if;
  select full_name into actor_name from public.users where id=auth.uid();
  insert into public.school_release_protocols(school_id,protocol_date,activated_by,activated_name,activated_role,reason)
  values(sid,today,auth.uid(),coalesce(nullif(actor_name,''),'Staff'),actor_role,trim(p_reason)) on conflict(school_id,protocol_date) do nothing;

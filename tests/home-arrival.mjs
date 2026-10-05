@@ -26,6 +26,10 @@ for(const fragment of [
 ])assert.ok(migration.includes(fragment),`migration must enforce: ${fragment}`)
 assert.ok(!migration.includes("released_by=auth.uid(),released_role='student'"),'KIOS exit should not claim a staff member performed it')
 assert.ok(!migration.includes('finance_override')&&!migration.includes('guard_override'),'the approved checkout must not waive Finance or GUARD restrictions')
+assert.ok(migration.includes("old_columns:='insert into public.kindergarten_relocation_cases(school_id,student_id,attendance_id,reason_category,private_note,opened_by,opened_name,opened_role)';"),'relocation request patch must anchor the production INSERT column list')
+assert.ok(migration.includes("old_values:='values(sid,p_student,att,p_reason,nullif(trim(p_note),''''),actor,coalesce(actor_name,''Staff''),coalesce(actor_role,''staff'')) returning id into case_id;';"),'relocation request patch must anchor the production INSERT values independently of SQL line breaks')
+assert.ok(migration.includes("opened_role,status)')")&&migration.includes("''pending_direction'') returning id into case_id;"),'staff relocation requests must persist pending_direction status before any move')
+assert.ok(migration.includes('pending_direction_insert_columns_anchor_missing')&&migration.includes('pending_direction_insert_values_anchor_missing'),'migration must fail safely when the production function shape differs')
 
 const staff=readFileSync('src/components/home-arrival-panel.tsx','utf8')
 const student=readFileSync('src/components/student-home-arrival.tsx','utf8')

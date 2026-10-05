@@ -197,13 +197,16 @@ end $$;
 -- Turn the existing request procedure into a pending Direction review and
 -- record no physical relocation until the review succeeds.
 do $request_relocation$
-declare src text;old_event text;old_return text;
+declare src text;old_columns text;old_values text;old_event text;old_return text;
 begin
  select pg_get_functiondef('public.start_kindergarten_relocation(uuid,text,text)'::regprocedure) into src;
  if position('pending_direction' in src)>0 then return;end if;
- src:=replace(src,
-  'insert into public.kindergarten_relocation_cases(school_id,student_id,attendance_id,reason_category,private_note,opened_by,opened_name,opened_role) values(sid,p_student,att,p_reason,nullif(trim(p_note),''''),actor,coalesce(actor_name,''Staff''),coalesce(actor_role,''staff'')) returning id into case_id;',
-  'insert into public.kindergarten_relocation_cases(school_id,student_id,attendance_id,reason_category,private_note,opened_by,opened_name,opened_role,status) values(sid,p_student,att,p_reason,nullif(trim(p_note),''''),actor,coalesce(actor_name,''Staff''),coalesce(actor_role,''staff''),''pending_direction'') returning id into case_id;');
+ old_columns:='insert into public.kindergarten_relocation_cases(school_id,student_id,attendance_id,reason_category,private_note,opened_by,opened_name,opened_role)';
+ old_values:='values(sid,p_student,att,p_reason,nullif(trim(p_note),''''),actor,coalesce(actor_name,''Staff''),coalesce(actor_role,''staff'')) returning id into case_id;';
+ if position(old_columns in src)=0 then raise exception 'pending_direction_insert_columns_anchor_missing';end if;
+ if position(old_values in src)=0 then raise exception 'pending_direction_insert_values_anchor_missing';end if;
+ src:=replace(src,old_columns,'insert into public.kindergarten_relocation_cases(school_id,student_id,attendance_id,reason_category,private_note,opened_by,opened_name,opened_role,status)');
+ src:=replace(src,old_values,'values(sid,p_student,att,p_reason,nullif(trim(p_note),''''),actor,coalesce(actor_name,''Staff''),coalesce(actor_role,''staff''),''pending_direction'') returning id into case_id;');
  old_event:='values(sid,case_id,p_student,''relocated_to_office'',nullif(trim(p_note),''''),actor,coalesce(actor_name,''Staff''),coalesce(actor_role,''staff''));';
  if position(old_event in src)=0 then raise exception 'pending_direction_event_anchor_missing';end if;
  src:=replace(src,old_event,'values(sid,case_id,p_student,''relocation_requested'',nullif(trim(p_note),''''),actor,coalesce(actor_name,''Staff''),coalesce(actor_role,''staff''));');
@@ -212,7 +215,7 @@ begin
   'insert into public.notifications(school_id,recipient_id,type,title,description,priority,href,event_key) select sid,m.user_id,''kindergarten_pickup'',''Preschool relocation requires Direction review'',s.first_name||'' ''||s.last_name||'' · Please collect your child urgently and contact the school.'',''high'',''/dashboard/parent-portal'',''kindergarten-relocation-request:''||case_id::text||'':''||m.user_id::text from public.student_parents sp join public.parents p on p.id=sp.parent_id join public.students s on s.id=sp.student_id join public.school_members m on m.school_id=p.school_id and m.user_id=p.user_id and m.enabled and m.role=''parent'' where sp.student_id=p_student and p.school_id=sid on conflict do nothing;'
   ||'insert into public.notifications(school_id,recipient_id,type,title,description,priority,href,event_key) select sid,m.user_id,''kindergarten_relocation'',''Preschool relocation requires approval'',s.first_name||'' ''||s.last_name||'' · ''||p_reason,''high'',''/dashboard/attendance/kindergarten-pickup'',''kindergarten-relocation-review:''||case_id::text||'':''||m.user_id::text from public.students s join public.school_members m on m.school_id=sid and m.enabled and m.role=''director'' where s.id=p_student on conflict do nothing;'
   ||old_return);
- if position('pending_direction' in src)=0 then raise exception 'pending_direction_patch_failed';end if;
+ if position('opened_role,status)' in src)=0 or position('pending_direction' in src)=0 then raise exception 'pending_direction_insert_patch_failed';end if;
  execute src;
 end $request_relocation$;
 

@@ -1,4 +1,4 @@
-const BRH_URL='https://www.brh.ht/politique-monetaire/taux-de-change/'
+const BRH_URL='https://www.brh.ht/taux-du-jour/'
 import {parseBrhReferenceRate} from './brh-reference-rate-parse.mjs'
 export {parseBrhReferenceRate}
 

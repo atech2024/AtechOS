@@ -177,6 +177,7 @@ begin
  if (select count(*) from public.student_followup_events where entity_id in (sanction_type,sanction_id,contact_id,release_id))<7 then raise exception 'audit trail is incomplete'; end if;
  denied:=false; begin update public.student_followup_events set action='tampered' where entity_id=release_id; exception when others then denied:=sqlerrm='student_followup_event_immutable'; end;
  if not denied then raise exception 'immutable follow-up audit record was changed'; end if;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000003',true);
  workspace:=public.student_followup_workspace();
  if jsonb_array_length(workspace->'students')<>2 or jsonb_array_length(workspace->'releases')<>2 then raise exception 'workspace leaked another school or lost the in-scope record'; end if;
 

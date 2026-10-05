@@ -38,6 +38,8 @@ assert.match(workflow, /20261002233000_guard_active_parent_membership\.sql/);
 assert.match(workflow, /20261002235000_kindergarten_pickup_minimize_view_data\.sql/);
 assert.match(workflow, /20261003000000_limit_duplicate_preschool_pickup_updates\.sql/);
 assert.match(workflow, /20261003023548_published_only_family_student_bulletins\.sql/);
+assert.match(workflow, /20261005013350_parent_finance_payment_portal\.sql/);
+assert.match(workflow, /cp supabase\/migrations\/20261005013350_parent_finance_payment_portal\.sql supabase\/ci\/supabase\/migrations\//);
 assert.match(workflow, /cp supabase\/migrations\/20261003023548_published_only_family_student_bulletins\.sql supabase\/ci\/supabase\/migrations\//);
 assert.match(workflow, /supabase\/migrations\/20260928004221_badge_lifecycle_history\.sql/);
 assert.match(workflow, /badge-lifecycle:/);

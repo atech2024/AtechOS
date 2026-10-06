@@ -20,6 +20,14 @@ alter table public.student_sanctions
   add column departure_decided_at timestamptz;
 alter table public.attendance
   add column direction_only boolean not null default false;
+alter table public.student_followup_events
+  drop constraint if exists student_followup_events_entity_check,
+  drop constraint if exists student_followup_events_check,
+  add constraint student_followup_events_entity_check
+    check (entity in ('sanction_type','sanction','release_contact','release_case','sanction_settings')),
+  add constraint student_followup_events_check
+    check ((entity in ('sanction_type','sanction_settings') and student_id is null)
+      or (entity not in ('sanction_type','sanction_settings') and student_id is not null));
 
 -- Old departure actions already set school_status=departed; preserve them as final.
 update public.student_sanctions x set departure_decision='departed',

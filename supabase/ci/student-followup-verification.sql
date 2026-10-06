@@ -67,6 +67,13 @@ begin
  if not denied then raise exception 'contact registered for another student was accepted'; end if;
  sanction_id:=public.create_student_sanction('fb400000-0000-0000-0000-000000000001',sanction_type,'Incident recorded by secretary',now()-interval '1 hour');
  if private.student_sanction_restriction('fb400000-0000-0000-0000-000000000001','kiosk')<>'sanction_kiosk_suspended' then raise exception 'configured KIOS action was not activated'; end if;
+ if private.student_sanction_restriction('fb400000-0000-0000-0000-000000000001','portal') is not null then raise exception 'KIOS-only sanction blocked student portal access'; end if;
+ denied:=false; begin
+  insert into private.student_sessions(student_id,token_hash,expires_at)
+  values('fb400000-0000-0000-0000-000000000001',encode(extensions.digest('kiosk-only-session-test','sha256'),'hex'),now()+interval '1 hour');
+ exception when others then denied:=true; end;
+ if denied then raise exception 'KIOS-only sanction blocked student portal session'; end if;
+ delete from private.student_sessions where token_hash=encode(extensions.digest('kiosk-only-session-test','sha256'),'hex');
  kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000001');
  if kiosk->>'error'<>'sanction_kiosk_suspended' then raise exception 'KIOS did not enforce the active configured sanction'; end if;
  perform public.resolve_student_sanction(sanction_id,'Resolved after meeting');

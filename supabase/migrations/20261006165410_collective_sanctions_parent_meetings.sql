@@ -445,7 +445,7 @@ begin
     src:=replace(src,attendance_anchor,attendance_anchor||
       'gate:=private.student_sanction_kiosk_gate(s.id,ts,a.check_in_at is not null and a.check_out_at is null); if gate ? ''error'' then return gate; end if; is_direction_only:=coalesce((gate->>''direction_only'')::boolean,false) or coalesce(a.direction_only,false); if coalesce((gate->>''meeting_window'')::boolean,false) and not coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''present''; end if; if coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''checkout''; end if;');
     src:=replace(src,'recorded_by)','recorded_by,direction_only)');
-    if position('from public.enrollments' in src)>0 then
+    if position('select s.school_id,s.id,e.class_id,d,window_name,ts,s.user_id from public.enrollments' in src)>0 then
       src:=regexp_replace(src,
         's[.]user_id[[:space:]]+from public[.]enrollments',
         's.user_id,is_direction_only from public.enrollments','i');

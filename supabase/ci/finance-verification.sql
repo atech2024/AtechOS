@@ -208,7 +208,7 @@ begin
   workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
   if workspace->'student'->>'id'<>'fa400000-0000-0000-0000-000000000001' or workspace->'settings'->>'moncash_payment_instructions'<>'Finance MonCash' or workspace->'settings'->'payment_methods'->'moncash'->>'phone'<>'50937000001' then raise exception 'linked parent finance details or enabled payment destinations were not returned'; end if;
   summary:=public.family_finance_summary('fa400000-0000-0000-0000-000000000001');
-  if not exists(select 1 from jsonb_array_elements(summary->'charges') item where item->>'description'='Rentrée 2026' and item->>'due_date'='2027-01-15' and item->>'status'='upcoming') then raise exception 'family summary omitted an upcoming installment'; end if;
+  if not exists(select 1 from jsonb_array_elements(summary->'charges') item where item->>'description'='Rentrée 2026 — 2' and item->>'due_date'='2027-01-15' and item->>'status'='upcoming') then raise exception 'family summary omitted an upcoming installment'; end if;
   select coalesce(sum(p.applied_amount),0)+coalesce((select sum(a.amount) from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where c.student_id='fa400000-0000-0000-0000-000000000001'),0) into expected_paid
    from public.finance_payments p join public.finance_charges c on c.id=p.charge_id where c.student_id='fa400000-0000-0000-0000-000000000001' and c.currency_code='HTG' and p.status='validated';
   select coalesce(sum((item->>'paid_amount')::numeric),0) into reported_paid from jsonb_array_elements(summary->'totals') item where item->>'currency_code'='HTG';
@@ -254,4 +254,5 @@ begin
 end $$;
 
 rollback;
+
 

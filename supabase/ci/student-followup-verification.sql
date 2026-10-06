@@ -61,7 +61,7 @@ begin
  if not denied then raise exception 'another school manager modified this school student'; end if;
 
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000003',true);
- sanction_type:=public.save_student_sanction_type(null,'Suspension',true,'kiosk_suspension',3);
+ sanction_type:=public.save_student_sanction_type(null,'Suspension',true,'kiosk_suspension',3::smallint);
  contact_id:=public.save_student_release_contact('fb400000-0000-0000-0000-000000000001',null,'Alternate Adult','Aunt',null,true);
  denied:=false; begin perform public.request_student_release('fb400000-0000-0000-0000-000000000002','medical',contact_id,'Wrong student contact'); exception when others then denied:=sqlerrm='release_contact_not_authorized'; end;
  if not denied then raise exception 'contact registered for another student was accepted'; end if;

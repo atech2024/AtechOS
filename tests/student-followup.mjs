@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const migration=readFileSync('supabase/migrations/20261005044450_student_sanctions_emergency_release.sql','utf8')
-const actions=readFileSync('supabase/migrations/20261006131325_family_parent_finance_and_sanctions.sql','utf8')
+const actions=readFileSync('supabase/migrations/20261006142918_family_parent_finance_and_sanctions.sql','utf8')
 const studentLogin=readFileSync('src/app/student/login/actions.ts','utf8')
 const verification=readFileSync('supabase/ci/student-followup-verification.sql','utf8')
 const workflow=readFileSync('.github/workflows/supabase-migration-check.yml','utf8')

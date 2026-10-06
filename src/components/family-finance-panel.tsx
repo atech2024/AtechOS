@@ -4,6 +4,7 @@ import {useCallback,useEffect,useMemo,useState,type FormEvent} from 'react'
 import {T} from '@/components/translation-provider'
 import {createClient} from '@/lib/supabase/client'
 import {FINANCE_PAYMENT_METHODS,familyPaymentMethodsForCurrency,type FinancePaymentMethods} from '@/lib/finance-payment-methods'
+import FamilyFinanceSummary from '@/components/family-finance-summary'
 
 type Charge={id:string;description:string;class_name:string;currency_code:string;due_date:string;remaining_amount:number;pending_amount:number;settled_amount:number}
 type Payment={id:string;amount:number;applied_amount?:number;currency_code:string;applied_currency_code?:string;payment_method:string;reference:string|null;paid_at:string;status:string;review_reason:string|null;recorded_at:string;charge_description:string;class_name:string;exchange_rate_snapshot?:number|null;exchange_rate_effective_date?:string|null;exchange_rate_source_url?:string|null}
@@ -42,6 +43,7 @@ export default function FamilyFinancePanel({studentId}:{studentId:string}){
   <div><h2 className="text-2xl font-bold"><T text="School payments"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Review this child's due fees and submit proof of a digital payment. The school will verify it before posting it."/></p></div>
   {error&&<p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800"><T text={error}/></p>}{notice&&<p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
   {loading?<p className="text-sm text-slate-500"><T text="Loading..."/></p>:!data?<p className="text-sm text-slate-600"><T text="No finance information is available for this child."/></p>:<>
+   <FamilyFinanceSummary key={studentId+'summary'} studentId={studentId}/>
    <div className="grid gap-4 lg:grid-cols-2">
     <form onSubmit={submit} className="space-y-3 rounded-xl border border-slate-200 p-4">
      <h3 className="font-semibold"><T text="Submit a payment request"/></h3>

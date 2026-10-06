@@ -53,6 +53,7 @@ on:
       - "supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql"
       - "supabase/migrations/20261005220000_finance_payment_ledger_refund_totals.sql"
       - "supabase/migrations/20261005153000_family_attendance_history_pagination.sql"
+      - "supabase/migrations/20261006131325_family_parent_finance_and_sanctions.sql"
       - "supabase/ci-parent/**"
       - "supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
@@ -110,6 +111,7 @@ on:
       - "supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql"
       - "supabase/migrations/20261005220000_finance_payment_ledger_refund_totals.sql"
       - "supabase/migrations/20261005153000_family_attendance_history_pagination.sql"
+      - "supabase/migrations/20261006131325_family_parent_finance_and_sanctions.sql"
       - "supabase/ci-parent/**"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
@@ -186,6 +188,7 @@ jobs:
           cp supabase/migrations/20261005170000_student_release_kiosk_checkout.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005210100_school_release_protocol.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261006131325_family_parent_finance_and_sanctions.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

@@ -30,7 +30,7 @@ insert into public.student_parents(student_id,parent_id,relationship) values
  ('fa400000-0000-0000-0000-000000000001','fa600000-0000-0000-0000-000000000001','parent');
 
 do $$
-declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; setup jsonb; ledger jsonb; denied boolean; allocated_before numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid; cross_plan_id uuid; cross_charge_id uuid; cross_payment_id uuid;
+declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; summary jsonb; setup jsonb; ledger jsonb; denied boolean; allocated_before numeric; expected_paid numeric; reported_paid numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid; cross_plan_id uuid; cross_charge_id uuid; cross_payment_id uuid;
 begin
   if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') or has_table_privilege('authenticated','public.finance_payments','DELETE') then raise exception 'authenticated can directly mutate finance payments'; end if;
   if has_table_privilege('authenticated','public.finance_payment_refunds','INSERT') or has_table_privilege('authenticated','public.finance_payment_refunds','UPDATE') or has_table_privilege('authenticated','public.finance_payment_refunds','DELETE') then raise exception 'authenticated can directly mutate finance refunds'; end if;
@@ -207,9 +207,18 @@ begin
   if not denied then raise exception 'parent accessed internal finance workspace'; end if;
   workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
   if workspace->'student'->>'id'<>'fa400000-0000-0000-0000-000000000001' or workspace->'settings'->>'moncash_payment_instructions'<>'Finance MonCash' or workspace->'settings'->'payment_methods'->'moncash'->>'phone'<>'50937000001' then raise exception 'linked parent finance details or enabled payment destinations were not returned'; end if;
+  summary:=public.family_finance_summary('fa400000-0000-0000-0000-000000000001');
+  if not exists(select 1 from jsonb_array_elements(summary->'charges') item where item->>'description'='Rentrée 2026' and item->>'due_date'='2027-01-15' and item->>'status'='upcoming') then raise exception 'family summary omitted an upcoming installment'; end if;
+  select coalesce(sum(p.applied_amount),0)+coalesce((select sum(a.amount) from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where c.student_id='fa400000-0000-0000-0000-000000000001'),0) into expected_paid
+   from public.finance_payments p join public.finance_charges c on c.id=p.charge_id where c.student_id='fa400000-0000-0000-0000-000000000001' and c.currency_code='HTG' and p.status='validated';
+  select coalesce(sum((item->>'paid_amount')::numeric),0) into reported_paid from jsonb_array_elements(summary->'totals') item where item->>'currency_code'='HTG';
+  if reported_paid<>expected_paid then raise exception 'family paid totals omitted staff-entered or applied-credit settlements'; end if;
+  if not has_function_privilege('authenticated','public.family_finance_summary(uuid)','EXECUTE') or has_function_privilege('anon','public.family_finance_summary(uuid)','EXECUTE') then raise exception 'family finance summary grants are unsafe'; end if;
   denied:=false;
   begin perform public.family_finance_workspace('fa400000-0000-0000-0000-000000000002'); exception when others then denied:=sqlerrm='not_authorized'; end;
   if not denied then raise exception 'parent accessed an unrelated student finance workspace'; end if;
+  denied:=false; begin perform public.family_finance_summary('fa400000-0000-0000-0000-000000000002'); exception when others then denied:=sqlerrm='not_authorized'; end;
+  if not denied then raise exception 'parent accessed an unrelated student finance summary'; end if;
   denied:=false;
   begin perform public.submit_family_finance_payment(entry_charge_id,5,'Cash','CI-PARENT-CASH',''); exception when others then denied:=sqlerrm='invalid_payment_method'; end;
   if not denied then raise exception 'parent submitted a non-digital payment method'; end if;

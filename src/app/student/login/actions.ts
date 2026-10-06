@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 export async function studentLogin(form:FormData) {
  const {data,error}=await (await createClient()).rpc('student_device_login',{p_code:String(form.get('code')||''),p_name:String(form.get('name')||''),p_secret:String(form.get('secret')||''),p_new_pin:String(form.get('pin')||'') || null})
- if(error || !data?.token) return {error:data?.error==='guard_account_suspended'?"Student access is temporarily inactive. Go to the Director's office with your parent or guardian.":'Unable to sign in. Verify your name, code and PIN or activation code. After repeated attempts, wait 15 minutes.'}
+ if(error || !data?.token) return {error:data?.error==='guard_account_suspended'?"Student access is temporarily inactive. Go to the Director's office with your parent or guardian.":data?.error==='sanction_student_suspended'?"Accès suspendu en application de la sanction enregistrée. Veuillez vous adresser à la Direction.":'Unable to sign in. Verify your name, code and PIN or activation code. After repeated attempts, wait 15 minutes.'}
  ;(await cookies()).set('atechos_student_session',data.token,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/student',maxAge:14*86400})
  redirect('/student')
 }

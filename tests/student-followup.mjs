@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const migration=readFileSync('supabase/migrations/20261005044450_student_sanctions_emergency_release.sql','utf8')
+const actions=readFileSync('supabase/migrations/20261006131325_family_parent_finance_and_sanctions.sql','utf8')
 const verification=readFileSync('supabase/ci/student-followup-verification.sql','utf8')
 const workflow=readFileSync('.github/workflows/supabase-migration-check.yml','utf8')
 const page=readFileSync('src/app/dashboard/sanctions/page.tsx','utf8')
@@ -11,6 +12,15 @@ const extraTranslations=readFileSync('src/lib/translations-extra.ts','utf8')
 
 assert.match(nav,/{label:'Sanctions and departures',href:'\/dashboard\/sanctions',icon:'requests',roles:administration,group:'followup'}/)
 assert.match(page,/student_followup_workspace/)
+assert.match(page,/p_action_code/);assert.match(page,/action_duration_days/)
+for(const effect of ['parent_meeting','kiosk_suspension','student_suspension','school_departure']) assert.ok(page.includes(effect),`school-configured sanction option missing: ${effect}`)
+assert.match(actions,/student_sanction_restriction/);assert.match(actions,/private\.record_student_kiosk/)
+assert.match(actions,/student_device_login/);assert.match(actions,/student_device_data/)
+assert.match(actions,/delete from private\.student_sessions where student_id=p_student/)
+assert.match(actions,/set school_status='departed',departure_year_id=year_id/)
+assert.match(verification,/configured KIOS action was not activated/)
+assert.match(verification,/KIOS did not enforce the active configured sanction/)
+assert.match(verification,/resolving the sanction did not lift its KIOS restriction/)
 for(const rpc of ['save_student_sanction_type','create_student_sanction','resolve_student_sanction','save_student_release_contact','request_student_release','review_student_release','record_student_release','confirm_student_return']) assert.ok(page.includes(`'${rpc}'`),`UI must use ${rpc}`)
 assert.match(page,/Approve/);assert.match(page,/Reject/);assert.match(page,/Confirm student return/)
 assert.match(migration,/array\['school_admin','director','secretary'\]/)

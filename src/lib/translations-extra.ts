@@ -731,8 +731,7 @@ export const extraTranslations:Record<string,[string,string]> = {
  "School departure recorded":["Départ de l’école enregistré","Depa lekòl la anrejistre"],
  "Through":["Jusqu’au","Jiska"],
 
- "Scan student badge":["Scanner le badge de l’élève","Eskane badj elèv la"],
- "Close badge scanner":["Fermer le scanner de badge","Fèmen eskanè badj la"],
+  "Close badge scanner":["Fermer le scanner de badge","Fèmen eskanè badj la"],
  "Find a student by name or AtechOS ID":["Rechercher un élève par nom ou ID AtechOS","Chèche yon elèv ak non oswa ID AtechOS"],
  "Change student":["Changer d’élève","Chanje elèv la"],
  "Choose or scan the student first. The school-configured action will be applied when you save.":["Choisissez ou scannez d’abord l’élève. L’action configurée par l’école sera appliquée à l’enregistrement.","Chwazi oswa eskane elèv la anvan. Aksyon lekòl la konfigire a ap aplike lè ou anrejistre."],

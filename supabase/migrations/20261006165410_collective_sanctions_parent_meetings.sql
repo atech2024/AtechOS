@@ -429,7 +429,10 @@ begin
     if position('direction_only=excluded.direction_only' in src)=0
       or position('recorded_by,direction_only' in src)=0
       or position('is_direction_only)' in src)=0 then
-      raise exception 'collective_sanction_direction_attendance_patch_failed';
+      raise exception 'collective_sanction_direction_attendance_patch_failed columns=%, values=%, assignment=%, insert=%',
+        position('recorded_by,direction_only' in src),position('is_direction_only)' in src),
+        position('direction_only=excluded.direction_only' in src),
+        substring(src from greatest(position('insert into public.attendance' in src)-30,1) for 700);
     end if;
     blocked_anchor:='if window_name=''blocked'' then return jsonb_build_object(''error'',''kiosk_closed'');end if;';
     if position(blocked_anchor in src)=0 then raise exception 'collective_sanction_kiosk_blocked_anchor_missing'; end if;

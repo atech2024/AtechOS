@@ -51,7 +51,7 @@ create or replace function private.student_sanction_requires_direction(p_student
 returns boolean language sql stable security definer set search_path=''
 as $$
  select exists(select 1 from public.student_sanctions x where x.student_id=p_student and x.status='active'
-   and (x.action_code='parent_meeting' or (x.action_code='school_departure' and x.departure_decision='pending_meeting')))
+   and (x.action_code in ('parent_meeting','student_suspension') or (x.action_code='school_departure' and x.departure_decision='pending_meeting')))
 $$;
 revoke all on function private.student_sanction_requires_direction(uuid) from public,anon,authenticated;
 
@@ -79,20 +79,29 @@ begin
   if p_already_inside then
     return jsonb_build_object('direction_only',false,'allow_exit',true,'sanction_action',action,'return_at',return_at);
   end if;
-  if action in ('student_suspension','kiosk_suspension') then
-    return jsonb_build_object('error',case when action='student_suspension' then 'sanction_student_suspended' else 'sanction_kiosk_suspended' end,
-      'sanction_action',action,'return_at',return_at);
+  if action='kiosk_suspension' then
+    return jsonb_build_object('error','sanction_kiosk_suspended','sanction_action',action,'return_at',return_at);
   end if;
   if meeting_at is null then
-    return jsonb_build_object('error','sanction_meeting_required','sanction_action',action,'return_at',deadline);
+    return jsonb_build_object('error',case when action='student_suspension' then 'sanction_student_suspended' else 'sanction_meeting_required' end,
+      'sanction_action',action,'return_at',case when action='student_suspension' then return_at else deadline end);
   end if;
   if meeting_at < p_now - interval '30 minutes' then
-    return jsonb_build_object('error','sanction_meeting_overdue','sanction_action',action);
+    return jsonb_build_object('error',case when action='student_suspension' then 'sanction_student_suspended' else 'sanction_meeting_overdue' end,
+      'sanction_action',action,'return_at',return_at);
+  end if;
+  if (meeting_at at time zone 'America/Port-au-Prince')::date<>local_day then
+    return jsonb_build_object('error',case when action='student_suspension' then 'sanction_student_suspended' else 'sanction_meeting_not_today' end,
+      'sanction_action',action,'return_at',meeting_at);
   end if;
   select school_entry_time,school_departure_time into entry_time,close_time
     from public.student_sanction_settings where school_id=sid;
-  meeting_window:=meeting_at>=p_now and (meeting_at at time zone 'America/Port-au-Prince')::date=local_day
+  meeting_window:=meeting_at between p_now-interval '30 minutes' and p_now+interval '30 minutes' and (meeting_at at time zone 'America/Port-au-Prince')::date=local_day
     and private.guard_school_day(sid,local_day) and entry_time is not null and local_time between entry_time and close_time;
+  if not meeting_window then
+    return jsonb_build_object('error',case when action='student_suspension' then 'sanction_student_suspended' else 'sanction_meeting_window' end,
+      'sanction_action',action,'return_at',meeting_at);
+  end if;
   direction:=true;
   return jsonb_build_object('direction_only',direction,'allow_exit',false,'meeting_window',meeting_window,
     'sanction_action',action,'return_at',meeting_at);
@@ -130,7 +139,7 @@ begin
     where id=p_type and school_id=sid and active;
   if action is null then raise exception 'sanction_type_not_found'; end if;
   if action in ('kiosk_suspension','student_suspension') then action_end:=now()+make_interval(days=>duration); end if;
-  if action in ('parent_meeting','school_departure') then deadline:=private.guard_school_deadline(sid,now(),3); end if;
+  if action in ('parent_meeting','student_suspension','school_departure') then deadline:=private.guard_school_deadline(sid,now(),3); end if;
   departure:=case when action='school_departure' then 'pending_meeting' else 'not_applicable' end;
   insert into public.student_sanctions(school_id,student_id,sanction_type_id,incident_at,reason,created_by,created_role,
     action_code,action_started_at,action_until,parent_meeting_deadline,departure_decision)
@@ -143,7 +152,7 @@ begin
   perform private.student_followup_event(sid,p_student,'sanction',rid,'created',
     jsonb_build_object('type_id',p_type,'incident_at',p_incident_at,'action_code',action,
       'action_duration_days',duration,'action_until',action_end,'parent_meeting_deadline',deadline,'departure_decision',departure));
-  if action in ('parent_meeting','school_departure') then
+  if action in ('parent_meeting','student_suspension','school_departure') then
     insert into public.notifications(school_id,recipient_id,type,title,description,priority,href,event_key)
     select sid,p.user_id,'student_followup','Rendez-vous avec la famille requis',
       'Choisissez une date et une heure de rendez-vous dans le portail familial.', 'high',
@@ -315,7 +324,7 @@ begin
   if x.id is null then raise exception 'sanction_not_found'; end if;
   sid:=x.school_id;
   if not private.finance_parent_linked(sid,x.student_id,auth.uid()) then raise exception 'not_authorized'; end if;
-  if x.status<>'active' or (x.action_code<>'parent_meeting' and x.action_code<>'school_departure')
+  if x.status<>'active' or x.action_code not in ('parent_meeting','student_suspension','school_departure')
     or (x.action_code='school_departure' and x.departure_decision<>'pending_meeting') then raise exception 'sanction_meeting_not_open'; end if;
   if x.parent_meeting_at is not null then raise exception 'sanction_meeting_already_selected'; end if;
   if x.parent_meeting_deadline is null or p_meeting_at is null or p_meeting_at<=now() or p_meeting_at>x.parent_meeting_deadline then raise exception 'invalid_sanction_meeting_time'; end if;
@@ -323,6 +332,7 @@ begin
   if settings.school_id is null then raise exception 'school_hours_not_configured'; end if;
   local_at:=p_meeting_at at time zone 'America/Port-au-Prince';
   if not private.guard_school_day(sid,local_at::date)
+    or local_at::date<(private.guard_school_deadline(sid,now(),1) at time zone 'America/Port-au-Prince')::date
     or local_at::time<settings.school_entry_time or local_at::time>=settings.school_departure_time
     or mod(extract(epoch from (local_at::time-settings.school_entry_time)),1800)<>0 then
     raise exception 'invalid_sanction_meeting_time';
@@ -396,7 +406,7 @@ begin
     attendance_anchor:='select * into a from public.attendance where student_id=s.id and attendance_date=d for update;';
     if position(attendance_anchor in src)=0 then raise exception 'collective_sanction_kiosk_attendance_anchor_missing'; end if;
     src:=replace(src,attendance_anchor,attendance_anchor||
-      'gate:=private.student_sanction_kiosk_gate(s.id,ts,a.check_in_at is not null and a.check_out_at is null); if gate ? ''error'' then return gate; end if; is_direction_only:=coalesce((gate->>''direction_only'')::boolean,false); if window_name=''blocked'' and coalesce((gate->>''meeting_window'')::boolean,false) then window_name:=''present''; end if; if coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''checkout''; end if;');
+      'gate:=private.student_sanction_kiosk_gate(s.id,ts,a.check_in_at is not null and a.check_out_at is null); if gate ? ''error'' then return gate; end if; is_direction_only:=coalesce((gate->>''direction_only'')::boolean,false); if coalesce((gate->>''meeting_window'')::boolean,false) and not coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''present''; end if; if coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''checkout''; end if;');
     src:=replace(src,
       'insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by)',
       'insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by,direction_only)');
@@ -418,62 +428,20 @@ begin
   end if;
 end $sanction_kiosk$;
 
--- A family meeting blocks class attendance entry while allowing the KIOS
--- recorder to log the student's physical arrival at Direction.
-create or replace function public.staff_mark_attendance(p_student uuid,p_class uuid,p_status text)
-returns uuid language plpgsql security definer set search_path=''
+-- Keep the existing attendance RPCs intact while preventing an active meeting sanction
+-- from being entered into class by either staff UI or another attendance writer.
+create or replace function private.enforce_student_sanction_direction()
+returns trigger language plpgsql security definer set search_path=''
 as $$
-declare s public.students; a public.attendance; actor_role text; actor_name text; ts timestamptz:=now();
- d date:=(now() at time zone 'America/Port-au-Prince')::date;
 begin
- select * into s from public.students where id=p_student and active and school_status='active';
- if s.id is null or not private.has_role(s.school_id,array['school_admin','director','secretary','surveillant']) then raise exception 'not_authorized'; end if;
- if p_status not in ('present','late','absent','checkout') then raise exception 'invalid_status'; end if;
- if not exists(select 1 from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id
-   where e.student_id=s.id and e.class_id=p_class and e.status='active' and c.school_id=s.school_id and c.enabled and y.is_current) then raise exception 'current_enrollment_required'; end if;
- if p_status in ('present','late') and private.student_sanction_requires_direction(s.id) then raise exception 'student_at_direction'; end if;
- select full_name into actor_name from public.users where id=auth.uid();
- if exists(select 1 from public.schools where id=s.school_id and owner_user_id=auth.uid()) then actor_role:='school_admin'; else
-   select role::text into actor_role from public.school_members where school_id=s.school_id and user_id=auth.uid() and enabled
-     and role in ('school_admin','director','secretary','surveillant','censeur')
-     order by case role when 'school_admin' then 0 when 'director' then 1 when 'secretary' then 2 else 3 end limit 1;
- end if;
- perform pg_advisory_xact_lock(hashtextextended(s.id::text||d::text,0));
- select * into a from public.attendance where student_id=s.id and attendance_date=d for update;
- if p_status='checkout' then
-   if a.check_in_at is null then raise exception 'check_in_required'; end if;
-   if a.check_out_at is not null then return a.id; end if;
-   update public.attendance set check_out_at=ts,recorded_by=auth.uid(),updated_at=ts where id=a.id returning * into a;
- else
-   if a.check_out_at is not null then raise exception 'attendance_already_complete'; end if;
-   insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,recorded_by)
-     values(s.school_id,s.id,p_class,d,p_status,case when p_status<>'absent' then ts end,auth.uid())
-   on conflict(student_id,attendance_date) do update set status=excluded.status,
-     check_in_at=case when excluded.status='absent' then null else coalesce(attendance.check_in_at,excluded.check_in_at) end,
-     recorded_by=auth.uid(),updated_at=ts returning * into a;
- end if;
- insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action)
-   values(a.id,s.id,'STAFF',auth.uid(),coalesce(actor_name,auth.uid()::text),actor_role,p_status);
- return a.id;
+  if new.status in ('present','late') and not coalesce(new.direction_only,false)
+    and private.student_sanction_requires_direction(new.student_id) then
+    raise exception 'student_at_direction';
+  end if;
+  return new;
 end $$;
-
-create or replace function public.record_attendance(p_student_id uuid,p_class_id uuid,p_attendance_date date,p_status text,p_check_in_at timestamptz,p_check_out_at timestamptz,p_late_minutes integer,p_notes text)
-returns uuid language plpgsql security definer set search_path=''
-as $$
-declare school uuid; aid uuid;
-begin
-  select school_id into school from public.students where id=p_student_id and active and school_status='active';
-  if school is null or not private.has_role(school,array['school_admin','director','secretary','surveillant']) then raise exception 'not_authorized'; end if;
-  if p_status in ('present','late') and private.student_sanction_requires_direction(p_student_id) then raise exception 'student_at_direction'; end if;
-  if p_status not in ('present','late','absent') or p_late_minutes<0 then raise exception 'invalid_attendance'; end if;
-  if not exists(select 1 from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id
-    where e.student_id=p_student_id and e.class_id=p_class_id and e.status='active' and c.school_id=school and c.enabled and y.is_current) then raise exception 'current_enrollment_required'; end if;
-  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,check_out_at,late_minutes,recorded_by,notes)
-  values(school,p_student_id,p_class_id,p_attendance_date,p_status,p_check_in_at,p_check_out_at,p_late_minutes,auth.uid(),p_notes)
-  on conflict(student_id,attendance_date) do update set status=excluded.status,check_in_at=excluded.check_in_at,
-    check_out_at=excluded.check_out_at,late_minutes=excluded.late_minutes,recorded_by=auth.uid(),notes=excluded.notes,updated_at=now()
-  returning id into aid;
-  return aid;
-end $$;
-revoke all on function public.staff_mark_attendance(uuid,uuid,text),public.record_attendance(uuid,uuid,date,text,timestamptz,timestamptz,integer,text) from public,anon;
-grant execute on function public.staff_mark_attendance(uuid,uuid,text),public.record_attendance(uuid,uuid,date,text,timestamptz,timestamptz,integer,text) to authenticated;
+revoke all on function private.enforce_student_sanction_direction() from public,anon,authenticated;
+drop trigger if exists attendance_student_sanction_direction on public.attendance;
+create trigger attendance_student_sanction_direction
+  before insert or update of status,direction_only on public.attendance
+  for each row execute function private.enforce_student_sanction_direction();

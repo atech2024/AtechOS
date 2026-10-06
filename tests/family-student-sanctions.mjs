@@ -13,6 +13,8 @@ assert.match(rpc,/revoke all on function public\.family_student_sanctions\(uuid\
 assert.match(rpc,/grant execute on function public\.family_student_sanctions\(uuid\) to authenticated/,'authenticated family RPC grant is required')
 assert.match(rpc,/limit 100/,'parent sanction history must be bounded')
 assert.match(rpc,/jsonb_build_object\([\s\S]*'resolution',q\.resolution/,'sanction response must contain only explicitly selected safe fields')
+assert.match(rpc,/create trigger prevent_sanctioned_student_session[\s\S]*before insert or update of student_id on private\.student_sessions/,'student suspension must block new portal sessions in the database')
+assert.match(rpc,/student_sanction_restriction\(s\.id,''kiosk''\)/,'KIOS sanction enforcement must live at the shared database recorder')
 assert.match(component,/family_student_sanctions/,'parent view must use its family-only RPC')
 assert.match(portal,/<FamilyStudentSanctions studentId=\{childId\}\/>/,'sanctions must follow the selected child')
 assert.match(staffMigration,/private\.student_followup_authority/,'sanction mutation remains restricted to authorized school staff')
@@ -20,3 +22,4 @@ for(const key of ['Student follow-up and sanctions','Sanctions recorded by the s
 assert.ok(packageJson.scripts.test.includes('node tests/family-student-sanctions.mjs'),'npm test must include parent sanctions coverage')
 
 console.log('PASS family sanction contract: linked-child isolation, sanitized history, bounded result, staff-only mutations and portal wiring.')
+

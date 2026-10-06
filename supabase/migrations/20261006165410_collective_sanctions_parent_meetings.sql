@@ -348,7 +348,9 @@ begin
   if x.status<>'active' or x.action_code not in ('parent_meeting','student_suspension','school_departure')
     or (x.action_code='school_departure' and x.departure_decision<>'pending_meeting') then raise exception 'sanction_meeting_not_open'; end if;
   if x.parent_meeting_at is not null then raise exception 'sanction_meeting_already_selected'; end if;
-  if x.parent_meeting_deadline is null or p_meeting_at is null or p_meeting_at<=now() or p_meeting_at>x.parent_meeting_deadline then raise exception 'invalid_sanction_meeting_time'; end if;
+  if x.parent_meeting_deadline is null or p_meeting_at is null or p_meeting_at<=now() or p_meeting_at>x.parent_meeting_deadline then
+    raise exception 'invalid_sanction_meeting_time candidate=% deadline=% now=%',p_meeting_at,x.parent_meeting_deadline,now();
+  end if;
   select * into settings from public.student_sanction_settings where school_id=sid;
   if settings.school_id is null then raise exception 'school_hours_not_configured'; end if;
   local_at:=p_meeting_at at time zone 'America/Port-au-Prince';
@@ -356,7 +358,7 @@ begin
     or local_at::date<(private.guard_school_deadline(sid,now(),1) at time zone 'America/Port-au-Prince')::date
     or local_at::time<settings.school_entry_time or local_at::time>=settings.school_departure_time
     or mod(extract(epoch from (local_at::time-settings.school_entry_time)),1800)<>0 then
-    raise exception 'invalid_sanction_meeting_time';
+    raise exception 'invalid_sanction_meeting_time local=% date=% open=% close=% open_day=% delta=% deadline=%',local_at,local_at::date,settings.school_entry_time,settings.school_departure_time,private.guard_school_day(sid,local_at::date),mod(extract(epoch from (local_at::time-settings.school_entry_time)),1800),x.parent_meeting_deadline;
   end if;
   update public.student_sanctions set parent_meeting_at=p_meeting_at,parent_meeting_selected_by=auth.uid()
   where id=x.id;

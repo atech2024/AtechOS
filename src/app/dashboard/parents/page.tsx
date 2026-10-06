@@ -21,6 +21,9 @@ export default function ParentsPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [links, setLinks] = useState<LinkRow[]>([])
   const [studentId, setStudentId] = useState('')
+  const [inviteStudentQuery, setInviteStudentQuery] = useState('')
+  const [linkStudentQuery, setLinkStudentQuery] = useState('')
+  const [parentQuery, setParentQuery] = useState('')
   const [parentId, setParentId] = useState('')
   const [relationship, setRelationship] = useState('Parent')
   const [primary, setPrimary] = useState(false)
@@ -48,6 +51,18 @@ export default function ParentsPage() {
   }
   useEffect(() => { load() }, [])
 
+  const filterStudents = (query: string) => {
+    const term = query.trim().toLowerCase()
+    return students.filter(student => !term || (student.first_name + ' ' + student.last_name).toLowerCase().includes(term))
+  }
+  const matchingInviteStudents = filterStudents(inviteStudentQuery)
+  const matchingLinkStudents = filterStudents(linkStudentQuery)
+  const matchingParents = parents.filter(parent => {
+    const term = parentQuery.trim().toLowerCase()
+    const user = users.find(item => item.id === parent.user_id)
+    return !term || [parent.full_name, user?.full_name, parent.email, user?.email, parent.relationship].some(value => value?.toLowerCase().includes(term))
+  })
+
   async function linkParent() {
     if (!studentId || !parentId || !relationship.trim()) { setError('Student, parent and relationship are required.'); return }
     setSaving(true); setError(''); setMessage('')
@@ -69,10 +84,10 @@ export default function ParentsPage() {
     {error && <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
     {message && <p className="mt-6 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700">{message}</p>}
 
-    <section className="mt-6"><label>Select student to invite a parent<select value={studentId} onChange={e=>setStudentId(e.target.value)} className="m-3 rounded border p-3"><option value=""><T text="Select student"/></option>{students.map(s=><option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}</select></label>{studentId && <ParentInvite key={studentId} studentId={studentId} />}</section>
+    <section className="mt-6"><label>Select student to invite a parent<input type="search" aria-label="Search students by name" placeholder="Search students by name" value={inviteStudentQuery} onChange={e=>setInviteStudentQuery(e.target.value)} className="m-3 rounded border p-3" /><select value={studentId} onChange={e=>setStudentId(e.target.value)} className="m-3 rounded border p-3"><option value=""><T text="Select student"/></option>{matchingInviteStudents.map(s=><option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}</select></label>{studentId && <ParentInvite key={studentId} studentId={studentId} />}</section>
     {!loading && parents.length > 0 && students.length > 0 && <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-semibold">Link a parent to a student</h2><div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <label className="text-sm font-medium"><T text="Student"/><select value={studentId} onChange={e=>setStudentId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value=""><T text="Select student"/></option>{students.map(s=><option key={s.id} value={s.id}>{s.first_name} {s.last_name}{s.student_code ? ` · ${s.student_code}` : ''}</option>)}</select></label>
-      <label className="text-sm font-medium">Parent<select value={parentId} onChange={e=>setParentId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select parent</option>{parents.map(p=><option key={p.id} value={p.id}>{parentLabel(p)}</option>)}</select></label>
+      <label className="text-sm font-medium"><T text="Student"/><input type="search" aria-label="Search students by name" value={linkStudentQuery} onChange={e=>setLinkStudentQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3" /><select value={studentId} onChange={e=>setStudentId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value=""><T text="Select student"/></option>{matchingLinkStudents.map(s=><option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}</select></label>
+      <label className="text-sm font-medium"><T text="Parent"/><input type="search" aria-label="Search parents by name or email" placeholder="Search parents by name or email" value={parentQuery} onChange={e=>setParentQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3" /><select value={parentId} onChange={e=>setParentId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value="">Select parent</option>{matchingParents.map(p=><option key={p.id} value={p.id}>{parentLabel(p)}</option>)}</select></label>
       <label className="text-sm font-medium">Relationship<input value={relationship} onChange={e=>setRelationship(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3" placeholder="Parent, Mother, Father..." /></label>
       <div className="flex items-end gap-3"><label className="flex items-center gap-2 pb-3 text-sm"><input type="checkbox" checked={primary} onChange={e=>setPrimary(e.target.checked)} /> Primary</label><button onClick={linkParent} disabled={saving} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">{saving?'Saving...':'Link parent'}</button></div>
     </div></section>}

@@ -22,7 +22,10 @@ alter table public.attendance
   add column direction_only boolean not null default false;
 
 -- Old departure actions already set school_status=departed; preserve them as final.
-update public.student_sanctions x set departure_decision='departed'
+update public.student_sanctions x set departure_decision='departed',
+  status=case when x.status='active' then 'resolved' else x.status end,
+  resolved_at=case when x.status='active' then coalesce(x.resolved_at,now()) else x.resolved_at end,
+  resolution=case when x.status='active' then coalesce(x.resolution,'Legacy permanent-departure sanction confirmed before decision tracking.') else x.resolution end
 where x.action_code='school_departure' and exists (
   select 1 from public.students s where s.id=x.student_id and s.school_status='departed'
 );
@@ -77,7 +80,9 @@ begin
 
   if action is null then return jsonb_build_object('direction_only',false,'allow_exit',false); end if;
   if p_already_inside then
-    return jsonb_build_object('direction_only',false,'allow_exit',true,'sanction_action',action,'return_at',return_at);
+    return jsonb_build_object('direction_only',false,
+      'allow_exit',private.kiosk_window(local_time)='checkout',
+      'sanction_action',action,'return_at',return_at);
   end if;
   if action='kiosk_suspension' then
     return jsonb_build_object('error','sanction_kiosk_suspended','sanction_action',action,'return_at',return_at);
@@ -217,30 +222,35 @@ end $$;
 revoke all on function public.student_followup_class_attendees(uuid,date) from public,anon;
 grant execute on function public.student_followup_class_attendees(uuid,date) to authenticated;
 
-create function public.create_class_student_sanctions(p_class uuid,p_type uuid,p_reason text,p_incident_at timestamptz)
+create function public.create_class_student_sanctions(p_class uuid,p_type uuid,p_reason text,p_incident_at timestamptz,p_expected_students uuid[])
 returns jsonb language plpgsql security definer set search_path=''
 as $$
-declare sid uuid:=public.get_my_school_id(); day date; st record; n integer:=0; ids uuid[]:='{}';
+declare sid uuid:=public.get_my_school_id(); day date; st uuid; n integer:=0; ids uuid[]:='{}'; expected_ids uuid[]; actual_ids uuid[];
 begin
   if not private.student_followup_authority(sid) then raise exception 'not_authorized'; end if;
   if p_incident_at is null or p_incident_at>now() then raise exception 'invalid_sanction'; end if;
+  if coalesce(cardinality(p_expected_students),0) not between 1 and 100
+    or cardinality(p_expected_students)<>(select count(distinct student_id) from unnest(p_expected_students) as selected(student_id)) then
+    raise exception 'invalid_student_selection';
+  end if;
   day:=(p_incident_at at time zone 'America/Port-au-Prince')::date;
   if not private.guard_school_day(sid,day) then raise exception 'invalid_school_day'; end if;
   if not exists(select 1 from public.classes c join public.academic_years y on y.id=c.academic_year_id
     where c.id=p_class and c.school_id=sid and c.enabled and y.is_current) then raise exception 'class_not_found'; end if;
-  for st in
-    select s.id from public.attendance a join public.students s on s.id=a.student_id
+  select array_agg(x order by x) into expected_ids from unnest(p_expected_students) as selected(x);
+  select coalesce(array_agg(q.student_id order by q.student_id),'{}'::uuid[]) into actual_ids from (
+    select s.id as student_id from public.attendance a join public.students s on s.id=a.student_id
     where a.school_id=sid and a.class_id=p_class and a.attendance_date=day and a.check_in_at is not null
       and a.status in ('present','late') and not a.direction_only and s.school_id=sid and s.active and s.school_status='active'
-    order by s.last_name,s.first_name
-  loop
-    ids:=array_append(ids,private.create_student_sanction_record(st.id,p_type,p_reason,p_incident_at)); n:=n+1;
+  ) q;
+  if actual_ids is distinct from expected_ids then raise exception 'class_attendance_changed'; end if;
+  foreach st in array expected_ids loop
+    ids:=array_append(ids,private.create_student_sanction_record(st,p_type,p_reason,p_incident_at)); n:=n+1;
   end loop;
-  if n=0 then raise exception 'no_present_students'; end if;
   return jsonb_build_object('created_count',n,'sanction_ids',to_jsonb(ids),'attendance_date',day);
 end $$;
-revoke all on function public.create_class_student_sanctions(uuid,uuid,text,timestamptz) from public,anon;
-grant execute on function public.create_class_student_sanctions(uuid,uuid,text,timestamptz) to authenticated;
+revoke all on function public.create_class_student_sanctions(uuid,uuid,text,timestamptz,uuid[]) from public,anon;
+grant execute on function public.create_class_student_sanctions(uuid,uuid,text,timestamptz,uuid[]) to authenticated;
 
 create or replace function public.student_followup_workspace()
 returns jsonb language plpgsql stable security definer set search_path=''
@@ -406,7 +416,7 @@ begin
     attendance_anchor:='select * into a from public.attendance where student_id=s.id and attendance_date=d for update;';
     if position(attendance_anchor in src)=0 then raise exception 'collective_sanction_kiosk_attendance_anchor_missing'; end if;
     src:=replace(src,attendance_anchor,attendance_anchor||
-      'gate:=private.student_sanction_kiosk_gate(s.id,ts,a.check_in_at is not null and a.check_out_at is null); if gate ? ''error'' then return gate; end if; is_direction_only:=coalesce((gate->>''direction_only'')::boolean,false); if coalesce((gate->>''meeting_window'')::boolean,false) and not coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''present''; end if; if coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''checkout''; end if;');
+      'gate:=private.student_sanction_kiosk_gate(s.id,ts,a.check_in_at is not null and a.check_out_at is null); if gate ? ''error'' then return gate; end if; is_direction_only:=coalesce((gate->>''direction_only'')::boolean,false) or coalesce(a.direction_only,false); if coalesce((gate->>''meeting_window'')::boolean,false) and not coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''present''; end if; if coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''checkout''; end if;');
     src:=replace(src,
       'insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by)',
       'insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by,direction_only)');
@@ -419,7 +429,7 @@ begin
     if position('direction_only=excluded.direction_only' in src)=0 then raise exception 'collective_sanction_direction_attendance_patch_failed'; end if;
     blocked_anchor:='if window_name=''blocked'' then return jsonb_build_object(''error'',''kiosk_closed'');end if;';
     if position(blocked_anchor in src)=0 then raise exception 'collective_sanction_kiosk_blocked_anchor_missing'; end if;
-    src:=replace(src,blocked_anchor,'if window_name=''blocked'' then return jsonb_build_object(''error'',''kiosk_closed'');end if;');
+    src:=replace(src,blocked_anchor,'if window_name=''blocked'' then if gate ? ''sanction_action'' then return jsonb_build_object(''error'',''sanction_checkout_not_open'',''sanction_action'',gate->>''sanction_action'',''return_at'',gate->>''return_at''); end if; return jsonb_build_object(''error'',''kiosk_closed'');end if;');
     return_anchor:='if result in (''check_in'',''duplicate_scan'',''check_out'') then perform private.capture_exam_presence(s.id,cl.id,ts);end if; return jsonb_build_object(''school_release_protocol_active'',protocol_id is not null and not private.is_preschool_student(s.id),''guard_meeting_required'',exists(select 1 from public.guard_cases g where g.student_id=s.id and g.status=''meeting'' and g.meeting_due>ts),''action'',result,';
     if position(return_anchor in src)=0 then raise exception 'collective_sanction_kiosk_result_anchor_missing'; end if;
     src:=replace(src,return_anchor,'if result in (''check_in'',''duplicate_scan'',''check_out'') and not is_direction_only then perform private.capture_exam_presence(s.id,cl.id,ts);end if; return jsonb_build_object(''direction_only'',is_direction_only,''sanction_action'',gate->>''sanction_action'',''sanction_return_at'',gate->>''return_at'',''school_release_protocol_active'',protocol_id is not null and not private.is_preschool_student(s.id),''guard_meeting_required'',exists(select 1 from public.guard_cases g where g.student_id=s.id and g.status=''meeting'' and g.meeting_due>ts),''action'',result,');

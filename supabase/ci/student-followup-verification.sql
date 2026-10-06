@@ -227,7 +227,72 @@ begin
  if not exists(select 1 from public.student_home_arrival_confirmations h where h.student_id='fb400000-0000-0000-0000-000000000002' and h.confirmed_as='student' and h.confirmed_by is null) or public.student_home_arrival_status(student_token)->>'confirmed_at' is null then raise exception 'student home-arrival confirmation was not recorded';end if;
  denied:=false;begin perform public.confirm_student_home_arrival('forged-home-arrival-token');exception when others then denied:=sqlerrm='not_authorized';end;
  if not denied then raise exception 'forged student portal token confirmed arrival';end if;
-end $$;
+ -- Collective class sanctions must exclude pupils present only at Direction.
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000001',true);
+ perform public.save_student_sanction_hours('08:00','15:00');
+ insert into public.student_parents(student_id,parent_id)
+ values('fb400000-0000-0000-0000-000000000002','fb600000-0000-0000-0000-000000000001') on conflict do nothing;
+ update public.attendance set status='present',check_in_at=now()-interval '1 hour',check_out_at=null,direction_only=true
+ where student_id='fb400000-0000-0000-0000-000000000001' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date;
+ update public.attendance set status='present',check_in_at=now()-interval '1 hour',check_out_at=null,direction_only=false
+ where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date;
+ portal_sanction_type:=public.save_student_sanction_type(null,'Collective test',true,'none',null);
+ kiosk:=public.student_followup_class_attendees('fb200000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date);
+ if jsonb_array_length(kiosk)<>1 or kiosk->0->>'id'<>'fb400000-0000-0000-0000-000000000002' then raise exception 'class preview included Direction-only student: %',kiosk;end if;
+ kiosk:=public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Collective class follow-up',now()-interval '20 minutes',array['fb400000-0000-0000-0000-000000000002'::uuid]);
+ denied:=false;begin perform public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Stale roster test',now()-interval '20 minutes',array['fb400000-0000-0000-0000-000000000001'::uuid,'fb400000-0000-0000-0000-000000000002'::uuid]);exception when others then denied:=sqlerrm='class_attendance_changed';end;
+ if not denied then raise exception 'stale class preview was accepted';end if;
+ if kiosk->>'created_count'<>'1' or not exists(select 1 from public.student_sanctions where student_id='fb400000-0000-0000-0000-000000000002' and reason='Collective class follow-up')
+   or exists(select 1 from public.student_sanctions where student_id='fb400000-0000-0000-0000-000000000001' and reason='Collective class follow-up') then raise exception 'collective class target was incorrect: %',kiosk;end if;
+ kiosk:=public.create_student_sanctions_bulk(array['fb400000-0000-0000-0000-000000000001'::uuid,'fb400000-0000-0000-0000-000000000002'::uuid],portal_sanction_type,'Bulk badge selection test',now()-interval '15 minutes');
+ if kiosk->>'created_count'<>'2' then raise exception 'selected-student batch did not create two records: %',kiosk;end if;
+ denied:=false;begin perform public.create_student_sanctions_bulk(array['fb400000-0000-0000-0000-000000000001'::uuid,'fb400000-0000-0000-0000-000000000001'::uuid],portal_sanction_type,'Duplicate selection test',now()-interval '10 minutes');exception when others then denied:=sqlerrm='invalid_student_selection';end;
+ if not denied then raise exception 'duplicate student IDs were accepted';end if;
+
+ -- Parent selects a school-hour appointment and KIOS stores Direction-only arrival.
+ portal_sanction_type:=public.save_student_sanction_type(null,'Parent meeting test',true,'parent_meeting',null);
+ portal_sanction_id:=public.create_student_sanction('fb400000-0000-0000-0000-000000000002',portal_sanction_type,'Parent meeting workflow test',now()-interval '10 minutes');
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000005',true);
+ family_sanctions:=public.family_student_sanctions('fb400000-0000-0000-0000-000000000002');
+ if jsonb_array_length(family_sanctions->'meeting_options')=0 then raise exception 'parent received no available school-hour meeting';end if;
+ perform public.submit_student_sanction_meeting(portal_sanction_id,(family_sanctions->'meeting_options'->>0)::timestamptz);
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000001',true);
+ create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $collective_direction_window$ select 'present'::text; $collective_direction_window$;
+ kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
+ if kiosk->>'error'<>'sanction_meeting_not_today' then raise exception 'KIOS allowed a family meeting visit before its scheduled day: %',kiosk;end if;
+ -- Fast-forward the fixture to its appointment; this exercises the meeting
+ -- arrival branch without relying on the hosted runner's wall clock.
+ update public.student_sanction_settings set school_entry_time='00:00',school_departure_time='23:59'
+ where school_id='fb000000-0000-0000-0000-000000000001';
+ update public.student_sanctions set parent_meeting_at=now() where id=portal_sanction_id;
+ update public.attendance set status='absent',check_in_at=null,check_out_at=null,direction_only=false
+ where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date;
+ kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
+ if kiosk->>'action'<>'check_in' or kiosk->>'direction_only'<>'true'
+   or not exists(select 1 from public.attendance where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date and direction_only) then raise exception 'meeting KIOS check-in was not Direction-only: %',kiosk;end if;
+ denied:=false;begin update public.attendance set direction_only=false,status='present' where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date;exception when others then denied:=sqlerrm='student_at_direction';end;
+ if not denied then raise exception 'staff attendance writer moved meeting student into class';end if;
+ kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
+ if kiosk->>'action'<>'duplicate_scan' or (select check_out_at from public.attendance where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date) is not null then raise exception 'second scan toggled a Direction check-in into check-out';end if;
+ create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $sanction_checkout_window$ select 'checkout'::text; $sanction_checkout_window$;
+ kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
+ if kiosk->>'action'<>'check_out' or not exists(select 1 from public.attendance where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date and check_out_at is not null) then raise exception 'Direction-only student could not check out: %',kiosk;end if;
+ perform public.resolve_student_sanction(portal_sanction_id,'Meeting completed');
+
+ -- A school departure stays pending until Direction records retained/departed.
+ portal_sanction_type:=public.save_student_sanction_type(null,'Permanent departure test',true,'school_departure',null);
+ portal_sanction_id:=public.create_student_sanction('fb400000-0000-0000-0000-000000000002',portal_sanction_type,'School departure decision test',now()-interval '5 minutes');
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000005',true);
+ family_sanctions:=public.family_student_sanctions('fb400000-0000-0000-0000-000000000002');
+ if jsonb_array_length(family_sanctions->'meeting_options')=0 then raise exception 'departure did not offer family meeting slots';end if;
+ perform public.submit_student_sanction_meeting(portal_sanction_id,(family_sanctions->'meeting_options'->>0)::timestamptz);
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000001',true);
+ denied:=false;begin perform public.resolve_student_sanction(portal_sanction_id,'Generic resolution must not bypass decision');exception when others then denied:=sqlerrm='use_departure_decision';end;
+ if not denied then raise exception 'generic resolution bypassed departure decision';end if;
+ perform public.decide_student_sanction_departure(portal_sanction_id,'retained','Family meeting completed; student remains enrolled.');
+ if not exists(select 1 from public.student_sanctions where id=portal_sanction_id and departure_decision='retained' and status='resolved')
+   or not exists(select 1 from public.students where id='fb400000-0000-0000-0000-000000000002' and school_status='active') then raise exception 'Director retention decision did not preserve active enrollment';end if;
+ end $$;
 
 rollback;
 

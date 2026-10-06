@@ -238,11 +238,11 @@ begin
     execute src;
   end if;
   select pg_get_functiondef('public.student_device_data(text)'::regprocedure) into src;
-  if position('sanction_student_suspended' in src)=0 then
+  if position('student_sanction_restriction(s.id,''portal'')' in src)=0 then
     src:=regexp_replace(src,
       'if\s+s[.]id\s+is\s+null\s+then\s+return\s+null\s*;\s*end\s+if\s*;',
       'if s.id is null then return null; end if; if private.student_sanction_restriction(s.id,''portal'') is not null then return null; end if;','i');
-    if position('sanction_student_suspended' in src)=0 then raise exception 'sanction_portal_data_patch_anchor_missing';end if;
+    if position('student_sanction_restriction(s.id,''portal'')' in src)=0 then raise exception 'sanction_portal_data_patch_anchor_missing';end if;
     execute src;
   end if;
 end $sanction_guard$;

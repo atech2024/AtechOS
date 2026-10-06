@@ -242,7 +242,15 @@ begin
   payment_id:=public.submit_family_finance_payment(entry_charge_id,10,'MonCash','CI-PARENT-MONCASH','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf');
   if not exists(select 1 from public.finance_payments p where p.id=payment_id and p.status='pending' and p.recorded_by='fa300000-0000-0000-0000-000000000005' and p.reference='CI-PARENT-MONCASH' and p.proof_storage_path is not null) then raise exception 'parent digital payment was not submitted for school approval with proof'; end if;
   workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
-  if not exists(select 1 from jsonb_array_elements(workspace->'payments') p where p->>'id'=payment_id::text) then raise exception 'parent did not see their own submitted payment request'; end if;
+  if not exists(select 1 from jsonb_array_elements(workspace->'payments') p where p->>'id'=payment_id::text and p->>'status'='pending') then raise exception 'parent did not see their own pending payment request'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
+  perform public.review_finance_payment(payment_id,'validated',null);
+  if not exists(select 1 from public.finance_payments p where p.id=payment_id and p.status='validated') then raise exception 'authorized staff did not validate the parent proof submission'; end if;
+  if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000004' and actor_role='accountant' and entity='finance_payments' and action='updated') then raise exception 'parent proof approval did not record the authorized staff audit actor'; end if;
+  if not exists(select 1 from public.notifications n where n.school_id='fa000000-0000-0000-0000-000000000001' and n.recipient_id='fa300000-0000-0000-0000-000000000005' and n.event_key='finance-payment-validated:'||payment_id::text) then raise exception 'parent was not notified after proof validation'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000005',true);
+  workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
+  if not exists(select 1 from jsonb_array_elements(workspace->'payments') p where p->>'id'=payment_id::text and p->>'status'='validated') then raise exception 'parent portal did not show its validated proof payment'; end if;
   cross_payment_id:=public.submit_family_finance_payment(cross_charge_id,10,'PayPal','CI-PARENT-USD-TO-HTG','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf');
   if not exists(select 1 from public.finance_payments p where p.id=cross_payment_id and p.status='pending' and p.amount=10 and p.currency_code='USD' and p.applied_currency_code='HTG' and p.applied_amount=1305.58) then raise exception 'parent USD tender was not reserved against its HTG fee using the BRH rate'; end if;
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);

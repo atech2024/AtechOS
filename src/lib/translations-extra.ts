@@ -731,4 +731,16 @@ export const extraTranslations:Record<string,[string,string]> = {
  "School departure recorded":["Départ de l’école enregistré","Depa lekòl la anrejistre"],
  "Through":["Jusqu’au","Jiska"]
 
+ "Scan student badge":["Scanner le badge de l’élève","Eskane badj elèv la"],
+ "Close badge scanner":["Fermer le scanner de badge","Fèmen eskanè badj la"],
+ "Find a student by name or AtechOS ID":["Rechercher un élève par nom ou ID AtechOS","Chèche yon elèv ak non oswa ID AtechOS"],
+ "Change student":["Changer d’élève","Chanje elèv la"],
+ "Choose or scan the student first. The school-configured action will be applied when you save.":["Choisissez ou scannez d’abord l’élève. L’action configurée par l’école sera appliquée à l’enregistrement.","Chwazi oswa eskane elèv la anvan. Aksyon lekòl la konfigire a ap aplike lè ou anrejistre."],
+ "Continue with this sanction for more students":["Continuer cette sanction pour d’autres élèves","Kontinye ak sanksyon sa a pou lòt elèv"],
+ "Each student is saved separately. Confirm the student and enter a reason for each record.":["Chaque élève est enregistré séparément. Vérifiez son identité et saisissez un motif pour chaque dossier.","Chak elèv anrejistre apa. Verifye kiyès li ye epi antre yon rezon pou chak dosye."],
+ "Save and scan next student":["Enregistrer et scanner l’élève suivant","Anrejistre epi eskane pwochen elèv la"],
+ "Student identified by badge.":["Élève identifié par le badge.","Badj la idantifye elèv la."],
+ "The scanned badge QR is invalid.":["Le QR du badge scanné est invalide.","QR badj ou eskane a pa valab."],
+ "Badge not found or inactive.":["Badge introuvable ou inactif.","Nou pa jwenn badj la oswa li pa aktif."],
+ "days":["jours","jou"],
 }

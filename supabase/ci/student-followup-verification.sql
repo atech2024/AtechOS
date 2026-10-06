@@ -239,7 +239,9 @@ begin
  portal_sanction_type:=public.save_student_sanction_type(null,'Collective test',true,'none',null);
  kiosk:=public.student_followup_class_attendees('fb200000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date);
  if jsonb_array_length(kiosk)<>1 or kiosk->0->>'id'<>'fb400000-0000-0000-0000-000000000002' then raise exception 'class preview included Direction-only student: %',kiosk;end if;
- kiosk:=public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Collective class follow-up',now()-interval '20 minutes');
+ kiosk:=public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Collective class follow-up',now()-interval '20 minutes',array['fb400000-0000-0000-0000-000000000002'::uuid]);
+ denied:=false;begin perform public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Stale roster test',now()-interval '20 minutes',array['fb400000-0000-0000-0000-000000000001'::uuid,'fb400000-0000-0000-0000-000000000002'::uuid]);exception when others then denied:=sqlerrm='class_attendance_changed';end;
+ if not denied then raise exception 'stale class preview was accepted';end if;
  if kiosk->>'created_count'<>'1' or not exists(select 1 from public.student_sanctions where student_id='fb400000-0000-0000-0000-000000000002' and reason='Collective class follow-up')
    or exists(select 1 from public.student_sanctions where student_id='fb400000-0000-0000-0000-000000000001' and reason='Collective class follow-up') then raise exception 'collective class target was incorrect: %',kiosk;end if;
  kiosk:=public.create_student_sanctions_bulk(array['fb400000-0000-0000-0000-000000000001'::uuid,'fb400000-0000-0000-0000-000000000002'::uuid],portal_sanction_type,'Bulk badge selection test',now()-interval '15 minutes');
@@ -263,6 +265,9 @@ begin
    or not exists(select 1 from public.attendance where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date and direction_only) then raise exception 'meeting KIOS check-in was not Direction-only: %',kiosk;end if;
  denied:=false;begin update public.attendance set direction_only=false,status='present' where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date;exception when others then denied:=sqlerrm='student_at_direction';end;
  if not denied then raise exception 'staff attendance writer moved meeting student into class';end if;
+ kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
+ if kiosk->>'action'<>'duplicate_scan' or (select check_out_at from public.attendance where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date) is not null then raise exception 'second scan toggled a Direction check-in into check-out';end if;
+ create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $sanction_checkout_window$ select 'checkout'::text; $sanction_checkout_window$;
  kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
  if kiosk->>'action'<>'check_out' or not exists(select 1 from public.attendance where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date and check_out_at is not null) then raise exception 'Direction-only student could not check out: %',kiosk;end if;
  perform public.resolve_student_sanction(portal_sanction_id,'Meeting completed');

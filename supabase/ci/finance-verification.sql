@@ -161,10 +161,14 @@ begin
   select coalesce(sum(a.amount),0) into allocated_before from public.finance_credit_allocations a where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id);
   refund_id:=public.refund_finance_payment(credit_payment_id,15,'Partial refund from spent student credit');
   if not exists(select 1 from public.finance_payment_refunds r where r.id=refund_id and r.amount=15 and r.credit_amount=15 and r.applied_amount=0) then raise exception 'partial refund did not ledger the credit portion'; end if;
+  ledger:=public.finance_payment_ledger(null,null,null,'CI-ENTRY-OVERPAY',0,50);
+  if not exists(select 1 from jsonb_array_elements(ledger->'items') item where item->>'id'=credit_payment_id::text and (item->>'refunded_amount')::numeric=15 and item->>'status'='validated') then raise exception 'partial refund was missing from payment history'; end if;
   if not exists(select 1 from public.finance_student_credits cr where cr.source_payment_id=credit_payment_id and cr.amount=5) then raise exception 'partial refund did not reduce the source credit'; end if;
   if (select coalesce(sum(a.amount),0) from public.finance_credit_allocations a where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id))<>allocated_before-15 then raise exception 'refund did not restore the debt covered by spent credit'; end if;
   refund_id:=public.refund_finance_payment(credit_payment_id,30,'Complete the remaining payment refund');
   if not exists(select 1 from public.finance_payment_refunds r where r.id=refund_id and r.amount=30 and r.credit_amount=5 and r.applied_amount=25) then raise exception 'full refund did not reverse the remaining applied and credit portions'; end if;
+  ledger:=public.finance_payment_ledger(null,null,null,'CI-ENTRY-OVERPAY',0,50);
+  if not exists(select 1 from jsonb_array_elements(ledger->'items') item where item->>'id'=credit_payment_id::text and (item->>'refunded_amount')::numeric=45 and item->>'status'='validated') then raise exception 'full refund was missing from payment history'; end if;
   if not exists(select 1 from public.finance_payments p where p.id=credit_payment_id and p.amount=45 and p.applied_amount=0) then raise exception 'full refund erased the source receipt or left applied value'; end if;
   if exists(select 1 from public.finance_student_credits cr where cr.source_payment_id=credit_payment_id) or exists(select 1 from public.finance_credit_allocations a where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id)) then raise exception 'fully refunded credit still has a balance or allocation'; end if;
   denied:=false;

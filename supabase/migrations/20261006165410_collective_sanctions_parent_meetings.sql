@@ -444,9 +444,7 @@ begin
     if position(attendance_anchor in src)=0 then raise exception 'collective_sanction_kiosk_attendance_anchor_missing'; end if;
     src:=replace(src,attendance_anchor,attendance_anchor||
       'gate:=private.student_sanction_kiosk_gate(s.id,ts,a.check_in_at is not null and a.check_out_at is null); if gate ? ''error'' then return gate; end if; is_direction_only:=coalesce((gate->>''direction_only'')::boolean,false) or coalesce(a.direction_only,false); if coalesce((gate->>''meeting_window'')::boolean,false) and not coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''present''; end if; if coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''checkout''; end if;');
-    src:=regexp_replace(src,
-      'insert into public[.]attendance[[:space:]]*[(][^)]*recorded_by[[:space:]]*[)]',
-      'insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by,direction_only)','i');
+    src:=replace(src,'recorded_by)','recorded_by,direction_only)');
     if position('from public.enrollments' in src)>0 then
       src:=regexp_replace(src,
         's[.]user_id[[:space:]]+from public[.]enrollments',

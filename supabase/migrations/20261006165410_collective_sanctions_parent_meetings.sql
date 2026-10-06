@@ -23,7 +23,7 @@ alter table public.attendance
 
 create or replace function private.student_followup_actor_role(p_school uuid)
 returns text language sql stable security definer set search_path=''
-as $
+as $actor_role$
   select coalesce(
     (select m.role::text from public.school_members m
      where m.school_id=p_school and m.user_id=auth.uid() and m.enabled
@@ -32,7 +32,7 @@ as $
     (select m.role::text from public.school_members m
      where m.school_id=p_school and m.user_id=auth.uid() and m.enabled and m.role::text='parent' limit 1)
   )
-$;
+$actor_role$;
 revoke all on function private.student_followup_actor_role(uuid) from public,anon,authenticated;
 alter table public.student_followup_events
   drop constraint if exists student_followup_events_entity_check,

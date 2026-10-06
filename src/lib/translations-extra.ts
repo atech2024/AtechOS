@@ -729,7 +729,7 @@ export const extraTranslations:Record<string,[string,string]> = {
  "KIOS access suspended":["Accès au KIOS suspendu","Aksè KIOS la sispann"],
  "Student access suspended":["Accès de l’élève suspendu","Aksè elèv la sispann"],
  "School departure recorded":["Départ de l’école enregistré","Depa lekòl la anrejistre"],
- "Through":["Jusqu’au","Jiska"]
+ "Through":["Jusqu’au","Jiska"],
 
  "Scan student badge":["Scanner le badge de l’élève","Eskane badj elèv la"],
  "Close badge scanner":["Fermer le scanner de badge","Fèmen eskanè badj la"],

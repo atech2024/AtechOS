@@ -23,4 +23,8 @@ assert.match(badge,/AtechOS ID · \{student\.atechos_id\}/,'badge summary identi
 assert.match(migration,/if sid is null or not private\.can_report_badge\(p_student\) then raise exception 'not_authorized'/,'badge workspace authorizes only linked family members or school staff')
 assert.match(packageJson.scripts.test,/node tests\/parent-portal-badge\.mjs/,'npm test includes the parent badge portal contract')
 
+assert.match(portal,/storage\.from\('assignment-files'\)\.createSignedUrl\(path,60\)/,'family assignment attachments stay behind a short-lived signed URL')
+assert.match(portal,/setAttachmentLink\(\{assignmentId,url:data\.signedUrl\}\)/,'parent portal exposes the signed attachment as a user-clickable link after preparation')
+assert.match(portal,/href=\{attachmentLink\.url\} target="_blank" rel="noopener noreferrer"/,'opening an assignment attachment uses a direct safe anchor, avoiding a delayed popup')
+assert.doesNotMatch(portal,/window\.open\(data\.signedUrl/,'signed assignment URLs are not opened from a delayed async popup')
 console.log('PASS parent portal contract: quick links reach attendance, exams/calendar, finance, bulletins, and assignments; badge data stays on the selected child.')

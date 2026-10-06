@@ -20,6 +20,20 @@ alter table public.student_sanctions
   add column departure_decided_at timestamptz;
 alter table public.attendance
   add column direction_only boolean not null default false;
+
+create or replace function private.student_followup_actor_role(p_school uuid)
+returns text language sql stable security definer set search_path=''
+as $
+  select coalesce(
+    (select m.role::text from public.school_members m
+     where m.school_id=p_school and m.user_id=auth.uid() and m.enabled
+       and m.role::text in ('school_admin','director','secretary')
+     order by case m.role::text when 'school_admin' then 0 when 'director' then 1 else 2 end limit 1),
+    (select m.role::text from public.school_members m
+     where m.school_id=p_school and m.user_id=auth.uid() and m.enabled and m.role::text='parent' limit 1)
+  )
+$;
+revoke all on function private.student_followup_actor_role(uuid) from public,anon,authenticated;
 alter table public.student_followup_events
   drop constraint if exists student_followup_events_entity_check,
   drop constraint if exists student_followup_events_check,

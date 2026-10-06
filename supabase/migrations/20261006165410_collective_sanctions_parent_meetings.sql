@@ -411,7 +411,7 @@ begin
   if position('student_sanction_kiosk_gate' in src)=0 then
     if position(old_guard in src)=0 then raise exception 'collective_sanction_existing_kiosk_guard_missing'; end if;
     src:=replace(src,old_guard,'');
-    src:=regexp_replace(src,'class_count integer; window_name text','class_count integer; gate jsonb; is_direction_only boolean:=false; window_name text','i');
+    src:=regexp_replace(src,'class_count[[:space:]]+integer;[[:space:]]*window_name[[:space:]]+text','class_count integer; gate jsonb; is_direction_only boolean:=false; window_name text','i');
     if position('is_direction_only' in src)=0 then raise exception 'collective_sanction_kiosk_declaration_anchor_missing'; end if;
     attendance_anchor:='select * into a from public.attendance where student_id=s.id and attendance_date=d for update;';
     if position(attendance_anchor in src)=0 then raise exception 'collective_sanction_kiosk_attendance_anchor_missing'; end if;

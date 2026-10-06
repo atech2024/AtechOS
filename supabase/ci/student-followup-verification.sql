@@ -56,12 +56,6 @@ begin
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000005',true);
  denied:=false; begin perform public.student_followup_workspace(); exception when others then denied:=sqlerrm='not_authorized'; end;
  if not denied then raise exception 'parent accessed staff follow-up workspace'; end if;
- family_sanctions:=public.family_student_sanctions('fb400000-0000-0000-0000-000000000001');
- if jsonb_array_length(family_sanctions->'sanctions')<>1 or family_sanctions->'sanctions'->0->>'type'<>'Suspension' or family_sanctions->'sanctions'->0 ? 'created_by' then raise exception 'linked parent did not receive only sanitized sanction history'; end if;
- denied:=false; begin perform public.family_student_sanctions('fb400000-0000-0000-0000-000000000002'); exception when others then denied:=sqlerrm='not_authorized'; end;
- if not denied then raise exception 'parent read a non-linked student sanction'; end if;
- if not has_function_privilege('authenticated','public.family_student_sanctions(uuid)','EXECUTE') or has_function_privilege('anon','public.family_student_sanctions(uuid)','EXECUTE') then raise exception 'family sanction grants are unsafe'; end if;
-
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000006',true);
  denied:=false; begin perform public.create_student_sanction('fb400000-0000-0000-0000-000000000001',null,'Cross-school attempt',now()); exception when others then denied:=sqlerrm='not_authorized'; end;
  if not denied then raise exception 'another school manager modified this school student'; end if;
@@ -82,6 +76,13 @@ begin
  perform public.resolve_student_sanction(sanction_id,'Resolved after meeting');
  if private.student_sanction_restriction('fb400000-0000-0000-0000-000000000001','kiosk') is not null then raise exception 'resolving the sanction did not lift its KIOS restriction'; end if;
  if not exists(select 1 from public.student_sanctions where id=sanction_id and status='resolved' and created_role='secretary') then raise exception 'sanction actor and resolution were not preserved'; end if;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000005',true);
+ family_sanctions:=public.family_student_sanctions('fb400000-0000-0000-0000-000000000001');
+ if jsonb_array_length(family_sanctions->'sanctions')<>1 or family_sanctions->'sanctions'->0->>'type'<>'Suspension' or family_sanctions->'sanctions'->0 ? 'created_by' then raise exception 'linked parent did not receive only sanitized sanction history'; end if;
+ denied:=false; begin perform public.family_student_sanctions('fb400000-0000-0000-0000-000000000002'); exception when others then denied:=sqlerrm='not_authorized'; end;
+ if not denied then raise exception 'parent read a non-linked student sanction'; end if;
+ if not has_function_privilege('authenticated','public.family_student_sanctions(uuid)','EXECUTE') or has_function_privilege('anon','public.family_student_sanctions(uuid)','EXECUTE') then raise exception 'family sanction grants are unsafe'; end if;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000003',true);
  release_id:=public.request_student_release('fb400000-0000-0000-0000-000000000001','medical',contact_id,'Student needs to leave for medical care');
  if (select count(*) from public.notifications where type='student_release' and event_key like 'student-release-request:%')<>2 then raise exception 'release request did not notify the other authorized staff'; end if;
  denied:=false; begin perform public.review_student_release(release_id,false,' '); exception when others then denied:=sqlerrm='decision_reason_required'; end;

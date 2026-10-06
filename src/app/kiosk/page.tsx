@@ -17,7 +17,14 @@ const scanErrors:Record<string,string> = {
  guard_three_unexcused_absences:'Access refused: three school-day absences have no accepted reason. Go to the Director with your parent or guardian.',
  financial_restriction:'Access refused: an overdue school fee still has a balance. Contact the school administration.',
  sanction_kiosk_suspended:'Accès refusé : la sanction enregistrée suspend temporairement l’accès au KIOS. Adressez-vous à la Direction.',
- sanction_student_suspended:'Accès suspendu par une sanction active. Adressez-vous à la Direction.',\n sanction_school_departure_pending:'Accès refusé : une décision de la Direction est en attente après une réunion avec la famille.',\n sanction_parent_meeting:'Accès refusé : la famille doit choisir une date de rendez-vous avec la Direction.',\n sanction_meeting_required:'Accès refusé : aucun rendez-vous familial n’a été choisi. Contactez la Direction.',\n sanction_meeting_overdue:'Accès refusé : le rendez-vous familial est passé. Adressez-vous à la Direction.',\n sanction_meeting_not_today:'Accès refusé : l’élève pourra se présenter à la Direction le jour du rendez-vous choisi.',\n sanction_meeting_window:'Accès refusé : présentez-vous au KIOS dans les 30 minutes avant ou après l’heure du rendez-vous.',\n sanction_checkout_not_open:'Sortie non disponible à cette heure. Présentez le badge pendant la plage de sortie indiquée par l’école.',
+ sanction_student_suspended:'Accès suspendu par une sanction active. Adressez-vous à la Direction.',
+ sanction_school_departure_pending:'Accès refusé : une décision de la Direction est en attente après une réunion avec la famille.',
+ sanction_parent_meeting:'Accès refusé : la famille doit choisir une date de rendez-vous avec la Direction.',
+ sanction_meeting_required:'Accès refusé : aucun rendez-vous familial n’a été choisi. Contactez la Direction.',
+ sanction_meeting_overdue:'Accès refusé : le rendez-vous familial est passé. Adressez-vous à la Direction.',
+ sanction_meeting_not_today:'Accès refusé : l’élève pourra se présenter à la Direction le jour du rendez-vous choisi.',
+ sanction_meeting_window:'Accès refusé : présentez-vous au KIOS dans les 30 minutes avant ou après l’heure du rendez-vous.',
+ sanction_checkout_not_open:'Sortie non disponible à cette heure. Présentez le badge pendant la plage de sortie indiquée par l’école.',
 }
 export default function StudentKiosk() {
  const [code,setCode]=useState(''),[pin,setPin]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[result,setResult]=useState<Result|null>(null)

@@ -210,3 +210,8 @@ Bulletin publication boundary follow-up: the existing calculated report is still
 - Read-only postflight checks confirmed the confirmed-exam table has RLS, its direct `authenticated` SELECT grant is absent, the staff-only official-source policy replaced the former broad read policy, the current-year unique index exists, and the student report function uses the published-only report wrapper. The published calendar output includes the class section needed for teacher filtering.
 - This confirms schema deployment, not a production frontend release or live end-to-end behavior. PR #60 remained a draft at this checkpoint. Authenticated director, teacher, parent, and student workflow checks, plus Vercel Production commit/environment verification, remain to be completed before claiming the release works in production.
 
+### BUILD 15 — Same-day school release protocol (2026-10-05)
+
+- Added an audited, same-day school-wide dismissal protocol on the Attendance page. The school administrator, director, or secretary activates it with a reason; the actor and role are retained in an immutable record. KIOS permits checkout only for students already checked in and outside Preschool. Preschool children remain on the authorized pickup workflow, and the existing Finance and GUARD checks still run before checkout.
+- Local `npm test`, `npm run typecheck`, and `npm run build` pass. The migration, tenant/role checks, audit link, and rollback-only synthetic fixture are wired into Supabase CI. Await the isolated hosted migration/SQL result before production migration or deployment; no production schema was changed for this feature.
+

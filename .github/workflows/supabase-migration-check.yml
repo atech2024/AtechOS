@@ -61,6 +61,9 @@ on:
       - "supabase/ci-progression/**"
       - "supabase/migrations/20261005040000_progression_points_weighted_year_average.sql"
       - "supabase/migrations/20261005044450_student_sanctions_emergency_release.sql"
+      - "supabase/migrations/20261005170000_student_release_kiosk_checkout.sql"
+      - "supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql"
+      - "supabase/migrations/20261005210100_school_release_protocol.sql"
       - ".github/workflows/supabase-migration-check.yml"
   pull_request:
     paths:
@@ -113,6 +116,9 @@ on:
       - "supabase/ci-progression/**"
       - "supabase/migrations/20261005040000_progression_points_weighted_year_average.sql"
       - "supabase/migrations/20261005044450_student_sanctions_emergency_release.sql"
+      - "supabase/migrations/20261005170000_student_release_kiosk_checkout.sql"
+      - "supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql"
+      - "supabase/migrations/20261005210100_school_release_protocol.sql"
       - ".github/workflows/supabase-migration-check.yml"
   workflow_dispatch:
 
@@ -175,6 +181,8 @@ jobs:
           cp supabase/migrations/20261005044450_student_sanctions_emergency_release.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005170000_student_release_kiosk_checkout.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005210100_school_release_protocol.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

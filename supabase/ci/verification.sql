@@ -65,6 +65,7 @@ begin
  insert into public.kindergarten_pickup_authorizations(school_id,student_id,full_name,relationship,phone,created_by)
  values('10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','Authorized Adult','guardian','555-0123','20000000-0000-0000-0000-000000000001') returning id into adult_id;
  v_case_id:=public.start_kindergarten_relocation('50000000-0000-0000-0000-000000000001','needs_support','PRIVATE-CI-NOTE');
+ perform public.review_kindergarten_relocation(v_case_id,true,'Approved by CI Direction');
  perform public.record_kindergarten_parent_contact(v_case_id,'no_answer','PRIVATE-CI-CONTACT');
 
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);

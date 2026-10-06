@@ -197,6 +197,9 @@ begin
  if home->>'confirmed_as'<>'parent' or home->>'confirmed_at' is null then raise exception 'parent home-arrival confirmation was not recorded';end if;
  denied:=false;begin perform public.family_home_arrival_status('fb400000-0000-0000-0000-000000000002');exception when others then denied:=sqlerrm='not_authorized';end;
  if not denied then raise exception 'unlinked parent read another student home-arrival status';end if;
+ -- Model a student who has completed the real sign-in flow; it enables the
+ -- portal before creating the server-side session used by this assertion.
+ update public.students set portal_enabled=true where id='fb400000-0000-0000-0000-000000000002';
  insert into private.student_sessions(student_id,token_hash,expires_at) values('fb400000-0000-0000-0000-000000000002',encode(extensions.digest(student_token,'sha256'),'hex'),now()+interval '1 hour');
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000001',true);
  home:=public.student_home_arrival_status(student_token);

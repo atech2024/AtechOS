@@ -29,8 +29,6 @@ declare
 begin
   insert into public.student_badges(id,school_id,student_id,badge_uid,badge_type,active,state)
   values(badge,'fb000000-0000-0000-0000-000000000011','fb400000-0000-0000-0000-000000000011','sanction-ci-badge','qr',true,'active');
-  insert into private.student_badge_credentials(student_id,token,badge_id)
-  values('fb400000-0000-0000-0000-000000000011',repeat('a',64),badge);
   insert into private.badge_token_history(token_hash,badge_id)
   values(encode(extensions.digest(repeat('a',64),'sha256'),'hex'),badge);
 

@@ -5,6 +5,7 @@ import {CalendarDays,ChevronLeft,ChevronRight} from 'lucide-react'
 import {T,useLocale} from '@/components/translation-provider'
 import {createClient} from '@/lib/supabase/client'
 import {schoolDate} from '@/lib/school-date'
+import {shiftFamilyCalendarAnchor} from '@/lib/family-calendar-navigation'
 
 type Attendance={attendance_date:string;status:string;check_in_at:string|null;check_out_at:string|null}
 type Event={id:string;day:string;kind:'attendance'|'exam'|'holiday'|'payment'|'badge';attendanceStatus?:'present'|'late'|'absent';title:string;detail?:string}
@@ -66,7 +67,7 @@ export default function FamilySchoolCalendar({studentId}:Props){
  const byDay=useMemo(()=>{const map=new Map<string,Event[]>();for(const event of events)map.set(event.day,[...(map.get(event.day)||[]),event]);return map},[events])
  const year=anchor.getUTCFullYear(),month=anchor.getUTCMonth()
  const days=useMemo(()=>{if(view==='year')return[];const from=new Date(`${range.from}T12:00:00Z`),to=new Date(`${range.to}T12:00:00Z`);if(view==='month'){const weekday=(from.getUTCDay()+6)%7;from.setUTCDate(from.getUTCDate()-weekday);const endWeekday=(to.getUTCDay()+6)%7;to.setUTCDate(to.getUTCDate()+(6-endWeekday))}const result:Date[]=[];for(let day=new Date(from);day<=to;day.setUTCDate(day.getUTCDate()+1))result.push(new Date(day));return result},[range.from,range.to,view])
- function move(direction:number){const next=new Date(anchor);if(view==='year')next.setUTCFullYear(next.getUTCFullYear()+direction);else if(view==='month')next.setUTCMonth(next.getUTCMonth()+direction);else if(view==='week')next.setUTCDate(next.getUTCDate()+direction*7);else next.setUTCDate(next.getUTCDate()+direction);setAnchor(next)}
+ function move(direction:number){setAnchor(current=>shiftFamilyCalendarAnchor(current,view,direction))}
  const heading=view==='year'?String(year):view==='month'?new Intl.DateTimeFormat(locale==='ht'?'ht-HT':'fr-HT',{month:'long',year:'numeric',timeZone:'UTC'}).format(anchor):`${schoolDate(range.from,locale)}${range.to!==range.from?` – ${schoolDate(range.to,locale)}`:''}`
  return <section aria-labelledby="family-calendar-title" className="my-6 rounded-2xl border bg-white p-4 sm:p-5">
   <header className="flex flex-wrap items-center justify-between gap-3"><div><h2 id="family-calendar-title" className="flex items-center gap-2 text-xl font-bold"><CalendarDays aria-hidden="true" className="h-5 w-5 text-blue-700"/><T text="Family calendar"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Attendance, exams, school closures and recorded family actions."/></p></div><div className="flex flex-wrap items-center gap-1" aria-label="Calendar view">{(['month','week','day','year'] as const).map(item=><button key={item} type="button" onClick={()=>setView(item)} aria-pressed={view===item} className={`rounded-lg px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700 ${view===item?'bg-blue-700 font-semibold text-white':'text-slate-700 hover:bg-slate-100'}`}><T text={item==='month'?'Month':item==='week'?'Week':item==='day'?'Day':'Year'}/></button>)}</div></header>

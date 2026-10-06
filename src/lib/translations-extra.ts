@@ -282,6 +282,7 @@ export const extraTranslations:Record<string,[string,string]> = {
 "Result":["Résultat", "Rezilta"],
 "No scans recorded since history was enabled.":["Aucun scan depuis l’activation de cet historique.", "Pa gen eskàn depi istorik la aktive."],
 "Student badge":["Badge élève", "Badge elèv"],
+"Student profile":["Profil de votre enfant", "Pwofil pitit ou"],
 "A lost badge stops working immediately. The school issues its replacement.":["Un badge perdu est désactivé immédiatement. L’école émet son remplacement.", "Yon badge pèdi sispann mache touswit. Lekòl la bay ranplasman li."],
 "Report lost badge":["Déclarer le badge perdu", "Deklare badge pèdi"],
 "Unable to load badge.":["Impossible de charger le badge.", "Pa ka chaje badge la."],

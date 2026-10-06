@@ -18,4 +18,3 @@ assert.match(rpc,/CREATE OR REPLACE FUNCTION public\.create_subject[\s\S]*?SECUR
 assert.match(rpc,/CREATE OR REPLACE FUNCTION public\.assign_subject_to_class[\s\S]*?SECURITY INVOKER/i,'assignment RPC does not bypass the table write policies')
 
 console.log('PASS subject management UI matches database write roles and only offers active teachers.')
-

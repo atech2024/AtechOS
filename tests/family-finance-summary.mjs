@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 
-const rpc=readFileSync('supabase/migrations/20261006131325_family_parent_finance_and_sanctions.sql','utf8')
+const rpc=readFileSync('supabase/migrations/20261006142918_family_parent_finance_and_sanctions.sql','utf8')
 const component=readFileSync('src/components/family-finance-summary.tsx','utf8')
 const panel=readFileSync('src/components/family-finance-panel.tsx','utf8')
 const portal=readFileSync('src/app/dashboard/parent-portal/page.tsx','utf8')

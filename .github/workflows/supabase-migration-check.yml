@@ -51,6 +51,7 @@ on:
       - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
       - "supabase/migrations/20261005121811_update_brh_rate_source_url.sql"
       - "supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql"
+      - "supabase/migrations/20261005220000_finance_payment_ledger_refund_totals.sql"
       - "supabase/migrations/20261005153000_family_attendance_history_pagination.sql"
       - "supabase/ci-parent/**"
       - "supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql"
@@ -107,6 +108,7 @@ on:
       - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
       - "supabase/migrations/20261005121811_update_brh_rate_source_url.sql"
       - "supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql"
+      - "supabase/migrations/20261005220000_finance_payment_ledger_refund_totals.sql"
       - "supabase/migrations/20261005153000_family_attendance_history_pagination.sql"
       - "supabase/ci-parent/**"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
@@ -178,6 +180,7 @@ jobs:
           cp supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005121811_update_brh_rate_source_url.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005220000_finance_payment_ledger_refund_totals.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005044450_student_sanctions_emergency_release.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005170000_student_release_kiosk_checkout.sql supabase/ci/supabase/migrations/

@@ -75,6 +75,10 @@ begin
  if private.student_sanction_restriction('fb400000-0000-0000-0000-000000000001','kiosk')<>'sanction_kiosk_suspended' then raise exception 'configured KIOS action was not activated'; end if;
  kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000001');
  if kiosk->>'error'<>'sanction_kiosk_suspended' then raise exception 'KIOS did not enforce the active configured sanction'; end if;
+ denied:=false; begin insert into private.student_sessions(student_id,token_hash,expires_at)
+  values('fb400000-0000-0000-0000-000000000001',encode(extensions.digest('sanction-session-test','sha256'),'hex'),now()+interval '1 hour');
+ exception when others then denied:=sqlerrm='sanction_student_suspended'; end;
+ if not denied then raise exception 'active student suspension issued a portal session'; end if;
  perform public.resolve_student_sanction(sanction_id,'Resolved after meeting');
  if private.student_sanction_restriction('fb400000-0000-0000-0000-000000000001','kiosk') is not null then raise exception 'resolving the sanction did not lift its KIOS restriction'; end if;
  if not exists(select 1 from public.student_sanctions where id=sanction_id and status='resolved' and created_role='secretary') then raise exception 'sanction actor and resolution were not preserved'; end if;
@@ -220,3 +224,4 @@ begin
 end $$;
 
 rollback;
+

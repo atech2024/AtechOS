@@ -232,8 +232,8 @@ begin
   select pg_get_functiondef('public.student_device_login(text,text,text,text)'::regprocedure) into src;
   if position('sanction_student_suspended' in src)=0 then
     src:=regexp_replace(src,
-      'if\s+lower\s*\(\s*trim\s*\(\s*p_name\s*\)\s*\)\s*=\s*lower\s*\(\s*trim\s*\(\s*s[.]first_name\s*\|\|\s*'' ''\s*\|\|\s*s[.]last_name\s*\)\s*\)\s+then',
-      'if private.student_sanction_restriction(s.id,''portal'') is not null then return jsonb_build_object(''error'',''sanction_student_suspended''); end if; if lower(trim(p_name))=lower(trim(s.first_name||'' ''||s.last_name)) then','i');
+      'return\s+jsonb_build_object\s*\(\s*''token''\s*,\s*token\s*\)\s*;',
+      'if private.student_sanction_restriction(s.id,''portal'') is not null then return jsonb_build_object(''error'',''sanction_student_suspended''); end if; return jsonb_build_object(''token'',token);','i');
     if position('sanction_student_suspended' in src)=0 then raise exception 'sanction_login_patch_anchor_missing';end if;
     execute src;
   end if;

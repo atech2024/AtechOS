@@ -276,7 +276,7 @@ begin
   if settings.school_id is not null then
     select coalesce(jsonb_agg(to_jsonb(q.slot_at) order by q.slot_at),'[]'::jsonb) into slots
     from (
-      select ((days.d + times.t) at time zone 'America/Port-au-Prince') as slot_at
+      select ((days.d + times.t::time) at time zone 'America/Port-au-Prince') as slot_at
       from generate_series(
         (now() at time zone 'America/Port-au-Prince')::date+1,
         (private.guard_school_deadline(sid,now(),3) at time zone 'America/Port-au-Prince')::date,
@@ -324,7 +324,7 @@ begin
   local_at:=p_meeting_at at time zone 'America/Port-au-Prince';
   if not private.guard_school_day(sid,local_at::date)
     or local_at::time<settings.school_entry_time or local_at::time>=settings.school_departure_time
-    or extract(minute from local_at)::integer%30<>0 or extract(second from local_at)<>0 then
+    or mod(extract(epoch from (local_at::time-settings.school_entry_time)),1800)<>0 then
     raise exception 'invalid_sanction_meeting_time';
   end if;
   update public.student_sanctions set parent_meeting_at=p_meeting_at,parent_meeting_selected_by=auth.uid()

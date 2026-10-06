@@ -303,7 +303,7 @@ begin
   if settings.school_id is not null then
     select coalesce(jsonb_agg(to_jsonb(q.slot_at) order by q.slot_at),'[]'::jsonb) into slots
     from (
-      select ((days.d + times.t::time) at time zone 'America/Port-au-Prince') as slot_at
+      select ((days.d::date + (times.t-timestamp '2000-01-01')) at time zone 'America/Port-au-Prince') as slot_at
       from generate_series(
         (now() at time zone 'America/Port-au-Prince')::date+1,
         (private.guard_school_deadline(sid,now(),3) at time zone 'America/Port-au-Prince')::date,
@@ -314,8 +314,8 @@ begin
         interval '30 minutes') times(t)
       where private.guard_school_day(sid,days.d::date)
         and times.t<(date '2000-01-01'+settings.school_departure_time)
-        and (days.d::date+times.t::time) > (now() at time zone 'America/Port-au-Prince')
-        and (days.d::date+times.t::time) <= (private.guard_school_deadline(sid,now(),3) at time zone 'America/Port-au-Prince')::timestamp
+        and (days.d::date + (times.t-timestamp '2000-01-01')) > (now() at time zone 'America/Port-au-Prince')
+        and (days.d::date + (times.t-timestamp '2000-01-01')) <= (private.guard_school_deadline(sid,now(),3) at time zone 'America/Port-au-Prince')::timestamp
     ) q;
   else slots:='[]'::jsonb; end if;
   select coalesce(jsonb_agg(jsonb_build_object(
@@ -349,7 +349,7 @@ begin
     or (x.action_code='school_departure' and x.departure_decision<>'pending_meeting') then raise exception 'sanction_meeting_not_open'; end if;
   if x.parent_meeting_at is not null then raise exception 'sanction_meeting_already_selected'; end if;
   if x.parent_meeting_deadline is null or p_meeting_at is null or p_meeting_at<=now() or p_meeting_at>x.parent_meeting_deadline then
-    raise exception 'invalid_sanction_meeting_time candidate=% deadline=% now=%',p_meeting_at,x.parent_meeting_deadline,now();
+    raise exception 'invalid_sanction_meeting_time';
   end if;
   select * into settings from public.student_sanction_settings where school_id=sid;
   if settings.school_id is null then raise exception 'school_hours_not_configured'; end if;
@@ -358,7 +358,7 @@ begin
     or local_at::date<(private.guard_school_deadline(sid,now(),1) at time zone 'America/Port-au-Prince')::date
     or local_at::time<settings.school_entry_time or local_at::time>=settings.school_departure_time
     or mod(extract(epoch from (local_at::time-settings.school_entry_time)),1800)<>0 then
-    raise exception 'invalid_sanction_meeting_time local=% date=% open=% close=% open_day=% delta=% deadline=%',local_at,local_at::date,settings.school_entry_time,settings.school_departure_time,private.guard_school_day(sid,local_at::date),mod(extract(epoch from (local_at::time-settings.school_entry_time)),1800),x.parent_meeting_deadline;
+    raise exception 'invalid_sanction_meeting_time';
   end if;
   update public.student_sanctions set parent_meeting_at=p_meeting_at,parent_meeting_selected_by=auth.uid()
   where id=x.id;

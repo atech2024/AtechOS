@@ -420,19 +420,22 @@ begin
     src:=regexp_replace(src,
       'insert into public[.]attendance[[:space:]]*[(][^)]*recorded_by[[:space:]]*[)]',
       'insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by,direction_only)','i');
+    if position('from public.enrollments' in src)>0 then
+      src:=regexp_replace(src,
+        's[.]user_id[[:space:]]+from public[.]enrollments',
+        's.user_id,is_direction_only from public.enrollments','i');
+    else
+      src:=regexp_replace(src,
+        'end[[:space:]]*,[[:space:]]*s[.]user_id[[:space:]]*[)]',
+        'end,s.user_id,is_direction_only)','i');
+    end if;
     src:=regexp_replace(src,
-      'end[[:space:]]*,[[:space:]]*s[.]user_id[[:space:]]*[)]',
-      'end,s.user_id,is_direction_only)','i');
-    src:=regexp_replace(src,
-      'late_minutes[[:space:]]*=[[:space:]]*excluded[.]late_minutes[[:space:]]*,[[:space:]]*recorded_by[[:space:]]*=[[:space:]]*excluded[.]recorded_by[[:space:]]*,[[:space:]]*updated_at[[:space:]]*=[[:space:]]*ts',
-      'late_minutes=excluded.late_minutes,recorded_by=excluded.recorded_by,direction_only=excluded.direction_only,updated_at=ts','i');
+      'recorded_by[[:space:]]*=[[:space:]]*excluded[.]recorded_by[[:space:]]*,[[:space:]]*updated_at[[:space:]]*=[[:space:]]*ts',
+      'recorded_by=excluded.recorded_by,direction_only=excluded.direction_only,updated_at=ts','i');
     if position('direction_only=excluded.direction_only' in src)=0
       or position('recorded_by,direction_only' in src)=0
-      or position('is_direction_only)' in src)=0 then
-      raise exception 'collective_sanction_direction_attendance_patch_failed columns=%, values=%, assignment=%, insert=%',
-        position('recorded_by,direction_only' in src),position('is_direction_only)' in src),
-        position('direction_only=excluded.direction_only' in src),
-        substring(src from greatest(position('insert into public.attendance' in src)-30,1) for 700);
+      or (position('is_direction_only from public.enrollments' in src)=0 and position('is_direction_only)' in src)=0) then
+      raise exception 'collective_sanction_direction_attendance_patch_failed';
     end if;
     blocked_anchor:='if window_name=''blocked'' then return jsonb_build_object(''error'',''kiosk_closed'');end if;';
     if position(blocked_anchor in src)=0 then raise exception 'collective_sanction_kiosk_blocked_anchor_missing'; end if;

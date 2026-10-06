@@ -440,9 +440,15 @@ begin
     blocked_anchor:='if window_name=''blocked'' then return jsonb_build_object(''error'',''kiosk_closed'');end if;';
     if position(blocked_anchor in src)=0 then raise exception 'collective_sanction_kiosk_blocked_anchor_missing'; end if;
     src:=replace(src,blocked_anchor,'if window_name=''blocked'' then if gate ? ''sanction_action'' then return jsonb_build_object(''error'',''sanction_checkout_not_open'',''sanction_action'',gate->>''sanction_action'',''return_at'',gate->>''return_at''); end if; return jsonb_build_object(''error'',''kiosk_closed'');end if;');
-    return_anchor:='if result in (''check_in'',''duplicate_scan'',''check_out'') then perform private.capture_exam_presence(s.id,cl.id,ts);end if; return jsonb_build_object(''school_release_protocol_active'',protocol_id is not null and not private.is_preschool_student(s.id),''guard_meeting_required'',exists(select 1 from public.guard_cases g where g.student_id=s.id and g.status=''meeting'' and g.meeting_due>ts),''action'',result,';
-    if position(return_anchor in src)=0 then raise exception 'collective_sanction_kiosk_result_anchor_missing'; end if;
-    src:=replace(src,return_anchor,'if result in (''check_in'',''duplicate_scan'',''check_out'') and not is_direction_only then perform private.capture_exam_presence(s.id,cl.id,ts);end if; return jsonb_build_object(''direction_only'',is_direction_only,''sanction_action'',gate->>''sanction_action'',''sanction_return_at'',gate->>''return_at'',''school_release_protocol_active'',protocol_id is not null and not private.is_preschool_student(s.id),''guard_meeting_required'',exists(select 1 from public.guard_cases g where g.student_id=s.id and g.status=''meeting'' and g.meeting_due>ts),''action'',result,');
+    if position('perform private.capture_exam_presence' in src)>0 then
+      src:=regexp_replace(src,
+        'if result in [(]''check_in'',''duplicate_scan'',''check_out''[)] then perform private[.]capture_exam_presence[(]s[.]id,cl[.]id,ts[)];end if;',
+        'if result in (''check_in'',''duplicate_scan'',''check_out'') and not is_direction_only then perform private.capture_exam_presence(s.id,cl.id,ts);end if;','i');
+    end if;
+    src:=regexp_replace(src,
+      'return jsonb_build_object[(]''action''[[:space:]]*,[[:space:]]*result[[:space:]]*,',
+      'return jsonb_build_object(''direction_only'',is_direction_only,''sanction_action'',gate->>''sanction_action'',''sanction_return_at'',gate->>''return_at'',''action'',result,','i');
+    if position('sanction_return_at' in src)=0 then raise exception 'collective_sanction_kiosk_result_anchor_missing'; end if;
     if position('student_sanction_kiosk_gate' in src)=0 then raise exception 'collective_sanction_kiosk_patch_failed'; end if;
     execute src;
   end if;

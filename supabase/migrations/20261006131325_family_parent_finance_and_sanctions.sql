@@ -219,26 +219,29 @@ grant execute on function public.save_student_sanction_type(uuid,text,boolean,te
 -- Enforce time-limited sanction actions at the shared KIOS and student portal
 -- boundaries, including QR badges and typed ID/PIN authentication.
 do $sanction_guard$
-declare src text;anchor text;
+declare src text;
 begin
   select pg_get_functiondef('private.record_student_kiosk(uuid)'::regprocedure) into src;
-  anchor:='if s.id is null then return jsonb_build_object(''error'',''invalid_credentials'');end if;';
-  if position('sanction_student_suspended' in src)=0 then
-    src:=replace(src,anchor,anchor||'if private.student_sanction_restriction(s.id,''kiosk'') is not null then return jsonb_build_object(''error'',private.student_sanction_restriction(s.id,''kiosk''));end if;');
-    if position('sanction_student_suspended' in src)=0 then raise exception 'sanction_kiosk_patch_anchor_missing';end if;
+  if position('student_sanction_restriction(s.id,''kiosk'')' in src)=0 then
+    src:=regexp_replace(src,
+      'if\s+s[.]id\s+is\s+null\s+then\s+return\s+jsonb_build_object\s*\(\s*''error''\s*,\s*''invalid_credentials''\s*\)\s*;\s*end\s+if\s*;',
+      'if s.id is null then return jsonb_build_object(''error'',''invalid_credentials''); end if; if private.student_sanction_restriction(s.id,''kiosk'') is not null then return jsonb_build_object(''error'',private.student_sanction_restriction(s.id,''kiosk'')); end if;','i');
+    if position('student_sanction_restriction(s.id,''kiosk'')' in src)=0 then raise exception 'sanction_kiosk_patch_anchor_missing';end if;
     execute src;
   end if;
   select pg_get_functiondef('public.student_device_login(text,text,text,text)'::regprocedure) into src;
   if position('sanction_student_suspended' in src)=0 then
-    anchor:='if lower(trim(p_name))=lower(trim(s.first_name||'' ''||s.last_name)) then';
-    src:=replace(src,anchor,'if private.student_sanction_restriction(s.id,''portal'') is not null then return jsonb_build_object(''error'',''sanction_student_suspended'');end if;'||anchor);
+    src:=regexp_replace(src,
+      'if\s+lower\s*\(\s*trim\s*\(\s*p_name\s*\)\s*\)\s*=\s*lower\s*\(\s*trim\s*\(\s*s[.]first_name\s*\|\|\s*'' ''\s*\|\|\s*s[.]last_name\s*\)\s*\)\s+then',
+      'if private.student_sanction_restriction(s.id,''portal'') is not null then return jsonb_build_object(''error'',''sanction_student_suspended''); end if; if lower(trim(p_name))=lower(trim(s.first_name||'' ''||s.last_name)) then','i');
     if position('sanction_student_suspended' in src)=0 then raise exception 'sanction_login_patch_anchor_missing';end if;
     execute src;
   end if;
   select pg_get_functiondef('public.student_device_data(text)'::regprocedure) into src;
   if position('sanction_student_suspended' in src)=0 then
-    anchor:='if s.id is null then return null; end if;';
-    src:=replace(src,anchor,anchor||'if private.student_sanction_restriction(s.id,''portal'') is not null then return null;end if;');
+    src:=regexp_replace(src,
+      'if\s+s[.]id\s+is\s+null\s+then\s+return\s+null\s*;\s*end\s+if\s*;',
+      'if s.id is null then return null; end if; if private.student_sanction_restriction(s.id,''portal'') is not null then return null; end if;','i');
     if position('sanction_student_suspended' in src)=0 then raise exception 'sanction_portal_data_patch_anchor_missing';end if;
     execute src;
   end if;
@@ -259,3 +262,4 @@ begin
 end $$;
 revoke all on function public.family_student_sanctions(uuid) from public,anon;
 grant execute on function public.family_student_sanctions(uuid) to authenticated;
+

@@ -417,16 +417,20 @@ begin
     if position(attendance_anchor in src)=0 then raise exception 'collective_sanction_kiosk_attendance_anchor_missing'; end if;
     src:=replace(src,attendance_anchor,attendance_anchor||
       'gate:=private.student_sanction_kiosk_gate(s.id,ts,a.check_in_at is not null and a.check_out_at is null); if gate ? ''error'' then return gate; end if; is_direction_only:=coalesce((gate->>''direction_only'')::boolean,false) or coalesce(a.direction_only,false); if coalesce((gate->>''meeting_window'')::boolean,false) and not coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''present''; end if; if coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=''checkout''; end if;');
-    src:=replace(src,
-      'insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by)',
-      'insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by,direction_only)');
-    src:=replace(src,
-      'end else 0 end,s.user_id)',
-      'end else 0 end,s.user_id,is_direction_only)');
-    src:=replace(src,
-      'late_minutes=excluded.late_minutes,recorded_by=excluded.recorded_by,updated_at=ts',
-      'late_minutes=excluded.late_minutes,recorded_by=excluded.recorded_by,direction_only=excluded.direction_only,updated_at=ts');
-    if position('direction_only=excluded.direction_only' in src)=0 then raise exception 'collective_sanction_direction_attendance_patch_failed'; end if;
+    src:=regexp_replace(src,
+      'insert into public[.]attendance[[:space:]]*[(][^)]*recorded_by[[:space:]]*[)]',
+      'insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by,direction_only)','i');
+    src:=regexp_replace(src,
+      'end[[:space:]]*,[[:space:]]*s[.]user_id[[:space:]]*[)]',
+      'end,s.user_id,is_direction_only)','i');
+    src:=regexp_replace(src,
+      'late_minutes[[:space:]]*=[[:space:]]*excluded[.]late_minutes[[:space:]]*,[[:space:]]*recorded_by[[:space:]]*=[[:space:]]*excluded[.]recorded_by[[:space:]]*,[[:space:]]*updated_at[[:space:]]*=[[:space:]]*ts',
+      'late_minutes=excluded.late_minutes,recorded_by=excluded.recorded_by,direction_only=excluded.direction_only,updated_at=ts','i');
+    if position('direction_only=excluded.direction_only' in src)=0
+      or position('recorded_by,direction_only' in src)=0
+      or position('is_direction_only)' in src)=0 then
+      raise exception 'collective_sanction_direction_attendance_patch_failed';
+    end if;
     blocked_anchor:='if window_name=''blocked'' then return jsonb_build_object(''error'',''kiosk_closed'');end if;';
     if position(blocked_anchor in src)=0 then raise exception 'collective_sanction_kiosk_blocked_anchor_missing'; end if;
     src:=replace(src,blocked_anchor,'if window_name=''blocked'' then if gate ? ''sanction_action'' then return jsonb_build_object(''error'',''sanction_checkout_not_open'',''sanction_action'',gate->>''sanction_action'',''return_at'',gate->>''return_at''); end if; return jsonb_build_object(''error'',''kiosk_closed'');end if;');

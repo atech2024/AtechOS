@@ -39,7 +39,7 @@ update public.classes set grade_level='PS1' where id='fb200000-0000-0000-0000-00
 update public.classes set grade_level='NS1' where id='fb200000-0000-0000-0000-000000000002';
 
 do $$
-declare sanction_type uuid; contact_id uuid; contact2_id uuid; release_id uuid; release2_id uuid; relocation_id uuid; pickup_authorization uuid; kiosk_badge uuid; sanction_id uuid; workspace jsonb; denied boolean; kiosk jsonb; home jsonb; protocol jsonb; family_relocation jsonb; student_token text:='home-arrival-ci-token-00000000000000000000000000000000';
+declare sanction_type uuid; portal_sanction_type uuid; portal_sanction_id uuid; contact_id uuid; contact2_id uuid; release_id uuid; release2_id uuid; relocation_id uuid; pickup_authorization uuid; kiosk_badge uuid; sanction_id uuid; workspace jsonb; family_sanctions jsonb; denied boolean; kiosk jsonb; home jsonb; protocol jsonb; family_relocation jsonb; student_token text:='home-arrival-ci-token-00000000000000000000000000000000';
 begin
  if not (select relrowsecurity from pg_class where oid='public.student_sanctions'::regclass)
     or has_table_privilege('authenticated','public.student_sanctions','SELECT')
@@ -56,19 +56,38 @@ begin
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000005',true);
  denied:=false; begin perform public.student_followup_workspace(); exception when others then denied:=sqlerrm='not_authorized'; end;
  if not denied then raise exception 'parent accessed staff follow-up workspace'; end if;
-
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000006',true);
  denied:=false; begin perform public.create_student_sanction('fb400000-0000-0000-0000-000000000001',null,'Cross-school attempt',now()); exception when others then denied:=sqlerrm='not_authorized'; end;
  if not denied then raise exception 'another school manager modified this school student'; end if;
 
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000003',true);
- sanction_type:=public.save_student_sanction_type(null,'Suspension',true);
+ sanction_type:=public.save_student_sanction_type(null,'Suspension',true,'kiosk_suspension',3::smallint);
  contact_id:=public.save_student_release_contact('fb400000-0000-0000-0000-000000000001',null,'Alternate Adult','Aunt',null,true);
  denied:=false; begin perform public.request_student_release('fb400000-0000-0000-0000-000000000002','medical',contact_id,'Wrong student contact'); exception when others then denied:=sqlerrm='release_contact_not_authorized'; end;
  if not denied then raise exception 'contact registered for another student was accepted'; end if;
  sanction_id:=public.create_student_sanction('fb400000-0000-0000-0000-000000000001',sanction_type,'Incident recorded by secretary',now()-interval '1 hour');
+ if private.student_sanction_restriction('fb400000-0000-0000-0000-000000000001','kiosk')<>'sanction_kiosk_suspended' then raise exception 'configured KIOS action was not activated'; end if;
+ kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000001');
+ if kiosk->>'error'<>'sanction_kiosk_suspended' then raise exception 'KIOS did not enforce the active configured sanction'; end if;
  perform public.resolve_student_sanction(sanction_id,'Resolved after meeting');
+ if private.student_sanction_restriction('fb400000-0000-0000-0000-000000000001','kiosk') is not null then raise exception 'resolving the sanction did not lift its KIOS restriction'; end if;
  if not exists(select 1 from public.student_sanctions where id=sanction_id and status='resolved' and created_role='secretary') then raise exception 'sanction actor and resolution were not preserved'; end if;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000005',true);
+ family_sanctions:=public.family_student_sanctions('fb400000-0000-0000-0000-000000000001');
+ if jsonb_array_length(family_sanctions->'sanctions')<>1 or family_sanctions->'sanctions'->0->>'type'<>'Suspension' or family_sanctions->'sanctions'->0 ? 'created_by' then raise exception 'linked parent did not receive only sanitized sanction history'; end if;
+ denied:=false; begin perform public.family_student_sanctions('fb400000-0000-0000-0000-000000000002'); exception when others then denied:=sqlerrm='not_authorized'; end;
+ if not denied then raise exception 'parent read a non-linked student sanction'; end if;
+ if not has_function_privilege('authenticated','public.family_student_sanctions(uuid)','EXECUTE') or has_function_privilege('anon','public.family_student_sanctions(uuid)','EXECUTE') then raise exception 'family sanction grants are unsafe'; end if;
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000003',true);
+ portal_sanction_type:=public.save_student_sanction_type(null,'Student access suspension',true,'student_suspension',2::smallint);
+ portal_sanction_id:=public.create_student_sanction('fb400000-0000-0000-0000-000000000001',portal_sanction_type,'Student access suspension CI test',now()-interval '1 hour');
+ denied:=false; begin insert into private.student_sessions(student_id,token_hash,expires_at)
+  values('fb400000-0000-0000-0000-000000000001',encode(extensions.digest('sanction-session-test','sha256'),'hex'),now()+interval '1 hour');
+ exception when others then denied:=sqlerrm='sanction_student_suspended'; end;
+ if not denied then raise exception 'active student suspension issued a portal session'; end if;
+ kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000001');
+ if kiosk->>'error'<>'sanction_student_suspended' then raise exception 'student suspension did not also block KIOS'; end if;
+ perform public.resolve_student_sanction(portal_sanction_id,'Access suspension CI test complete');
  release_id:=public.request_student_release('fb400000-0000-0000-0000-000000000001','medical',contact_id,'Student needs to leave for medical care');
  if (select count(*) from public.notifications where type='student_release' and event_key like 'student-release-request:%')<>2 then raise exception 'release request did not notify the other authorized staff'; end if;
  denied:=false; begin perform public.review_student_release(release_id,false,' '); exception when others then denied:=sqlerrm='decision_reason_required'; end;
@@ -211,3 +230,4 @@ begin
 end $$;
 
 rollback;
+

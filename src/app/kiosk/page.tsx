@@ -16,6 +16,8 @@ const scanErrors:Record<string,string> = {
  guard_account_suspended:"Student access is temporarily inactive. Go to the Director's office with your parent or guardian.",
  guard_three_unexcused_absences:'Access refused: three school-day absences have no accepted reason. Go to the Director with your parent or guardian.',
  financial_restriction:'Access refused: an overdue school fee still has a balance. Contact the school administration.',
+ sanction_kiosk_suspended:'Accès refusé : la sanction enregistrée suspend temporairement l’accès au KIOS. Adressez-vous à la Direction.',
+ sanction_student_suspended:'Accès suspendu par une sanction active. Adressez-vous à la Direction.',
 }
 export default function StudentKiosk() {
  const [code,setCode]=useState(''),[pin,setPin]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[result,setResult]=useState<Result|null>(null)

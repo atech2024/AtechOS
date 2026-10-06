@@ -303,16 +303,19 @@ begin
   if settings.school_id is not null then
     select coalesce(jsonb_agg(to_jsonb(q.slot_at) order by q.slot_at),'[]'::jsonb) into slots
     from (
-      select ((days.d + times.t::time) at time zone 'America/Port-au-Prince') as slot_at
+      select ((days.d + times.t) at time zone 'America/Port-au-Prince') as slot_at
       from generate_series(
         (now() at time zone 'America/Port-au-Prince')::date+1,
         (private.guard_school_deadline(sid,now(),3) at time zone 'America/Port-au-Prince')::date,
         interval '1 day') days(d)
-      cross join lateral generate_series(settings.school_entry_time::timestamp,settings.school_departure_time::timestamp,interval '30 minutes') times(t)
+      cross join lateral generate_series(
+        settings.school_entry_time-time '00:00',
+        settings.school_departure_time-time '00:00',
+        interval '30 minutes') times(t)
       where private.guard_school_day(sid,days.d::date)
-        and times.t<settings.school_departure_time::timestamp
-        and (days.d::date+times.t::time) > (now() at time zone 'America/Port-au-Prince')
-        and (days.d::date+times.t::time) <= (private.guard_school_deadline(sid,now(),3) at time zone 'America/Port-au-Prince')::timestamp
+        and times.t<(settings.school_departure_time-time '00:00')
+        and (days.d::date+times.t) > (now() at time zone 'America/Port-au-Prince')
+        and (days.d::date+times.t) <= (private.guard_school_deadline(sid,now(),3) at time zone 'America/Port-au-Prince')::timestamp
     ) q;
   else slots:='[]'::jsonb; end if;
   select coalesce(jsonb_agg(jsonb_build_object(

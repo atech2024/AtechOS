@@ -446,8 +446,8 @@ begin
         'if result in (''check_in'',''duplicate_scan'',''check_out'') and not is_direction_only then perform private.capture_exam_presence(s.id,cl.id,ts);end if;','i');
     end if;
     src:=regexp_replace(src,
-      'return jsonb_build_object[(]''action''[[:space:]]*,[[:space:]]*result[[:space:]]*,',
-      'return jsonb_build_object(''direction_only'',is_direction_only,''sanction_action'',gate->>''sanction_action'',''sanction_return_at'',gate->>''return_at'',''action'',result,','i');
+      '''action''[[:space:]]*,[[:space:]]*result[[:space:]]*,',
+      '''direction_only'',is_direction_only,''sanction_action'',gate->>''sanction_action'',''sanction_return_at'',gate->>''return_at'',''action'',result,','i');
     if position('sanction_return_at' in src)=0 then raise exception 'collective_sanction_kiosk_result_anchor_missing'; end if;
     if position('student_sanction_kiosk_gate' in src)=0 then raise exception 'collective_sanction_kiosk_patch_failed'; end if;
     execute src;

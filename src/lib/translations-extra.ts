@@ -1,4 +1,10 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'No available appointment times remain before the deadline. Contact the school office.':['Aucun créneau de rendez-vous n’est disponible avant la date limite. Contactez le secrétariat.','Pa gen lè randevou ki rete anvan dat limit la. Kontakte biwo lekòl la.'],
+ 'No students currently qualify. Refresh the preview after attendance is recorded.':['Aucun élève n’est actuellement admissible. Actualisez l’aperçu après avoir enregistré les présences.','Pa gen elèv ki kalifye kounye a. Rafrechi lis la apre yo fin antre prezans yo.'],
+ 'The attendance list changed. Refresh the class preview before applying the sanction.':['La liste des présences a changé. Actualisez l’aperçu de la classe avant d’appliquer la sanction.','Lis prezans lan chanje. Rafrechi lis klas la anvan ou aplike sanksyon an.'],
+ 'Remove duplicate or inactive students from the collective selection.':['Retirez les élèves en double ou inactifs de la sélection collective.','Retire elèv ki an doub oswa ki pa aktif nan lis sanksyon kolektif la.'],
+ 'No eligible students were present in this class on that date.':['Aucun élève admissible n’était présent dans cette classe à cette date.','Pa t gen elèv ki kalifye ki te prezan nan klas sa nan dat sa a.'],
+
  'School hours for sanction meetings':['Horaires scolaires pour les rendez-vous disciplinaires','Orè lekòl pou rankont sanksyon yo'],
  'Parents can choose a meeting time within these school hours. Configure the school\'s entry and departure times first.':['Les parents choisissent un rendez-vous dans ces horaires. Configurez d’abord les heures d’entrée et de sortie de l’école.','Paran yo chwazi lè randevou a nan lè lekòl sa yo. Mete lè antre ak sòti lekòl la anvan.'],
  'School entry time':['Heure d’entrée de l’école','Lè antre lekòl la'],

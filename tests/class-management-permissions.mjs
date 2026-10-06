@@ -21,4 +21,3 @@ assert.ok(translations.includes("'+ Academic year':['"),'create academic year ac
 assert.ok(translations.includes("'You can view classes and school sections here, but your role cannot change them.':['"),'read-only message is translated')
 
 console.log('PASS class and academic-year controls match database role permissions; academic-year modal is reachable.')
-

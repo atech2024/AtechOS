@@ -203,9 +203,9 @@ begin
  insert into private.student_sessions(student_id,token_hash,expires_at) values('fb400000-0000-0000-0000-000000000002',encode(extensions.digest(student_token,'sha256'),'hex'),now()+interval '1 hour');
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000001',true);
  home:=public.student_home_arrival_status(student_token);
- if home->>'student_id'<>'fb400000-0000-0000-0000-000000000002' or home->>'confirmed_at' is null then raise exception 'student session did not see its own arrival status';end if;
+ if home->>'student_id'<>'fb400000-0000-0000-0000-000000000002' or home->>'check_out_at' is null or home->>'confirmed_at' is not null then raise exception 'student session did not see its own unconfirmed arrival status';end if;
  perform public.confirm_student_home_arrival(student_token);
- if not exists(select 1 from public.student_home_arrival_confirmations h where h.student_id='fb400000-0000-0000-0000-000000000002' and h.confirmed_as='student' and h.confirmed_by is null) then raise exception 'student home-arrival confirmation was not recorded';end if;
+ if not exists(select 1 from public.student_home_arrival_confirmations h where h.student_id='fb400000-0000-0000-0000-000000000002' and h.confirmed_as='student' and h.confirmed_by is null) or public.student_home_arrival_status(student_token)->>'confirmed_at' is null then raise exception 'student home-arrival confirmation was not recorded';end if;
  denied:=false;begin perform public.confirm_student_home_arrival('forged-home-arrival-token');exception when others then denied:=sqlerrm='not_authorized';end;
  if not denied then raise exception 'forged student portal token confirmed arrival';end if;
 end $$;

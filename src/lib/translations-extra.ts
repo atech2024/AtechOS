@@ -742,4 +742,6 @@ export const extraTranslations:Record<string,[string,string]> = {
  "The scanned badge QR is invalid.":["Le QR du badge scanné est invalide.","QR badj ou eskane a pa valab."],
  "Badge not found or inactive.":["Badge introuvable ou inactif.","Nou pa jwenn badj la oswa li pa aktif."],
  "days":["jours","jou"],
+ "Search students by name":["Rechercher un élève par nom","Chèche elèv pa non"],
+ "Search parents by name or email":["Rechercher un parent par nom ou e-mail","Chèche paran pa non oswa imèl"],
 }

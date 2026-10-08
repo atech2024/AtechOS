@@ -44,11 +44,11 @@ export default function FamilySchoolCalendar({studentId}:Props){
     const count=Number(first.data?.total_count||0),pages=Math.ceil(count/50),rest=await Promise.all(Array.from({length:Math.max(0,pages-1)},(_,index)=>db.rpc('family_child_attendance_history',{p_student:studentId,p_from:range.from,p_to:range.to,p_limit:50,p_offset:(index+1)*50})))
     const failed=rest.find(result=>result.error);if(failed?.error)throw failed.error
     const rows=[...(first.data?.records||[]),...rest.flatMap(result=>result.data?.records||[])] as Attendance[]
-    const [calendarResult,financeResult,badgeResult]=await Promise.all([db.rpc('school_calendar',{p_student:studentId}),db.rpc('family_finance_workspace',{p_student_id:studentId}),db.rpc('badge_workspace',{p_student:studentId})])
+    const [calendarResult,financeResult,badgeResult]=await Promise.all([db.rpc('school_calendar',{p_student:studentId}),db.rpc('family_validated_payment_events',{p_student:studentId,p_from:range.from,p_to:range.to}),db.rpc('badge_workspace',{p_student:studentId})])
     if(!active)return
     setAttendance(rows)
     if(calendarResult.error){setSchool(null);setError('Impossible de charger les dates scolaires.')}else setSchool(calendarResult.data as CalendarPayload)
-    if(financeResult.error)setFinance([]);else{const value=Array.isArray(financeResult.data)?financeResult.data[0]:financeResult.data;setFinance((value?.payments||[]) as typeof finance)}
+    if(financeResult.error)setFinance([]);else{setFinance((financeResult.data?.payments||[]) as typeof finance);if(financeResult.data?.truncated)setError('La liste des paiements de cette période est incomplète.')}
     if(badgeResult.error)setBadge([]);else setBadge((badgeResult.data?.events||[]) as typeof badge)
    }catch{if(active){setAttendance([]);setSchool(null);setFinance([]);setBadge([]);setError('Impossible de charger le calendrier familial.')}}
    finally{if(active)setLoading(false)}

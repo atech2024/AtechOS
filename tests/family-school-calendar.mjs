@@ -9,7 +9,7 @@ const packageJson=JSON.parse(readFileSync('package.json','utf8'))
 
 assert.match(component,/family_child_attendance_history/,'attendance markers must use the linked-family RPC')
 assert.match(component,/school_calendar/,'calendar dates must come from the school calendar RPC')
-assert.match(component,/family_finance_workspace/,'payment timeline must use the family-scoped finance RPC')
+assert.match(component,/family_validated_payment_events/,'payment timeline must use the linked-child validated-payment RPC')
 assert.match(component,/badge_workspace/,'badge event timeline must use the family-scoped badge RPC')
 assert.match(component,/events\.filter\(item=>view==='day'\?item\.day===dateKey\(anchor\):true\)\.map\(item=>/,'family calendar event list must include every event in the selected view')
 assert.doesNotMatch(component,/\.slice\(0,view==='day'\?30:12\)/,'family calendar must not silently hide events after an arbitrary cap')

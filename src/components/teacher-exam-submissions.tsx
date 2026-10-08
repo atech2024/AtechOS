@@ -19,6 +19,7 @@ export function defaultExamPeriod(periods:Period[],today:string){
  return active.find(p=>p.start_date<=today&&p.end_date>=today)?.id||active.find(p=>p.start_date>=today)?.id||active.at(-1)?.id||''
 }
 function safeFileName(name:string){return name.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,180)||'exam-file'}
+function haitiToday(){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Port-au-Prince',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));return `${parts.year}-${parts.month}-${parts.day}`}
 const errorLabels:Record<string,string>={not_authorized:'Access denied.',teacher_required:'Choose a teacher.',teacher_exam_scope_invalid:'The teacher is not assigned to this class and subject, or the period is not active.',exam_file_already_attached:'An exam file is already attached.',invalid_exam_file_path:'The uploaded exam file could not be verified.',duplicate_key:'This exam has already been registered for this period.'}
 
 export default function TeacherExamSubmissions(){
@@ -63,7 +64,7 @@ export default function TeacherExamSubmissions(){
   e.preventDefault();setBusy(true);setError('');setMessage('')
   if(!activePeriod||!classId||!subjectId||!chosenSubject||(manager&&!teacherId)){setError(t('Choose an active period, class, subject and teacher.'));setBusy(false);return}
   const {data,error:submitError}=await db.rpc('create_teacher_exam_submission',{p_class_id:classId,p_subject_id:subjectId,p_period_id:periodId,p_teacher_id:manager?teacherId:null})
-  if(submitError){setError(t(errorLabels[submitError.message]||submitError.message));setBusy(false);return}
+  if(submitError){setError(t(submitError.code==='23505'?'This exam has already been registered for this period.':errorLabels[submitError.message]||submitError.message));setBusy(false);return}
   if(file){
    try{await uploadFile(String(data),file,manager)}catch(uploadError){setError(t('The exam was recorded, but the file could not be uploaded. You can attach it from the register.'));setBusy(false);await load();return}
   }
@@ -75,7 +76,7 @@ export default function TeacherExamSubmissions(){
  async function attachExisting(id:string,next:File){
   if(!isAllowedExamFile(next)){setError(t('File must be PDF, Word or image and no larger than 25 MB.'));return}
   setBusy(true);setError('');setMessage('')
-  try{await uploadFile(id,next,true);setMessage(t('Exam file attached to the register.'));setFileFor('');await load()}
+  try{await uploadFile(id,next,true);setMessage(t('Exam file attached to the register.'));await load()}
   catch(e){setError(t((e as {message?:string})?.message||'Unable to upload the exam file.'))}
   finally{setBusy(false)}
  }

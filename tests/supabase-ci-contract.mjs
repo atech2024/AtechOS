@@ -133,7 +133,7 @@ assert.match(progressionBaseline, /create table public\.grades/i);
 
 assert.match(workflow, /20261008171500_teacher_exam_submissions\\.sql/);
 assert.match(workflow, /teacher-exam-submissions-verification\\.sql/);
-assert.match(examSubmissionMigration, /revoke all on public\\.teacher_exam_submissions from public,anon,authenticated/i);
+assert.match(examSubmissionMigration, /revoke all on public\\.teacher_exam_submissions from public,anon,authenticated[\\s\\S]*?grant select on public\\.teacher_exam_submissions to authenticated/i);\nassert.match(examSubmissionMigration, /create policy teacher_exam_submissions_read[\\s\\S]*?teacher_id=auth\\.uid\\(\\)/);
 assert.match(examSubmissionMigration, /create policy teacher_exam_files_read[\\s\\S]*?bucket_id='teacher-exam-files'/);
 assert.match(examSubmissionMigration, /create policy teacher_exam_files_insert[\\s\\S]*?bucket_id='teacher-exam-files'/);
 assert.match(examSubmissionMigration, /manager or s\\.teacher_id=actor/);

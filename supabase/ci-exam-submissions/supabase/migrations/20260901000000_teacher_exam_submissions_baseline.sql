@@ -1,6 +1,7 @@
 -- Isolated synthetic schema for the teacher exam submission migration check.
 -- This stack contains no production data or credentials.
 create schema if not exists private;
+create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;
 
 create table public.schools(id uuid primary key,name text not null);

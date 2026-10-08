@@ -47,7 +47,7 @@ begin
 
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
  failed:=false;
- begin perform public.create_grade('60000000-0000-0000-0000-000000000001',subject_id,'40000000-0000-0000-0000-000000000001','Contrôle 1',15,10,null,'50000000-0000-0000-0000-000000000001',100);
+ begin perform public.create_grade('60000000-0000-0000-0000-000000000001',subject_id,'40000000-0000-0000-0000-000000000001','Contrôle 1',8,10,null,'50000000-0000-0000-0000-000000000001',100);
  exception when others then failed:=sqlerrm='subject_max_score_mismatch';end;
  if not failed then raise exception 'subject maximum score was not enforced';end if;
  perform public.create_grade('60000000-0000-0000-0000-000000000001',subject_id,'40000000-0000-0000-0000-000000000001','Contrôle 1',15,20,null,'50000000-0000-0000-0000-000000000001',100);

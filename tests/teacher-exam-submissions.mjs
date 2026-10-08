@@ -33,6 +33,6 @@ assert.match(fixture,/teacher submitted an unassigned subject/);
 assert.match(fixture,/teacher impersonated another teacher/);
 assert.match(fixture,/Direction cannot see the full receipt register/);
 assert.match(fixture,/has_table_privilege\('authenticated','public\.teacher_exam_submissions','select'\)/);
-assert.match(workflow,/20261008171500_teacher_exam_submissions\.sql/);
-assert.match(workflow,/teacher-exam-submissions-verification\.sql/);
+assert.ok(workflow.includes('20261008171500_teacher_exam_submissions.sql'));
+assert.ok(workflow.includes('teacher-exam-submissions-verification.sql'));
 console.log('PASS teacher exam submission Must Have contract checks.');

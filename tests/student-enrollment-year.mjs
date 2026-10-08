@@ -22,4 +22,4 @@ assert.ok(page.includes('<T text="AtechOS ID"/>' ),'student ID column heading us
 assert.ok(page.includes('<T text="Unassigned"/>' ),'missing class state uses translation provider')
 assert.ok(page.includes('<T text="Choose a class"/>' ),'class selector placeholder uses translation provider')
 assert.ok(page.includes("<T text={saving?'Saving…':'Save student'}/>") ,'save action is translated')
-assert.equal((page.match(/<T text={error}\\/>/g)||[]).length,2,'fixed student list and form errors use the active locale')
+assert.equal(page.split('<T text={error}/>').length-1,2,'fixed student list and form errors use the active locale')

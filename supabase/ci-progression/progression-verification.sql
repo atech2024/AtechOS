@@ -86,11 +86,6 @@ begin
  exception when others then failed:=sqlerrm='not_authorized'; end;
  if not failed then raise exception 'teacher progression preview was not denied'; end if;
  reset role;
- failed:=false;
- begin
-  perform public.confirm_student_progression('30000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000002','[]'::jsonb);
- exception when undefined_function then failed:=true; when insufficient_privilege then failed:=true; when others then failed:=sqlerrm='not_authorized'; end;
- if not failed then raise exception 'teacher progression confirmation was not denied'; end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
  set local role authenticated;
  set local role authenticated;

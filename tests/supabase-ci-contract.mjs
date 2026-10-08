@@ -133,12 +133,12 @@ assert.match(progressionVerification, /cross-school progression preview was not 
 assert.match(progressionBaseline, /create or replace function private\.has_role/i);
 assert.match(progressionBaseline, /create table public\.grades/i);
 
-assert.match(workflow, /20261008171500_teacher_exam_submissions\\.sql/);
-assert.match(workflow, /teacher-exam-submissions-verification\\.sql/);
+assert.ok(workflow.includes('20261008171500_teacher_exam_submissions.sql'));
+assert.ok(workflow.includes('teacher-exam-submissions-verification.sql'));
 assert.match(examSubmissionMigration, /revoke all on public\.teacher_exam_submissions from public,anon,authenticated[\s\S]*?grant select on public\.teacher_exam_submissions to authenticated/i);
 assert.match(examSubmissionMigration, /create policy teacher_exam_submissions_read[\s\S]*?teacher_id=auth\.uid\(\)/);
-assert.match(examSubmissionMigration, /create policy teacher_exam_files_read[\\s\\S]*?bucket_id='teacher-exam-files'/);
-assert.match(examSubmissionMigration, /create policy teacher_exam_files_insert[\\s\\S]*?bucket_id='teacher-exam-files'/);
+assert.ok(examSubmissionMigration.includes("create policy teacher_exam_files_read") && examSubmissionMigration.includes("bucket_id='teacher-exam-files'"));
+assert.ok(examSubmissionMigration.includes("create policy teacher_exam_files_insert") && examSubmissionMigration.includes("bucket_id='teacher-exam-files'"));
 assert.match(examSubmissionMigration, /manager or s\\.teacher_id=actor/);
 for (const assertion of ['teacher did not receive own scoped submission','teacher submitted an unassigned subject','teacher impersonated another teacher','Direction cannot see the full receipt register']) assert.ok(examSubmissionFixture.includes(assertion), `exam submission SQL fixture must check: ${assertion}`);
 console.log('PASS free, isolated Supabase CI contract: synthetic baseline, only targeted migrations, rollback-only data checks, no production credentials or remote database commands.');

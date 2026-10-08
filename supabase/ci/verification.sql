@@ -173,13 +173,11 @@ begin
   perform public.create_grade('50000000-0000-0000-0000-000000000001',grade_subject,'40000000-0000-0000-0000-000000000001','Contrôle 1',8,10,null,ps_period,100);
  exception when others then failed:=sqlerrm='subject_max_score_mismatch';end;
  if not failed then raise exception 'subject maximum score was not enforced';end if;
- insert into public.grades(school_id,student_id,subject_id,class_id,assessment_name,score,max_score,grading_period_id,assessment_weight,teacher_id)
- values('10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001',grade_subject,'40000000-0000-0000-0000-000000000001','Contrôle 1',8,20,ps_period,100,'20000000-0000-0000-0000-000000000004') returning id into grade_id;
+ select (public.create_grade('50000000-0000-0000-0000-000000000001',grade_subject,'40000000-0000-0000-0000-000000000001','Contrôle 1',8,20,null,ps_period,100)).id into grade_id;
  update public.grade_deadline_exceptions set expires_at=now()-interval '1 minute' where teacher_id='20000000-0000-0000-0000-000000000004' and class_id='40000000-0000-0000-0000-000000000001' and subject_id=grade_subject and period_id=ps_period;
  failed:=false;
  begin
-  insert into public.grades(school_id,student_id,subject_id,class_id,assessment_name,score,max_score,grading_period_id,assessment_weight,teacher_id)
-  values('10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001',grade_subject,'40000000-0000-0000-0000-000000000001','Contrôle 2',7,20,ps_period,100,'20000000-0000-0000-0000-000000000004');
+  perform public.create_grade('50000000-0000-0000-0000-000000000001',grade_subject,'40000000-0000-0000-0000-000000000001','Contrôle 2',7,20,null,ps_period,100);
  exception when others then failed:=sqlerrm='grade_deadline_passed';end;
  if not failed then raise exception 'expired grade exception still granted access';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);

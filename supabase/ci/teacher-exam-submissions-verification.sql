@@ -61,5 +61,10 @@ do $$ declare result jsonb; begin
  if result->>'can_manage'<>'true' or jsonb_array_length(result->'submissions')<>2 then raise exception 'Direction cannot see the full receipt register';end if;
  if jsonb_array_length(result->'teachers')<>2 then raise exception 'Direction teacher selector is incomplete';end if;
 end $$;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000011',true);
+set local role authenticated;
+do $$ begin
+ if (select count(*) from public.teacher_exam_submissions)<>1 then raise exception 'teacher could read another teacher submission';end if;
+end $$;
 reset role;
 rollback;

@@ -15,6 +15,12 @@ assert.match(page,/yearOpen && canManageAcademicYears && <Modal title="Create ac
 assert.match(page,/schoolDate\(y\.start_date, locale\).*schoolDate\(y\.end_date, locale\)/,'school-year dates use the localized long-date formatter')
 for(const label of ['Manage official grade levels, cycles, classes and school years.','configured grade levels','Current','Current year','No room','Grade level not set'])assert.match(baseTranslations,new RegExp(`'${label}':\\[`),`${label} has French and Haitian Creole translations`)
 assert.match(page,/canManageStructure && <button onClick=\{\(\) => setClassOpen\(true\)\}/,'class creation is hidden from roles without permission')
+assert.match(page,/active \? <T text="Deactivate"\/> : <T text="Activate classes"\/>/,'section actions follow the selected locale')
+assert.match(page,/<T text="Set as current academic year"\/>/,'the active year checkbox is localized')
+assert.match(page,/saving \? <T text="Saving\.\.\."\/> : <T text="Create year"\/>/,'year creation feedback and action are localized')
+assert.match(page,/saving \? <T text="Saving\.\.\."\/> : <T text="Create class"\/>/,'class creation feedback and action are localized')
+for(const label of ['Create year','Create class'])assert.ok(translations.includes(`'${label}':['`),`${label} needs French and Haitian Creole translations`)
+
 assert.match(page,/canManageStructure && <button disabled=\{!yearId \|\| saving\}/,'section activation is hidden from roles without permission')
 assert.match(page,/You can view classes and school sections here, but your role cannot change them\./,'read-only users get an explanation')
 assert.match(foundations,/create policy config_write on public\.%I for all to authenticated using\(private\.has_role\(school_id,array\[''school_admin'',''director''\]\)\)/,'academic-year writes require admin or director role')

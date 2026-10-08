@@ -26,6 +26,19 @@ create table public.classes (
  name text not null,
  enabled boolean not null default true
 );
+create table public.subjects (
+ id uuid primary key,
+ school_id uuid not null references public.schools(id),
+ name text not null,
+ active boolean not null default true
+);
+create table public.class_subjects (
+ school_id uuid not null references public.schools(id),
+ class_id uuid not null references public.classes(id),
+ subject_id uuid not null references public.subjects(id),
+ teacher_id uuid not null references public.users(id),
+ primary key(school_id,class_id,subject_id,teacher_id)
+);
 create table public.academic_years (
  id uuid primary key default gen_random_uuid(),
  school_id uuid not null references public.schools(id),

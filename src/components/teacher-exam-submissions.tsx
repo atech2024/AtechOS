@@ -27,8 +27,7 @@ export default function TeacherExamSubmissions(){
  const [workspace,setWorkspace]=useState<Workspace|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false)
  const [error,setError]=useState(''),[message,setMessage]=useState('')
  const [periodId,setPeriodId]=useState(''),[classId,setClassId]=useState(''),[subjectId,setSubjectId]=useState(''),[teacherId,setTeacherId]=useState('')
- const [file,setFile]=useState<File|null>(null),[fileFor,setFileFor]=useState('')
- const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Port-au-Prince',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+ const today=haitiToday()
  const manager=workspace?.can_manage===true
  const periods=workspace?.periods||[],classes=workspace?.classes||[],subjects=workspace?.subjects||[],teachers=workspace?.teachers||[],submissions=workspace?.submissions||[]
  const eligibleClasses=classes.filter(c=>!periodId||periods.find(p=>p.id===periodId)?.academic_year_id===c.academic_year_id)

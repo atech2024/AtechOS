@@ -43,6 +43,15 @@ create policy teacher_exam_files_read on storage.objects for select to authentic
     or (s.teacher_id=auth.uid() and private.has_role(s.school_id,array['teacher'])))
  )
 );
+drop policy if exists teacher_exam_files_delete on storage.objects;
+create policy teacher_exam_files_delete on storage.objects for delete to authenticated using(
+ bucket_id='teacher-exam-files' and exists(
+  select 1 from public.teacher_exam_submissions s
+  where s.id::text=(storage.foldername(name))[2] and s.school_id::text=(storage.foldername(name))[1]
+   and (private.has_role(s.school_id,array['school_admin','director','secretary','censeur'])
+    or (s.teacher_id=auth.uid() and private.has_role(s.school_id,array['teacher'])))
+ )
+);
 create policy teacher_exam_files_insert on storage.objects for insert to authenticated with check(
  bucket_id='teacher-exam-files' and exists(
   select 1 from public.teacher_exam_submissions s

@@ -20,6 +20,10 @@ assert.match(migration,/create policy teacher_exam_files_read[\s\S]*?bucket_id='
 assert.match(migration,/create policy teacher_exam_files_insert[\s\S]*?bucket_id='teacher-exam-files'/);
 assert.ok(migration.includes('public=false,file_size_limit=excluded.file_size_limit'));
 assert.match(component,/defaultExamPeriod\(result\.periods\|\|\[\],today\)/);
+assert.ok(component.includes('selectedPeriod.sections.includes(c.section)'));
+assert.ok(component.includes('subjects.some(s=>s.class_id===c.id&&s.teacher_id===teacherId)'));
+assert.ok(component.includes('No class is included in this exam period'));
+assert.ok(component.includes('Choose a teacher first to list their classes'));
 assert.match(component,/America\/Port-au-Prince/);
 assert.match(component,/MAX_FILE_SIZE=25\*1024\*1024/);
 assert.match(component,/'\.pdf':'application\/pdf'/);

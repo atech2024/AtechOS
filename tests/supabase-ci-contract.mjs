@@ -19,7 +19,9 @@ const badgeVerification = readFileSync('supabase/ci-badge/badge-verification.sql
 const badgeLifecycleMigration = readFileSync('supabase/migrations/20260928004221_badge_lifecycle_history.sql', 'utf8');
 const progressionBaseline = readFileSync('supabase/ci-progression/supabase/migrations/20260901000000_progression_integrity_baseline.sql', 'utf8');
 const progressionVerification = readFileSync('supabase/ci-progression/progression-verification.sql', 'utf8');
-const progressionMigration = readFileSync('supabase/migrations/20261005040000_progression_points_weighted_year_average.sql', 'utf8');\nconst examSubmissionMigration = readFileSync('supabase/migrations/20261008171500_teacher_exam_submissions.sql', 'utf8');\nconst examSubmissionFixture = readFileSync('supabase/ci/teacher-exam-submissions-verification.sql', 'utf8');
+const progressionMigration = readFileSync('supabase/migrations/20261005040000_progression_points_weighted_year_average.sql', 'utf8');
+const examSubmissionMigration = readFileSync('supabase/migrations/20261008171500_teacher_exam_submissions.sql', 'utf8');
+const examSubmissionFixture = readFileSync('supabase/ci/teacher-exam-submissions-verification.sql', 'utf8');
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
 assert.match(workflow, /version:\s*2\.119\.0/);
@@ -133,7 +135,8 @@ assert.match(progressionBaseline, /create table public\.grades/i);
 
 assert.match(workflow, /20261008171500_teacher_exam_submissions\\.sql/);
 assert.match(workflow, /teacher-exam-submissions-verification\\.sql/);
-assert.match(examSubmissionMigration, /revoke all on public\\.teacher_exam_submissions from public,anon,authenticated[\\s\\S]*?grant select on public\\.teacher_exam_submissions to authenticated/i);\nassert.match(examSubmissionMigration, /create policy teacher_exam_submissions_read[\\s\\S]*?teacher_id=auth\\.uid\\(\\)/);
+assert.match(examSubmissionMigration, /revoke all on public\.teacher_exam_submissions from public,anon,authenticated[\s\S]*?grant select on public\.teacher_exam_submissions to authenticated/i);
+assert.match(examSubmissionMigration, /create policy teacher_exam_submissions_read[\s\S]*?teacher_id=auth\.uid\(\)/);
 assert.match(examSubmissionMigration, /create policy teacher_exam_files_read[\\s\\S]*?bucket_id='teacher-exam-files'/);
 assert.match(examSubmissionMigration, /create policy teacher_exam_files_insert[\\s\\S]*?bucket_id='teacher-exam-files'/);
 assert.match(examSubmissionMigration, /manager or s\\.teacher_id=actor/);

@@ -91,7 +91,7 @@ export default function TeacherExamSubmissions(){
   setBusy(false);await load()
  }
  async function attachExisting(id:string,next:File){
-  if(!isAllowedExamFile(next)){setError(t('File must be PDF, Word or image and no larger than 25 MB.'));return}
+  if(!isAllowedExamFile(next)){setError(t('File must be PDF, Word, an image or audio and no larger than 25 MB.'));return}
   setBusy(true);setError('');setMessage('')
   try{await uploadFile(id,next,true);setMessage(t('Exam file attached to the register.'));await load()}
   catch(e){setError(t((e as {message?:string})?.message||'Unable to upload the exam file.'))}

@@ -30,7 +30,7 @@ insert into public.student_parents(student_id,parent_id,relationship) values
  ('fa400000-0000-0000-0000-000000000001','fa600000-0000-0000-0000-000000000001','parent');
 
 do $$
-declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; summary jsonb; setup jsonb; ledger jsonb; denied boolean; allocated_before numeric; expected_paid numeric; reported_paid numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid; cross_plan_id uuid; cross_charge_id uuid; cross_payment_id uuid;
+declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; summary jsonb; payment_events jsonb; setup jsonb; ledger jsonb; denied boolean; allocated_before numeric; expected_paid numeric; reported_paid numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid; cross_plan_id uuid; cross_charge_id uuid; cross_payment_id uuid;
 begin
   if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') or has_table_privilege('authenticated','public.finance_payments','DELETE') then raise exception 'authenticated can directly mutate finance payments'; end if;
   if has_table_privilege('authenticated','public.finance_payment_refunds','INSERT') or has_table_privilege('authenticated','public.finance_payment_refunds','UPDATE') or has_table_privilege('authenticated','public.finance_payment_refunds','DELETE') then raise exception 'authenticated can directly mutate finance refunds'; end if;
@@ -207,6 +207,25 @@ begin
   if not denied then raise exception 'parent accessed internal finance workspace'; end if;
   workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
   if workspace->'student'->>'id'<>'fa400000-0000-0000-0000-000000000001' or workspace->'settings'->>'moncash_payment_instructions'<>'Finance MonCash' or workspace->'settings'->'payment_methods'->'moncash'->>'phone'<>'50937000001' then raise exception 'linked parent finance details or enabled payment destinations were not returned'; end if;
+  payment_events:=public.family_validated_payment_events('fa400000-0000-0000-0000-000000000001','2026-09-01','2026-09-30');
+  if not exists(select 1 from jsonb_array_elements(payment_events->'payments') item where item->>'id'=class_overpayment_id::text) then
+    raise exception 'linked parent timeline omitted a validated staff-recorded payment';
+  end if;
+  if exists(select 1 from jsonb_array_elements(payment_events->'payments') item where item->>'id' in (credit_payment_id::text,pending_payment_id::text)) then
+    raise exception 'linked parent timeline showed a fully refunded or pending payment as paid';
+  end if;
+  if not has_function_privilege('authenticated','public.family_validated_payment_events(uuid,date,date)','EXECUTE')
+    or has_function_privilege('anon','public.family_validated_payment_events(uuid,date,date)','EXECUTE') then
+    raise exception 'family payment timeline grants are unsafe';
+  end if;
+  denied:=false;
+  begin perform public.family_validated_payment_events('fa400000-0000-0000-0000-000000000002','2026-09-01','2026-09-30');
+  exception when others then denied:=sqlerrm='not_authorized'; end;
+  if not denied then raise exception 'linked parent timeline exposed an unrelated child'; end if;
+  denied:=false;
+  begin perform public.family_validated_payment_events('fa400000-0000-0000-0000-000000000001','2026-01-01','2027-12-31');
+  exception when others then denied:=sqlerrm='invalid_payment_date_range'; end;
+  if not denied then raise exception 'family payment timeline accepted an unbounded date range'; end if;
   summary:=public.family_finance_summary('fa400000-0000-0000-0000-000000000001');
   if not exists(select 1 from jsonb_array_elements(summary->'charges') item where item->>'description'='Rentrée 2026 — 2' and item->>'due_date'='2027-01-15' and item->>'status'='upcoming') then raise exception 'family summary omitted an upcoming installment'; end if;
   select coalesce(sum(p.applied_amount),0)+coalesce((select sum(a.amount) from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where c.student_id='fa400000-0000-0000-0000-000000000001'),0) into expected_paid

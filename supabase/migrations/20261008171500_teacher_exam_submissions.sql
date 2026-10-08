@@ -28,8 +28,6 @@ create policy teacher_exam_submissions_read on public.teacher_exam_submissions f
 );
 revoke all on public.teacher_exam_submissions from public,anon,authenticated;
 grant select on public.teacher_exam_submissions to authenticated;
-revoke all on public.teacher_exam_submissions from public,anon,authenticated;
-
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values('teacher-exam-files','teacher-exam-files',false,26214400,
  array['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png','image/webp'])

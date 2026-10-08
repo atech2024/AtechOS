@@ -18,7 +18,7 @@ assert.match(migration,/create or replace function public\.teacher_exam_submissi
 assert.match(migration,/insert into public\.notifications[\s\S]*?teacher-exam-submission:/);
 assert.match(migration,/create policy teacher_exam_files_read[\s\S]*?bucket_id='teacher-exam-files'/);
 assert.match(migration,/create policy teacher_exam_files_insert[\s\S]*?bucket_id='teacher-exam-files'/);
-assert.match(migration,/public=false, file_size_limit=excluded\.file_size_limit/);
+assert.ok(migration.includes('public=false,file_size_limit=excluded.file_size_limit'));
 assert.match(component,/defaultExamPeriod\(result\.periods\|\|\[\],today\)/);
 assert.match(component,/America\/Port-au-Prince/);
 assert.match(component,/MAX_FILE_SIZE=25\*1024\*1024/);

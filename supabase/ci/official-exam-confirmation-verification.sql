@@ -81,7 +81,18 @@ declare proposal jsonb; outside_proposal jsonb; confirmed uuid; duplicate uuid; 
 begin
  select suggested_dates->0,suggested_dates->1 into proposal,outside_proposal
  from public.official_calendar_sources where url='https://calendar-ci.invalid/synthetic-exams';
+ perform public.activate_grading_period_by_section_dates(
+  '73000000-0000-0000-0000-000000000011','CI period','CI',array['fundamental'],
+  '{"fundamental":{"start_date":"2027-03-08","end_date":"2027-03-12"}}'::jsonb
+ );
  payload:=public.school_calendar();
+ if not exists(select 1 from jsonb_array_elements(payload->'periods') as period(item)
+  where item->>'id'='76000000-0000-0000-0000-000000000011'
+   and item->'section_dates'->'fundamental'->>'start_date'='2027-03-08'
+   and item->'section_dates'->'fundamental'->>'end_date'='2027-03-12'
+   and item->'section_dates'->'fundamental'->>'revision_start'='2027-03-01'
+   and item->'section_dates'->'fundamental'->>'revision_end'='2027-03-05')
+ then raise exception 'section dates or automatic revision dates were not returned'; end if;
  if (select count(*) from public.official_calendar_sources)<>2 then raise exception 'staff cannot review global source proposals'; end if;
  if jsonb_array_length(payload->'official_exam_dates')<>0 then raise exception 'unconfirmed dates reached staff calendar'; end if;
  confirmed:=public.confirm_official_exam_date('73000000-0000-0000-0000-000000000011','fundamental','https://calendar-ci.invalid/synthetic-exams',proposal);
@@ -110,6 +121,12 @@ select set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000012'
 do $$
 declare rejected boolean:=false;
 begin
+ begin perform public.activate_grading_period_by_section_dates(
+  '73000000-0000-0000-0000-000000000011','Unauthorized','NO',array['fundamental'],
+  '{"fundamental":{"start_date":"2027-03-08","end_date":"2027-03-12"}}'::jsonb
+ ); exception when raise_exception then rejected:=sqlerrm='not_authorized'; end;
+ if not rejected then raise exception 'teacher activated grading period dates'; end if;
+ rejected:=false;
  if exists(select 1 from public.official_calendar_sources) then raise exception 'teacher can read unconfirmed source proposals'; end if;
  if jsonb_array_length(public.school_calendar()->'official_exam_dates')<>1 then raise exception 'teacher did not receive confirmed section date'; end if;
  if public.school_calendar()->'official_exam_dates'->0->'proposal_snapshot' is distinct from 'null'::jsonb then raise exception 'teacher calendar leaked source proposal snapshot'; end if;

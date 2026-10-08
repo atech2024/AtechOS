@@ -842,4 +842,12 @@ export const extraTranslations:Record<string,[string,string]> = {
  "Grade decisions":["Décisions sur les notes","Desizyon sou nòt yo"],
  "Submitted grades are locked until review. Families see published grades only.":["Les notes soumises sont verrouillées jusqu’à leur révision. Les familles ne voient que les notes publiées.","Nòt ki soumèt yo rete bloke jiskaske yo revize yo. Fanmi yo wè nòt ki pibliye yo sèlman."],
 
+ 'Exam dates by section':['Dates d’examen par section','Dat egzamen pa seksyon'],
+ 'Use the same dates for all sections':['Utiliser les mêmes dates pour toutes les sections','Sèvi ak menm dat yo pou tout seksyon yo'],
+ 'Exam start date':['Date de début des examens','Dat kòmansman egzamen yo'],
+ 'Exam end date':['Date de fin des examens','Dat fen egzamen yo'],
+ 'Automatic revision week':['Semaine de révision automatique','Semèn revizyon otomatik'],
+ 'Revision':['Révision','Revizyon'],
+ 'Enter a valid date range for every selected section.':['Saisissez une plage de dates valide pour chaque section sélectionnée.','Antre yon seri dat ki valab pou chak seksyon ou chwazi.'],
+
 }

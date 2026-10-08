@@ -16,7 +16,7 @@ assert.match(rpc,/jsonb_build_object\([\s\S]*'resolution',q\.resolution/,'sancti
 assert.match(rpc,/create trigger prevent_sanctioned_student_session[\s\S]*before insert or update of student_id on private\.student_sessions/,'student suspension must block new portal sessions in the database')
 assert.match(rpc,/student_sanction_restriction\(s\.id,''kiosk''\)/,'KIOS sanction enforcement must live at the shared database recorder')
 assert.match(component,/family_student_sanctions/,'parent view must use its family-only RPC')
-assert.match(portal,/<FamilyStudentSanctions studentId=\{childId\}\/>/,'sanctions must follow the selected child')
+assert.match(portal,/<FamilyStudentSanctions key=\{childId\} studentId=\{childId\}\/>/,'sanctions must follow the selected child')
 assert.match(staffMigration,/private\.student_followup_authority/,'sanction mutation remains restricted to authorized school staff')
 for(const key of ['Student follow-up and sanctions','Sanctions recorded by the school for this child.','Unable to load this child\'s follow-up record.','No sanctions recorded for this child.']) assert.ok(translations.includes(`"${key}"`),`missing French/Kreyòl copy: ${key}`)
 assert.ok(packageJson.scripts.test.includes('node tests/family-student-sanctions.mjs'),'npm test must include parent sanctions coverage')

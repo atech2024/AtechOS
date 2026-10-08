@@ -17,7 +17,7 @@ assert.match(component,/setAnchor\(current=>shiftFamilyCalendarAnchor\(current,v
 assert.match(component,/America\/Port-au-Prince/,'day grouping must follow Haiti time')
 for(const mode of ['month','week','day','year']) assert.ok(component.includes(`'${mode}'`),`missing ${mode} calendar view`)
 for(const kind of ['attendance','exam','holiday','payment','badge']) assert.ok(component.includes(`'${kind}'`),`missing ${kind} event kind`)
-assert.match(portal,/<FamilySchoolCalendar studentId=\{childId\}\/>/,'parent calendar must stay scoped to selected linked child')
+assert.match(portal,/<FamilySchoolCalendar key=\{childId\} studentId=\{childId\}\/>/,'parent calendar must stay scoped to selected linked child')
 for(const key of ['Family calendar','Attendance, exams, school closures and recorded family actions.','Exam period','Holiday','Validated payment','Badge action','No events in this period.']) assert.ok(translations.includes(`"${key}"`),`missing French/Kreyòl copy: ${key}`)
 assert.ok(packageJson.scripts.test.includes('node tests/family-school-calendar.mjs'),'npm test includes calendar coverage')
 

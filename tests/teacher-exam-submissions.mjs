@@ -22,6 +22,11 @@ assert.ok(migration.includes('public=false,file_size_limit=excluded.file_size_li
 assert.match(component,/defaultExamPeriod\(result\.periods\|\|\[\],today\)/);
 assert.match(component,/America\/Port-au-Prince/);
 assert.match(component,/MAX_FILE_SIZE=25\*1024\*1024/);
+assert.match(component,/'\.pdf':'application\/pdf'/);
+assert.match(component,/'\.doc':'application\/msword'/);
+assert.match(component,/'\.docx':'application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document'/);
+assert.match(component,/PDF, DOC or DOCX/);
+assert.doesNotMatch(component,/audio\/|\.mp3|image\/jpeg/);
 assert.match(component,/\.mp3[\s\S]*?audio\/mpeg/);
 assert.match(component,/\.wav[\s\S]*?audio\/wav/);
 assert.match(component,/\.m4a[\s\S]*?audio\/mp4/);

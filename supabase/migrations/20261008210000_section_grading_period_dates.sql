@@ -64,6 +64,24 @@ end $$;
 revoke all on function public.activate_grading_period_by_section_dates(uuid,text,text,text[],jsonb) from public,anon;
 grant execute on function public.activate_grading_period_by_section_dates(uuid,text,text,text[],jsonb) to authenticated;
 
+-- Clear a prior section map when an older client saves a shared date range.
+-- Section changes through the legacy toggle RPC also fall back to the shared envelope.
+do $
+declare src text; old_clause text; new_clause text;
+begin
+ select pg_get_functiondef('public.activate_grading_period(uuid,text,text,date,date,text[])'::regprocedure) into src;
+ old_clause:='set sections=p_sections,is_active=true,start_date=p_start,end_date=p_end where id=pid';
+ new_clause:='set sections=p_sections,is_active=true,start_date=p_start,end_date=p_end,section_dates=''{}''::jsonb where id=pid';
+ if position(old_clause in src)=0 then raise exception 'legacy_activate_definition_changed'; end if;
+ execute replace(src,old_clause,new_clause);
+
+ select pg_get_functiondef('public.configure_grading_period(uuid,uuid,text[],boolean)'::regprocedure) into src;
+ old_clause:='set academic_year_id=p_year,sections=p_sections,is_active=p_active where id=p_id and school_id=sid';
+ new_clause:='set academic_year_id=p_year,sections=p_sections,is_active=p_active,section_dates=case when p_sections is distinct from sections then ''{}''::jsonb else section_dates end where id=p_id and school_id=sid';
+ if position(old_clause in src)=0 then raise exception 'legacy_configure_definition_changed'; end if;
+ execute replace(src,old_clause,new_clause);
+end $;
+
 -- Keep exam date authorization section-aware while retaining legacy-period fallback.
 do $$
 declare src text; old_clause text; new_clause text;

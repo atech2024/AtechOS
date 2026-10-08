@@ -1,4 +1,6 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'No class is included in this exam period.':['Aucune classe n’est rattachée à cette période d’examen.','Pa gen klas ki nan peryòd egzamen sa.'],
+ 'Choose a teacher first to list their classes':['Choisissez d’abord un enseignant pour afficher ses classes.','Chwazi pwofesè a anvan pou wè klas li yo.'],
  'No available appointment times remain before the deadline. Contact the school office.':['Aucun créneau de rendez-vous n’est disponible avant la date limite. Contactez le secrétariat.','Pa gen lè randevou ki rete anvan dat limit la. Kontakte biwo lekòl la.'],
  'No students currently qualify. Refresh the preview after attendance is recorded.':['Aucun élève n’est actuellement admissible. Actualisez l’aperçu après avoir enregistré les présences.','Pa gen elèv ki kalifye kounye a. Rafrechi lis la apre yo fin antre prezans yo.'],
  'The attendance list changed. Refresh the class preview before applying the sanction.':['La liste des présences a changé. Actualisez l’aperçu de la classe avant d’appliquer la sanction.','Lis prezans lan chanje. Rafrechi lis klas la anvan ou aplike sanksyon an.'],

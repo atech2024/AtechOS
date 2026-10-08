@@ -14,8 +14,8 @@ export default function GradeActions({draftGrades=0}:{draftGrades?:number}){
  const actions:Action[]=[
   ...(draftGrades>0?[{key:'draft',label:'Unpublished grades',count:draftGrades,href:'/dashboard/grades#grade-entry',detail:'Open grade entry to verify the saved work.'}]:[]),
   ...(data.submitted>0?[{key:'submitted',label:'Grades awaiting review',count:data.submitted,href:data.reviewer?'/dashboard/publication#grade-review':'/dashboard/grades#grade-submit',detail:'Review action'}]:[]),
-  ...(data.reviewed>0?[{key:'reviewed',label:'Grades ready to publish',count:data.reviewed,href:'/dashboard/publication#grade-review',detail:'Review action'}]:[]),
-  ...(data.returned>0?[{key:'returned',label:'Returned for correction',count:data.returned,href:'/dashboard/grades#grade-entry',detail:'Review action'}]:[]),
+  ...(data.reviewed>0?[{key:'reviewed',label:'Grades ready to publish',count:data.reviewed,href:data.reviewer?'/dashboard/publication#grade-review':'/dashboard/grades#grade-submit',detail:'Review action'}]:[]),
+  ...(data.returned>0?[{key:'returned',label:'Returned for correction',count:data.returned,href:data.reviewer?'/dashboard/publication#grade-review':'/dashboard/grades#grade-entry',detail:'Review action'}]:[]),
   ...(data.corrections>0?[{key:'corrections',label:'Published-grade corrections',count:data.corrections,href:data.reviewer?'/dashboard/publication#grade-corrections':'/dashboard/grades#grade-submit',detail:'Review action'}]:[]),
  ]
  if(!actions.length)return null

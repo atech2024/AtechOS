@@ -21,6 +21,13 @@ create table public.teacher_exam_submissions (
 );
 create index teacher_exam_submissions_school_year_date on public.teacher_exam_submissions(school_id,academic_year_id,submitted_at desc);
 alter table public.teacher_exam_submissions enable row level security;
+drop policy if exists teacher_exam_submissions_read on public.teacher_exam_submissions;
+create policy teacher_exam_submissions_read on public.teacher_exam_submissions for select to authenticated using(
+ private.has_role(school_id,array['school_admin','director','secretary','censeur'])
+ or (teacher_id=auth.uid() and private.has_role(school_id,array['teacher']))
+);
+revoke all on public.teacher_exam_submissions from public,anon,authenticated;
+grant select on public.teacher_exam_submissions to authenticated;
 revoke all on public.teacher_exam_submissions from public,anon,authenticated;
 
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)

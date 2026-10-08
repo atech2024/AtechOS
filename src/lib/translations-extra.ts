@@ -796,7 +796,6 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Submit exam papers by active period, class and subject. Direction receives a printable register.':['Soumettez les copies d’examen par période active, classe et matière. La Direction reçoit un registre imprimable.','Soumèt kopi egzamen yo selon peryòd aktif, klas ak matyè. Direksyon resevwa yon rejis pou enprime.'],
  'Register an exam received':['Enregistrer un examen reçu','Anrejistre yon egzamen yo resevwa'],
  'Submit an exam':['Soumettre un examen','Soumèt egzamen'],
- 'Exam period':['Période d’examen','Peryòd egzamen'],
  'Choose a period':['Choisir une période','Chwazi yon peryòd'],
  'Choose a teacher':['Choisir un enseignant','Chwazi yon pwofesè'],
  'Choose a subject':['Choisir une matière','Chwazi yon matyè'],

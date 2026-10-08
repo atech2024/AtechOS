@@ -22,6 +22,11 @@ assert.ok(migration.includes('public=false,file_size_limit=excluded.file_size_li
 assert.match(component,/defaultExamPeriod\(result\.periods\|\|\[\],today\)/);
 assert.match(component,/America\/Port-au-Prince/);
 assert.match(component,/MAX_FILE_SIZE=25\*1024\*1024/);
+assert.match(component,/\.mp3[\s\S]*?audio\/mpeg/);
+assert.match(component,/\.wav[\s\S]*?audio\/wav/);
+assert.match(component,/\.m4a[\s\S]*?audio\/mp4/);
+assert.match(component,/examFileMimeType\(next\)/);
+assert.match(component,/PDF, Word, image or audio/);
 assert.match(component,/createSignedUrl\(path,60\)/);
 assert.match(component,/window\.print\(\)/);
 assert.match(component,/Attach file from USB/);

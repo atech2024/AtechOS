@@ -27,7 +27,7 @@ export default function GradeWorkflow({grades,onChange}:{grades:Grade[];onChange
   </article>
  }
  return <section id="grade-submit" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-  <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold"><T text="Grade submission"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Save, verify, then submit. Submitted grades are locked until review. Families see published grades only."/></p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-800">{eligible.length} <T text="ready to submit"/></span></div>
+  <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold"><T text="Grade submission"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Save, verify, then submit. Submitted grades are locked until review. Families see published grades only."/></p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-800">{eligible.length} <T text="Ready to submit"/></span></div>
   {error&&<p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700"><T text={error}/></p>}
   {!eligible.length?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600"><T text="No grades ready to submit for this selection."/></p>:<>
    <label className="inline-flex items-center gap-2 text-sm font-medium"><input type="checkbox" disabled={busy} checked={eligible.every(g=>selected.includes(g.id))} onChange={e=>setSelected(e.target.checked?eligible.map(g=>g.id):[])}/> <T text="Select all eligible grades"/></label>

@@ -24,6 +24,9 @@ const examSubmissionMigration = readFileSync('supabase/migrations/20261008171500
 const examSubmissionDocumentMigration = readFileSync('supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql', 'utf8');
 const examSubmissionFixture = readFileSync('supabase/ci-exam-submissions/teacher-exam-submissions-verification.sql', 'utf8');
 const examSubmissionBaseline = readFileSync('supabase/ci-exam-submissions/supabase/migrations/20260901000000_teacher_exam_submissions_baseline.sql', 'utf8');
+const gradeDeadlineMigration = readFileSync('supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql', 'utf8');
+const gradeDeadlineBaseline = readFileSync('supabase/ci-grade-deadline/supabase/migrations/20260901000000_grade_deadline_baseline.sql', 'utf8');
+const gradeDeadlineVerification = readFileSync('supabase/ci-grade-deadline/grade-deadline-verification.sql', 'utf8');
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
 assert.match(workflow, /version:\s*2\.119\.0/);
@@ -45,6 +48,16 @@ assert.match(workflow, /20261002233000_guard_active_parent_membership\.sql/);
 assert.match(workflow, /20261002235000_kindergarten_pickup_minimize_view_data\.sql/);
 assert.match(workflow, /20261003000000_limit_duplicate_preschool_pickup_updates\.sql/);
 assert.match(workflow, /20261003023548_published_only_family_student_bulletins\.sql/);
+assert.match(workflow, /20261008231500_period_grade_entry_and_deadline_exceptions\.sql/);
+assert.match(workflow, /grade-deadline:/);
+assert.match(workflow, /cp \.\.\/migrations\/20261008231500_period_grade_entry_and_deadline_exceptions\.sql supabase\/migrations\//);
+assert.match(gradeDeadlineBaseline, /create table public\.subjects/i);
+assert.match(gradeDeadlineBaseline, /function public\.create_grade/i);
+assert.match(gradeDeadlineVerification, /grade_deadline_passed/);
+assert.match(gradeDeadlineVerification, /secretary granted late grade access/);
+assert.match(gradeDeadlineVerification, /subject_max_score_mismatch/);
+assert.match(gradeDeadlineVerification, /expired grant still permits a grade/);
+assert.match(gradeDeadlineMigration, /grade_deadline_exceptions/);
 assert.match(workflow, /20261005013350_parent_finance_payment_portal\.sql/);
 assert.match(workflow, /cp supabase\/migrations\/20261005013350_parent_finance_payment_portal\.sql supabase\/ci\/supabase\/migrations\//);
 assert.match(workflow, /cp supabase\/migrations\/20261003023548_published_only_family_student_bulletins\.sql supabase\/ci\/supabase\/migrations\//);

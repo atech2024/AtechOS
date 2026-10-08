@@ -17,4 +17,11 @@ assert.match(policies,/create policy teaching_write on public\.class_subjects fo
 assert.match(rpc,/CREATE OR REPLACE FUNCTION public\.create_subject[\s\S]*?SECURITY INVOKER/i,'subject RPC does not bypass the table write policies')
 assert.match(rpc,/CREATE OR REPLACE FUNCTION public\.assign_subject_to_class[\s\S]*?SECURITY INVOKER/i,'assignment RPC does not bypass the table write policies')
 
+assert.ok(page.includes('<T text="Create subjects and assign them to classes and teachers."/>'),'the subjects page description uses the translation provider')
+assert.ok(page.includes('<T text="No subjects yet."/>'),'empty subject state is localized')
+assert.ok(page.includes('<T text="No code"/>'),'missing subject-code label is localized')
+assert.ok(page.includes("translate(placeholder,locale)"),'subject/code placeholders follow the selected language')
+assert.ok(page.includes('<T text={title}/>'),'modal titles use the translation provider')
+assert.ok(page.includes("<T text={optional ? 'Unassigned' : 'Select...'}/>"),'assignment select empty choice is localized')
+for(const label of ['Create subjects and assign them to classes and teachers.','No subjects yet.','No code','Class assignment count','Class assignments count','Assign subject','Select...','Subject name'])assert.ok(translations.includes(`'${label}':[`),`${label} needs French and Haitian Creole translations`)
 console.log('PASS subject management UI matches database write roles and only offers active teachers.')

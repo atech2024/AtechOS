@@ -118,7 +118,7 @@ begin
 end $$;
 
 select set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000012',true);
-do $
+do $$
 declare rejected boolean:=false;
 begin
  begin perform public.activate_grading_period_by_section_dates(

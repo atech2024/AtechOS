@@ -21,6 +21,7 @@ create table public.classes (
  grade_level_id uuid references public.grade_levels(id),
  academic_year_id uuid,
  grade_level text,
+ section text,
  room text,
  homeroom_teacher_id uuid references public.users(id),
  name text not null,

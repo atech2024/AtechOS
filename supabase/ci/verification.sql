@@ -150,7 +150,7 @@ begin
 
  insert into public.classes(id,school_id,grade_level,name,academic_year_id) values('40000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','PS2','Second preschool CI','11000000-0000-0000-0000-000000000001');
  insert into public.grading_periods(school_id,academic_year_id,name,code,start_date,end_date,sections,is_active) values('10000000-0000-0000-0000-000000000001',term_year,'1er Trimestre','T1','2026-08-01','2026-11-30',array['preschool'],true) returning id into ps_period;
- perform public.create_subject_with_max_score('CI Grade Subject','CIG',20) returning id into grade_subject;
+ grade_subject:=public.create_subject_with_max_score('CI Grade Subject','CIG',20);
  perform public.assign_subject_to_class('40000000-0000-0000-0000-000000000001',grade_subject,'20000000-0000-0000-0000-000000000004');
  perform public.set_category_grade_deadline(ps_period,'preschool',now()-interval '1 minute',null,null);
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);

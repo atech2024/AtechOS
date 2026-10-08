@@ -830,4 +830,14 @@ export const extraTranslations:Record<string,[string,string]> = {
  'An exam file is already attached.':['Un fichier d’examen est déjà joint.','Gen yon fichye egzamen ki deja ajoute.'],
  'The uploaded exam file could not be verified.':['Le fichier téléversé n’a pas pu être vérifié.','Nou pa t ka verifye fichye ki telechaje a.'],
  'This exam has already been registered for this period.':['Cet examen est déjà enregistré pour cette période.','Egzamen sa a deja anrejistre pou peryòd sa a.'],
+ "Ready to submit":["Prêtes à soumettre","Pare pou soumèt"],
+ "No grades ready to submit for this selection.":["Aucune note prête à soumettre pour cette sélection.","Pa gen nòt ki pare pou soumèt pou seleksyon sa a."],
+ "selected":["sélectionnées","chwazi"],
+ "Class, subject and period":["Classe, matière et période","Klas, matyè ak peryòd"],
+ "Review submitted grades":["Réviser les notes soumises","Revize nòt ki soumèt yo"],
+ "Manage teacher deadlines":["Gérer les dates limites des enseignants","Jere dat limit pwofesè yo"],
+ "Bulletin publication and history":["Publication et historique des bulletins","Piblikasyon ak istorik bilten yo"],
+ "Grade decisions":["Décisions sur les notes","Desizyon sou nòt yo"],
+ "Submitted grades are locked until review. Families see published grades only.":["Les notes soumises sont verrouillées jusqu’à leur révision. Les familles ne voient que les notes publiées.","Nòt ki soumèt yo rete bloke jiskaske yo revize yo. Fanmi yo wè nòt ki pibliye yo sèlman."],
+
 }

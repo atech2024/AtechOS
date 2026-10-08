@@ -14,3 +14,11 @@ assert.match(page,/p_data:editing \? \{\.\.\.form,class_id:null\} : form/,'class
 assert.match(page,/Student ID and class are read-only here\./,'the edit form explains that ID and class cannot be changed here')
 assert.match(readFileSync('src/lib/translations-extra.ts','utf8'),/Create a class first for the selected academic year\./,'empty-state copy is translated')
 console.log('PASS student creation is scoped to enabled classes in the selected academic year; editing keeps student ID and class read-only.')
+
+const translations=readFileSync('src/lib/translations-extra.ts','utf8')
+for(const phrase of ['Student records are separate from badges. A photo can be added later.','AtechOS ID','Unable to load class assignments or school access.','Unable to load students.','Unable to save. Check your connection and try again.'])assert.ok(translations.includes(`'${phrase}':[`),`French and Haitian Creole translations include ${phrase}`)
+assert.ok(page.includes('<T text="Student records are separate from badges. A photo can be added later."/>' ),'student description uses translation provider')
+assert.ok(page.includes('<T text="AtechOS ID"/>' ),'student ID column heading uses translation provider')
+assert.ok(page.includes('<T text="Unassigned"/>' ),'missing class state uses translation provider')
+assert.ok(page.includes('<T text="Choose a class"/>' ),'class selector placeholder uses translation provider')
+assert.ok(page.includes("<T text={saving?'Saving…':'Save student'}/>") ,'save action is translated')

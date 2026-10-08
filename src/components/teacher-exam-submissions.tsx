@@ -39,7 +39,8 @@ export default function TeacherExamSubmissions(){
  const today=haitiToday()
  const manager=workspace?.can_manage===true
  const periods=workspace?.periods||[],classes=workspace?.classes||[],subjects=workspace?.subjects||[],teachers=workspace?.teachers||[],submissions=workspace?.submissions||[]
- const eligibleClasses=classes.filter(c=>!periodId||periods.find(p=>p.id===periodId)?.academic_year_id===c.academic_year_id)
+ const selectedPeriod=periods.find(p=>p.id===periodId)
+ const eligibleClasses=classes.filter(c=>(!selectedPeriod||(selectedPeriod.academic_year_id===c.academic_year_id&&selectedPeriod.sections.includes(c.section)))&&(!manager||!teacherId||subjects.some(s=>s.class_id===c.id&&s.teacher_id===teacherId)))
  const eligibleSubjects=subjects.filter(s=>s.class_id===classId&&(!manager||!teacherId||s.teacher_id===teacherId))
  const chosenSubject=eligibleSubjects.find(s=>s.subject_id===subjectId)
  const activePeriod=periods.find(p=>p.id===periodId)
@@ -103,7 +104,7 @@ export default function TeacherExamSubmissions(){
     <div className="grid gap-4 md:grid-cols-2">
      <label className="grid gap-1 text-sm font-medium"><T text="Exam period"/><select className="rounded-lg border p-3" value={periodId} onChange={e=>selectPeriod(e.target.value)} required><option value=""><T text="Choose a period"/></option>{periods.map(p=><option key={p.id} value={p.id}>{p.name} · {schoolDateTime(p.start_date+'T12:00:00',locale)} – {schoolDateTime(p.end_date+'T12:00:00',locale)}</option>)}</select></label>
      {manager&&<label className="grid gap-1 text-sm font-medium"><T text="Teacher"/><select className="rounded-lg border p-3" value={teacherId} onChange={e=>{setTeacherId(e.target.value);setClassId('');setSubjectId('')}} required><option value=""><T text="Choose a teacher"/></option>{teachers.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
-     <label className="grid gap-1 text-sm font-medium"><T text="Class"/><select className="rounded-lg border p-3" value={classId} onChange={e=>selectClass(e.target.value)} required><option value=""><T text="Choose a class"/></option>{eligibleClasses.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+     <label className="grid gap-1 text-sm font-medium"><T text="Class"/><select className="rounded-lg border p-3" value={classId} onChange={e=>selectClass(e.target.value)} required disabled={!periodId||!eligibleClasses.length||(manager&&!teacherId)}><option value=""><T text={manager&&!teacherId?"Choose a teacher first to list their classes":periodId&&!eligibleClasses.length?"No class is included in this exam period.":"Choose a class"}/></option>{eligibleClasses.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
      <label className="grid gap-1 text-sm font-medium"><T text="Subject"/><select className="rounded-lg border p-3" value={subjectId} onChange={e=>setSubjectId(e.target.value)} required disabled={!classId}><option value=""><T text="Choose a subject"/></option>{eligibleSubjects.map(x=><option key={x.subject_id} value={x.subject_id}>{x.subject_name}</option>)}</select></label>
      <label className="grid gap-1 text-sm font-medium md:col-span-2"><T text={manager?'Optional exam file received on USB':'Optional exam file'}/><input id="teacher-exam-file" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onFile} className="rounded-lg border p-3"/><span className="font-normal text-slate-500"><T text="PDF, DOC or DOCX · maximum 25 MB. The submission can be saved without a file."/></span></label>
     </div>

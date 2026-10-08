@@ -18,12 +18,21 @@ assert.match(component,/America\/Port-au-Prince/,'day grouping must follow Haiti
 for(const mode of ['month','week','day','year']) assert.ok(component.includes(`'${mode}'`),`missing ${mode} calendar view`)
 for(const kind of ['attendance','exam','holiday','payment','badge']) assert.ok(component.includes(`'${kind}'`),`missing ${kind} event kind`)
 assert.match(portal,/<FamilySchoolCalendar studentId=\{childId\}\/>/,'parent calendar must stay scoped to selected linked child')
-for(const key of ['Family calendar','Attendance, exams, school closures and recorded family actions.','Exam period','Holiday','Payment request','Badge action','No events in this period.']) assert.ok(translations.includes(`"${key}"`),`missing French/Kreyòl copy: ${key}`)
+for(const key of ['Family calendar','Attendance, exams, school closures and recorded family actions.','Exam period','Holiday','Validated payment','Badge action','No events in this period.']) assert.ok(translations.includes(`"${key}"`),`missing French/Kreyòl copy: ${key}`)
 assert.ok(packageJson.scripts.test.includes('node tests/family-school-calendar.mjs'),'npm test includes calendar coverage')
 
 
 const require=createRequire(import.meta.url)
 const ts=require('typescript')
+const paymentSource=readFileSync('src/lib/family-calendar-payment.ts','utf8')
+const paymentJs=ts.transpileModule(paymentSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
+const paymentModule={exports:{}}
+new Function('exports','require','module',paymentJs)(paymentModule.exports,require,paymentModule)
+const confirmed=paymentModule.exports.isConfirmedFamilyCalendarPayment
+assert.match(component,/isConfirmedFamilyCalendarPayment\(item\)/,'calendar must filter payment markers through validated state')
+for(const status of ['pending','rejected','refunded','partially_refunded']) assert.equal(confirmed({status,paid_at:'2026-10-08T12:00:00Z'}),false,`${status} must not appear as a validated payment`)
+assert.equal(confirmed({status:'validated',paid_at:null}),false,'a validated payment without a payment date cannot be placed on the calendar')
+assert.equal(confirmed({status:'validated',paid_at:'2026-10-08T12:00:00Z'}),true,'validated payments must appear on the calendar')
 const navigationSource=readFileSync('src/lib/family-calendar-navigation.ts','utf8')
 const navigationJs=ts.transpileModule(navigationSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
 const navigationModule={exports:{}}

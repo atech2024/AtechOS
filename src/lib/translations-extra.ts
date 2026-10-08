@@ -740,6 +740,7 @@ export const extraTranslations:Record<string,[string,string]> = {
  "Exam period":["Période d’examens","Peryòd egzamen"],
  "Holiday":["Jour férié / congé","Jou ferye / konje"],
  "Payment request":["Demande de paiement","Demann peman"],
+ "Validated payment":["Paiement validé","Peman valide"],
  "Badge action":["Action sur la carte","Aksyon sou badj la"],
  "Official exam":["Examen officiel","Egzamen ofisyèl"],
  "events":["événements","evènman"],

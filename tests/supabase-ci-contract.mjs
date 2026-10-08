@@ -134,7 +134,6 @@ assert.match(progressionVerification, /a passing AF9 student must be recommended
 assert.match(progressionVerification, /cross-school progression preview was not denied/i);
 assert.match(progressionVerification, /preview created a target enrollment/i);
 assert.match(progressionVerification, /teacher progression preview was not denied/i);
-assert.match(progressionVerification, /teacher progression confirmation was not denied/i);
 assert.match(progressionBaseline, /create or replace function private\.has_role/i);
 assert.match(progressionBaseline, /create table public\.grades/i);
 

@@ -838,5 +838,6 @@ export const extraTranslations:Record<string,[string,string]> = {
  "Manage teacher deadlines":["Gérer les dates limites des enseignants","Jere dat limit pwofesè yo"],
  "Bulletin publication and history":["Publication et historique des bulletins","Piblikasyon ak istorik bilten yo"],
  "Grade decisions":["Décisions sur les notes","Desizyon sou nòt yo"],
+ "Submitted grades are locked until review. Families see published grades only.":["Les notes soumises sont verrouillées jusqu’à leur révision. Les familles ne voient que les notes publiées.","Nòt ki soumèt yo rete bloke jiskaske yo revize yo. Fanmi yo wè nòt ki pibliye yo sèlman."],
 
 }

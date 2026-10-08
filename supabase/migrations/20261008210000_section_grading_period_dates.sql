@@ -66,7 +66,7 @@ grant execute on function public.activate_grading_period_by_section_dates(uuid,t
 
 -- Clear a prior section map when an older client saves a shared date range.
 -- Section changes through the legacy toggle RPC also fall back to the shared envelope.
-do $
+do $$
 declare src text; old_clause text; new_clause text;
 begin
  select pg_get_functiondef('public.activate_grading_period(uuid,text,text,date,date,text[])'::regprocedure) into src;
@@ -80,7 +80,7 @@ begin
  new_clause:='set academic_year_id=p_year,sections=p_sections,is_active=p_active,section_dates=case when p_sections is distinct from sections then ''{}''::jsonb else section_dates end where id=p_id and school_id=sid';
  if position(old_clause in src)=0 then raise exception 'legacy_configure_definition_changed'; end if;
  execute replace(src,old_clause,new_clause);
-end $;
+end $$;
 
 -- Keep exam date authorization section-aware while retaining legacy-period fallback.
 do $$

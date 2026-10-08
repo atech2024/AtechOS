@@ -4,10 +4,12 @@ insert into public.schools(id) values
  ('10000000-0000-0000-0000-000000000001'),('10000000-0000-0000-0000-000000000002');
 insert into auth.users(id,email,email_confirmed_at,role,aud) values
  ('20000000-0000-0000-0000-000000000001','director@example.invalid',now(),'authenticated','authenticated'),
- ('20000000-0000-0000-0000-000000000002','other-director@example.invalid',now(),'authenticated','authenticated');
+ ('20000000-0000-0000-0000-000000000002','other-director@example.invalid',now(),'authenticated','authenticated'),
+ ('20000000-0000-0000-0000-000000000003','teacher@example.invalid',now(),'authenticated','authenticated');
 insert into public.school_members(school_id,user_id,role) values
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','director'),
- ('10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000002','director');
+ ('10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000002','director'),
+ ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000003','teacher');
 insert into public.academic_years(id,school_id,name,start_date,end_date) values
  ('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','2025-2026','2025-08-01','2026-07-31'),
  ('30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','2026-2027','2026-08-01','2027-07-31'),
@@ -54,7 +56,9 @@ declare payload jsonb; weighted jsonb; incomplete jsonb; graduate jsonb; failed 
 begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  set local role authenticated;
+ if exists(select 1 from public.enrollments e join public.classes c on c.id=e.class_id where c.academic_year_id='30000000-0000-0000-0000-000000000002') then raise exception 'fixture unexpectedly starts with a target-year enrollment'; end if;
  payload:=public.preview_student_progression('30000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000002');
+ if exists(select 1 from public.enrollments e join public.classes c on c.id=e.class_id where c.academic_year_id='30000000-0000-0000-0000-000000000002') then raise exception 'preview created a target enrollment'; end if;
  select value into weighted from jsonb_array_elements(payload) where value->>'id'='60000000-0000-0000-0000-000000000001';
  select value into incomplete from jsonb_array_elements(payload) where value->>'id'='60000000-0000-0000-0000-000000000002';
  select value into graduate from jsonb_array_elements(payload) where value->>'id'='60000000-0000-0000-0000-000000000003';
@@ -73,6 +77,14 @@ begin
  if (incomplete->>'complete')::boolean or incomplete->>'average' is not null or incomplete->>'recommended_grade' is not null then
   raise exception 'incomplete bulletin must not show a promotion average or recommendation: %',incomplete;
  end if;
+ reset role;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000003',true);
+ set local role authenticated;
+ failed:=false;
+ begin
+  perform public.preview_student_progression('30000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000002');
+ exception when others then failed:=sqlerrm='not_authorized'; end;
+ if not failed then raise exception 'teacher progression preview was not denied'; end if;
  reset role;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
  set local role authenticated;

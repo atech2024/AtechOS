@@ -44,7 +44,7 @@ insert into public.attendance(id,school_id,student_id,class_id,attendance_date,c
  ('80000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date,now(),'present','20000000-0000-0000-0000-000000000001');
 
 do $test$
-declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false; adult_id uuid; pickup_workspace jsonb; pickup_update_id uuid; term_year uuid:='11000000-0000-0000-0000-000000000001'; ps_period uuid; ps_competency uuid; ps_version uuid; ps_workspace jsonb; ps_report jsonb; ps_published integer;
+declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false; adult_id uuid; pickup_workspace jsonb; pickup_update_id uuid; term_year uuid:='11000000-0000-0000-0000-000000000001'; ps_period uuid; grade_subject uuid; grade_id uuid; ps_competency uuid; ps_version uuid; ps_workspace jsonb; ps_report jsonb; ps_published integer;
 begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  if (select term_count from public.academic_years where id=term_year)<>3 then raise exception 'official term default must be three'; end if;
@@ -150,6 +150,39 @@ begin
 
  insert into public.classes(id,school_id,grade_level,name,academic_year_id) values('40000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','PS2','Second preschool CI','11000000-0000-0000-0000-000000000001');
  insert into public.grading_periods(school_id,academic_year_id,name,code,start_date,end_date,sections,is_active) values('10000000-0000-0000-0000-000000000001',term_year,'1er Trimestre','T1','2026-08-01','2026-11-30',array['preschool'],true) returning id into ps_period;
+ perform public.create_subject_with_max_score('CI Grade Subject','CIG',20) returning id into grade_subject;
+ perform public.assign_subject_to_class('40000000-0000-0000-0000-000000000001',grade_subject,'20000000-0000-0000-0000-000000000004');
+ perform public.set_category_grade_deadline(ps_period,'preschool',now()-interval '1 minute',null,null);
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
+ failed:=false;
+ begin
+  perform public.create_grade('50000000-0000-0000-0000-000000000001',grade_subject,'40000000-0000-0000-0000-000000000001','Contrôle 1',8,20,null,ps_period,100);
+ exception when others then failed:=sqlerrm='grade_deadline_passed';end;
+ if not failed then raise exception 'teacher entered a grade after deadline without authorization';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000007',true);
+ failed:=false;
+ begin
+  perform public.grant_grade_deadline_exception('20000000-0000-0000-0000-000000000004','40000000-0000-0000-0000-000000000001',grade_subject,ps_period,now()+interval '1 hour','CI permission test');
+ exception when others then failed:=sqlerrm='not_authorized';end;
+ if not failed then raise exception 'secretary granted a grade deadline exception';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+ perform public.grant_grade_deadline_exception('20000000-0000-0000-0000-000000000004','40000000-0000-0000-0000-000000000001',grade_subject,ps_period,now()+interval '1 hour','CI Direction authorization');
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
+ failed:=false;
+ begin
+  perform public.create_grade('50000000-0000-0000-0000-000000000001',grade_subject,'40000000-0000-0000-0000-000000000001','Contrôle 1',8,10,null,ps_period,100);
+ exception when others then failed:=sqlerrm='subject_max_score_mismatch';end;
+ if not failed then raise exception 'subject maximum score was not enforced';end if;
+ insert into public.grades(school_id,student_id,subject_id,class_id,assessment_name,score,max_score,grading_period_id,assessment_weight,teacher_id)
+ values('10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001',grade_subject,'40000000-0000-0000-0000-000000000001','Contrôle 1',8,20,ps_period,100,'20000000-0000-0000-0000-000000000004') returning id into grade_id;
+ update public.grade_deadline_exceptions set expires_at=now()-interval '1 minute' where teacher_id='20000000-0000-0000-0000-000000000004' and class_id='40000000-0000-0000-0000-000000000001' and subject_id=grade_subject and period_id=ps_period;
+ failed:=false;
+ begin
+  insert into public.grades(school_id,student_id,subject_id,class_id,assessment_name,score,max_score,grading_period_id,assessment_weight,teacher_id)
+  values('10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001',grade_subject,'40000000-0000-0000-0000-000000000001','Contrôle 2',7,20,ps_period,100,'20000000-0000-0000-0000-000000000004');
+ exception when others then failed:=sqlerrm='grade_deadline_passed';end;
+ if not failed then raise exception 'expired grade exception still granted access';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  perform public.save_preschool_class_staff('40000000-0000-0000-0000-000000000001','titulaire','20000000-0000-0000-0000-000000000004');
  ps_workspace:=public.preschool_report_workspace('40000000-0000-0000-0000-000000000001',ps_period);

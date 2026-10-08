@@ -799,7 +799,6 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Exam period':['Période d’examen','Peryòd egzamen'],
  'Choose a period':['Choisir une période','Chwazi yon peryòd'],
  'Choose a teacher':['Choisir un enseignant','Chwazi yon pwofesè'],
- 'Choose a class':['Choisir une classe','Chwazi yon klas'],
  'Choose a subject':['Choisir une matière','Chwazi yon matyè'],
  'Optional exam file':['Fichier d’examen (facultatif)','Fichye egzamen (opsyonèl)'],
  'Optional exam file received on USB':['Fichier reçu sur clé USB (facultatif)','Fichye yo resevwa sou kle USB (opsyonèl)'],

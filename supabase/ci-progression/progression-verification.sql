@@ -88,7 +88,6 @@ begin
  reset role;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
  set local role authenticated;
- set local role authenticated;
  begin
   perform public.preview_student_progression('30000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000002');
  exception when others then failed:=sqlerrm='invalid_years'; end;

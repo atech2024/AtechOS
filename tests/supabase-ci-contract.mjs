@@ -132,6 +132,9 @@ assert.match(progressionVerification, /incomplete bulletin must not show a promo
 assert.match(progressionVerification, /one published grade per active subject and period is complete; controls_per_period is a maximum/i);
 assert.match(progressionVerification, /a passing AF9 student must be recommended to NS1 for director review/i);
 assert.match(progressionVerification, /cross-school progression preview was not denied/i);
+assert.match(progressionVerification, /preview created a target enrollment/i);
+assert.match(progressionVerification, /teacher progression preview was not denied/i);
+assert.match(progressionVerification, /teacher progression confirmation was not denied/i);
 assert.match(progressionBaseline, /create or replace function private\.has_role/i);
 assert.match(progressionBaseline, /create table public\.grades/i);
 

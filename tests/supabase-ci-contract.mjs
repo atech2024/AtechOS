@@ -21,7 +21,7 @@ const progressionBaseline = readFileSync('supabase/ci-progression/supabase/migra
 const progressionVerification = readFileSync('supabase/ci-progression/progression-verification.sql', 'utf8');
 const progressionMigration = readFileSync('supabase/migrations/20261005040000_progression_points_weighted_year_average.sql', 'utf8');
 const examSubmissionMigration = readFileSync('supabase/migrations/20261008171500_teacher_exam_submissions.sql', 'utf8');
-const examSubmissionAudioMigration = readFileSync('supabase/migrations/20261008171600_teacher_exam_submission_audio_files.sql', 'utf8');
+const examSubmissionDocumentMigration = readFileSync('supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql', 'utf8');
 const examSubmissionFixture = readFileSync('supabase/ci-exam-submissions/teacher-exam-submissions-verification.sql', 'utf8');
 const examSubmissionBaseline = readFileSync('supabase/ci-exam-submissions/supabase/migrations/20260901000000_teacher_exam_submissions_baseline.sql', 'utf8');
 
@@ -136,8 +136,9 @@ assert.match(progressionBaseline, /create or replace function private\.has_role/
 assert.match(progressionBaseline, /create table public\.grades/i);
 
 assert.ok(workflow.includes('20261008171500_teacher_exam_submissions.sql'));
-assert.ok(workflow.includes('20261008171600_teacher_exam_submission_audio_files.sql'));
-assert.match(examSubmissionAudioMigration,/audio\/mpeg[\s\S]*?audio\/wav[\s\S]*?audio\/mp4[\s\S]*?audio\/ogg/);
+assert.ok(workflow.includes('20261008171600_teacher_exam_submission_document_types.sql'));
+assert.match(examSubmissionDocumentMigration,/allowed_mime_types = array\[[\s\S]*?'application\/pdf'[\s\S]*?'application\/msword'[\s\S]*?'application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document'[\s\S]*?where id='teacher-exam-files'/);
+assert.doesNotMatch(examSubmissionDocumentMigration,/audio\//);
 assert.ok(workflow.includes('teacher-exam-submissions-verification.sql'));
 assert.ok(workflow.includes('teacher-exam-submissions:'));
 assert.ok(workflow.includes('working-directory: supabase/ci-exam-submissions'));

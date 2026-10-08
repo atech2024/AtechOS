@@ -1,12 +1,12 @@
 begin;
 insert into public.schools(id) values('71000000-0000-0000-0000-000000000001'),('71000000-0000-0000-0000-000000000002');
-insert into public.users(id,full_name) values('72000000-0000-0000-0000-000000000001','Calendar Director'),('72000000-0000-0000-0000-000000000002','Other School Director'),('72000000-0000-0000-0000-000000000003','Calendar Teacher');
-insert into public.school_members(school_id,user_id,role) values('71000000-0000-0000-0000-000000000001','72000000-0000-0000-0000-000000000001','director'),('71000000-0000-0000-0000-000000000001','72000000-0000-0000-0000-000000000003','teacher'),('71000000-0000-0000-0000-000000000002','72000000-0000-0000-0000-000000000002','director');
+insert into public.users(id,full_name) values('72000000-0000-0000-0000-000000000001','Calendar Director'),('72000000-0000-0000-0000-000000000002','Other School Director'),('72000000-0000-0000-0000-000000000003','Calendar Teacher'),('72000000-0000-0000-0000-000000000004','Calendar Secretary');
+insert into public.school_members(school_id,user_id,role) values('71000000-0000-0000-0000-000000000001','72000000-0000-0000-0000-000000000001','director'),('71000000-0000-0000-0000-000000000001','72000000-0000-0000-0000-000000000003','teacher'),('71000000-0000-0000-0000-000000000001','72000000-0000-0000-0000-000000000004','secretary'),('71000000-0000-0000-0000-000000000002','72000000-0000-0000-0000-000000000002','director');
 select set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000001',true);
 set local role authenticated;
 
 do $$
-declare first_year uuid; successor public.academic_years%rowtype; n integer; duplicate_rejected boolean := false; teacher_create_denied boolean := false; teacher_update_denied boolean := false; foreign_update_denied boolean := false;
+declare first_year uuid; successor public.academic_years%rowtype; n integer; duplicate_rejected boolean := false; teacher_create_denied boolean := false; teacher_update_denied boolean := false; foreign_update_denied boolean := false; secretary_create_denied boolean := false; secretary_update_denied boolean := false;
 begin
  if not has_table_privilege('authenticated','public.official_calendar_sources','select') then raise exception 'staff cannot read detected official calendar sources'; end if;
  if has_table_privilege('authenticated','public.official_calendar_sources','insert') then raise exception 'authenticated staff can forge the global official source registry'; end if;
@@ -38,6 +38,15 @@ begin
   perform public.update_academic_year(successor.id,'Unauthorized edit',date '2027-09-01',date '2028-06-30',true);
  exception when others then teacher_update_denied:=sqlerrm='not_authorized'; end;
  if not teacher_update_denied then raise exception 'teacher edited an academic year'; end if;
+ perform set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000004',true);
+ begin
+  perform public.create_academic_year_with_successor('Unauthorized secretary year',date '2028-09-01',date '2029-06-30',true);
+ exception when others then secretary_create_denied:=sqlerrm='not_authorized'; end;
+ if not secretary_create_denied then raise exception 'secretary created an academic year'; end if;
+ begin
+  perform public.update_academic_year(successor.id,'Unauthorized secretary edit',date '2027-09-01',date '2028-06-30',true);
+ exception when others then secretary_update_denied:=sqlerrm='not_authorized'; end;
+ if not secretary_update_denied then raise exception 'secretary edited an academic year'; end if;
  perform set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000002',true);
  begin
   perform public.update_academic_year(first_year,'Cross-school edit',date '2026-09-01',date '2027-06-30',true);

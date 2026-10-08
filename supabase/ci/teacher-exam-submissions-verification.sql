@@ -23,7 +23,7 @@ insert into public.class_subjects(school_id,class_id,subject_id,teacher_id) valu
  ('10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000041','10000000-0000-0000-0000-000000000062','10000000-0000-0000-0000-000000000012');
 
 do $$ begin
- if has_table_privilege('authenticated','public.teacher_exam_submissions','select') then raise exception 'authenticated can query exam submissions directly'; end if;
+ if not has_table_privilege('authenticated','public.teacher_exam_submissions','select') then raise exception 'authenticated cannot use the row-scoped exam register'; end if;\n if not (select relrowsecurity from pg_class where oid='public.teacher_exam_submissions'::regclass) then raise exception 'exam submission row security is disabled'; end if;
  if has_function_privilege('anon','public.teacher_exam_submission_workspace()','execute') then raise exception 'anon can execute exam workspace'; end if;
  if not exists(select 1 from storage.buckets where id='teacher-exam-files' and public=false and file_size_limit=26214400) then raise exception 'private exam bucket configuration missing'; end if;
 end $$;

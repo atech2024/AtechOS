@@ -842,4 +842,12 @@ export const extraTranslations:Record<string,[string,string]> = {
  "Grade decisions":["Décisions sur les notes","Desizyon sou nòt yo"],
  "Submitted grades are locked until review. Families see published grades only.":["Les notes soumises sont verrouillées jusqu’à leur révision. Les familles ne voient que les notes publiées.","Nòt ki soumèt yo rete bloke jiskaske yo revize yo. Fanmi yo wè nòt ki pibliye yo sèlman."],
 
+  'Create subjects and assign them to classes and teachers.':['Créez les matières et affectez-les aux classes et aux enseignants.','Kreye matyè yo epi asiyen yo nan klas ak pwofesè.'],
+  'No subjects yet.':['Aucune matière pour le moment.','Pa gen matyè pou kounye a.'],
+  'No code':['Sans code','San kòd'],
+  'Class assignment count':['affectation','afektasyon'],
+  'Class assignments count':['affectations','afektasyon'],
+  'Assign subject':['Affecter une matière','Asiyen yon matyè'],
+  'Select...':['Choisir…','Chwazi…'],
+  'Subject name':['Nom de la matière','Non matyè a'],
 }

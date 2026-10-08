@@ -842,4 +842,9 @@ export const extraTranslations:Record<string,[string,string]> = {
  "Grade decisions":["Décisions sur les notes","Desizyon sou nòt yo"],
  "Submitted grades are locked until review. Families see published grades only.":["Les notes soumises sont verrouillées jusqu’à leur révision. Les familles ne voient que les notes publiées.","Nòt ki soumèt yo rete bloke jiskaske yo revize yo. Fanmi yo wè nòt ki pibliye yo sèlman."],
 
+  'Student records are separate from badges. A photo can be added later.':['Les dossiers des élèves sont distincts des badges. Une photo peut être ajoutée plus tard.','Dosye elèv yo separe ak badge yo. Ou ka ajoute yon foto pita.'],
+  'AtechOS ID':['ID AtechOS','ID AtechOS'],
+  'Unable to load class assignments or school access.':['Impossible de charger les affectations de classe ou les accès de l’école.','Pa kapab chaje klas yo oswa aksè lekòl la.'],
+  'Unable to load students.':['Impossible de charger les élèves.','Pa kapab chaje elèv yo.'],
+  'Unable to save. Check your connection and try again.':['Impossible d’enregistrer. Vérifiez votre connexion et réessayez.','Pa kapab anrejistre. Verifye koneksyon ou epi eseye ankò.'],
 }

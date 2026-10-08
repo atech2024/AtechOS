@@ -12,8 +12,25 @@ type Teacher={id:string;name:string}
 type Submission={id:string;academic_year_id:string;period_id:string;period_name:string;class_id:string;class_name:string;subject_id:string;subject_name:string;teacher_id:string;teacher_name:string;submitted_by_name:string;submitted_at:string;entry_channel:'teacher_portal'|'direction';file_path:string|null;file_source:'teacher_upload'|'office_usb'|null;file_uploaded_at:string|null}
 type Workspace={school_id:string;can_manage:boolean;periods:Period[];classes:ClassItem[];subjects:SubjectItem[];teachers:Teacher[];submissions:Submission[]}
 const MAX_FILE_SIZE=25*1024*1024
-const ALLOWED_TYPES=['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png','image/webp']
-export function isAllowedExamFile(file:Pick<File,'type'|'size'>){return ALLOWED_TYPES.includes(file.type)&&file.size>0&&file.size<=MAX_FILE_SIZE}
+const EXAM_FILE_TYPES:Record<string,{mime:string;accepted:string[]}>={
+ '.pdf':{mime:'application/pdf',accepted:['application/pdf']},
+ '.doc':{mime:'application/msword',accepted:['application/msword']},
+ '.docx':{mime:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',accepted:['application/vnd.openxmlformats-officedocument.wordprocessingml.document']},
+ '.jpg':{mime:'image/jpeg',accepted:['image/jpeg']},'.jpeg':{mime:'image/jpeg',accepted:['image/jpeg']},
+ '.png':{mime:'image/png',accepted:['image/png']},'.webp':{mime:'image/webp',accepted:['image/webp']},
+ '.mp3':{mime:'audio/mpeg',accepted:['audio/mpeg','audio/mp3']},
+ '.wav':{mime:'audio/wav',accepted:['audio/wav','audio/x-wav','audio/vnd.wave']},
+ '.m4a':{mime:'audio/mp4',accepted:['audio/mp4','audio/x-m4a']},
+ '.aac':{mime:'audio/aac',accepted:['audio/aac','audio/x-aac']},
+ '.ogg':{mime:'audio/ogg',accepted:['audio/ogg']},'.oga':{mime:'audio/ogg',accepted:['audio/ogg']},
+ '.webm':{mime:'audio/webm',accepted:['audio/webm']},
+ '.flac':{mime:'audio/flac',accepted:['audio/flac','audio/x-flac']}
+}
+export function examFileMimeType(file:Pick<File,'name'|'type'>){
+ const extension=file.name.toLowerCase().match(/\.[^.]+$/)?.[0],rule=extension?EXAM_FILE_TYPES[extension]:undefined
+ return rule&&(!file.type||rule.accepted.includes(file.type.toLowerCase()))?rule.mime:''
+}
+export function isAllowedExamFile(file:Pick<File,'name'|'type'|'size'>){return Boolean(examFileMimeType(file))&&file.size>0&&file.size<=MAX_FILE_SIZE}
 export function defaultExamPeriod(periods:Period[],today:string){
  const active=periods.filter(p=>p.start_date<=p.end_date).sort((a,b)=>a.start_date.localeCompare(b.start_date)||a.name.localeCompare(b.name))
  return active.find(p=>p.start_date<=today&&p.end_date>=today)?.id||active.find(p=>p.start_date>=today)?.id||active.at(-1)?.id||''
@@ -51,10 +68,10 @@ export default function TeacherExamSubmissions(){
 
  function selectPeriod(value:string){setPeriodId(value);setClassId('');setSubjectId('')}
  function selectClass(value:string){setClassId(value);setSubjectId('')}
- function onFile(event:ChangeEvent<HTMLInputElement>){const next=event.target.files?.[0]||null;setError('');if(next&&!isAllowedExamFile(next)){setFile(null);event.target.value='';setError(t('File must be PDF, Word or image and no larger than 25 MB.'));return}setFile(next)}
+ function onFile(event:ChangeEvent<HTMLInputElement>){const next=event.target.files?.[0]||null;setError('');if(next&&!isAllowedExamFile(next)){setFile(null);event.target.value='';setError(t('File must be PDF, Word, an image or audio and no larger than 25 MB.'));return}setFile(next)}
  async function uploadFile(submissionId:string,next:File,staff:boolean){
   const path=`${workspace!.school_id}/${submissionId}/${Date.now()}-${safeFileName(next.name)}`
-  const {error:uploadError}=await db.storage.from('teacher-exam-files').upload(path,next,{contentType:next.type,upsert:false})
+  const {error:uploadError}=await db.storage.from('teacher-exam-files').upload(path,next,{contentType:examFileMimeType(next),upsert:false})
   if(uploadError)throw uploadError
   const {error:attachError}=await db.rpc('attach_teacher_exam_file',{p_submission_id:submissionId,p_storage_path:path})
   if(attachError){await db.storage.from('teacher-exam-files').remove([path]);throw attachError}
@@ -97,14 +114,14 @@ export default function TeacherExamSubmissions(){
      {manager&&<label className="grid gap-1 text-sm font-medium"><T text="Teacher"/><select className="rounded-lg border p-3" value={teacherId} onChange={e=>{setTeacherId(e.target.value);setClassId('');setSubjectId('')}} required><option value=""><T text="Choose a teacher"/></option>{teachers.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
      <label className="grid gap-1 text-sm font-medium"><T text="Class"/><select className="rounded-lg border p-3" value={classId} onChange={e=>selectClass(e.target.value)} required><option value=""><T text="Choose a class"/></option>{eligibleClasses.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
      <label className="grid gap-1 text-sm font-medium"><T text="Subject"/><select className="rounded-lg border p-3" value={subjectId} onChange={e=>setSubjectId(e.target.value)} required disabled={!classId}><option value=""><T text="Choose a subject"/></option>{eligibleSubjects.map(x=><option key={x.subject_id} value={x.subject_id}>{x.subject_name}</option>)}</select></label>
-     <label className="grid gap-1 text-sm font-medium md:col-span-2"><T text={manager?'Optional exam file received on USB':'Optional exam file'}/><input id="teacher-exam-file" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp" onChange={onFile} className="rounded-lg border p-3"/><span className="font-normal text-slate-500"><T text="PDF, Word or image · maximum 25 MB. The submission can be saved without a file."/></span></label>
+     <label className="grid gap-1 text-sm font-medium md:col-span-2"><T text={manager?'Optional exam file received on USB':'Optional exam file'}/><input id="teacher-exam-file" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.mp3,.wav,.m4a,.aac,.ogg,.oga,.webm,.flac,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp,audio/mpeg,audio/wav,audio/x-wav,audio/vnd.wave,audio/mp4,audio/x-m4a,audio/aac,audio/x-aac,audio/ogg,audio/webm,audio/flac,audio/x-flac" onChange={onFile} className="rounded-lg border p-3"/><span className="font-normal text-slate-500"><T text="PDF, Word, image or audio · maximum 25 MB. The submission can be saved without a file."/></span></label>
     </div>
     <button disabled={busy} className="mt-5 rounded-xl bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-60">{busy?<T text="Saving..."/>:<T text={manager?'Save received exam':'Submit exam'}/>}</button>
    </form>
    <section id="exam-submission-register" className="rounded-2xl border bg-white p-5 shadow-sm">
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold"><T text={manager?'Exam receipt register':'My exam submissions'}/></h2><p className="text-sm text-slate-600"><T text="Each record shows the period, teacher, class, subject and receipt date."/></p></div><button type="button" onClick={()=>window.print()} className="rounded-lg border px-4 py-2 font-medium text-blue-800 print:hidden"><T text="Print register"/></button></div>
     <label className="mb-4 flex items-center gap-2 text-sm print:hidden"><T text="Exam period"/><select className="rounded-lg border p-2" value={periodId} onChange={e=>selectPeriod(e.target.value)}>{periods.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-    {!visibleSubmissions.length?<p className="rounded-lg bg-slate-50 p-4 text-slate-600"><T text="No exam submissions for this period."/></p>:<div className="overflow-x-auto"><table className="w-full border-collapse text-left text-sm"><thead><tr className="border-b text-slate-600">{(manager?['Exam period','Teacher','Class','Subject','Received by','Received on','File']:['Exam period','Class','Subject','Submitted on','File']).map(k=><th key={k} className="px-3 py-3 font-semibold"><T text={k}/></th>)}</tr></thead><tbody>{visibleSubmissions.map(s=><tr key={s.id} className="border-b align-top"><td className="px-3 py-3">{s.period_name}</td>{manager&&<td className="px-3 py-3">{s.teacher_name}</td>}<td className="px-3 py-3">{s.class_name}</td><td className="px-3 py-3">{s.subject_name}</td>{manager&&<td className="px-3 py-3">{s.submitted_by_name}</td>}<td className="px-3 py-3">{schoolDateTime(s.submitted_at,locale)}</td><td className="px-3 py-3">{s.file_path?<button type="button" className="text-blue-700 underline" onClick={()=>void openFile(s.file_path!)}><T text="Open exam file"/></button>:manager?<label className="cursor-pointer text-blue-700 underline print:hidden"><T text="Attach file from USB"/><input type="file" className="sr-only" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={e=>{const f=e.target.files?.[0];if(f)void attachExisting(s.id,f);e.currentTarget.value=''}}/></label>:<span className="text-slate-500"><T text="No file"/></span>}</td></tr>)}</tbody></table></div>}
+    {!visibleSubmissions.length?<p className="rounded-lg bg-slate-50 p-4 text-slate-600"><T text="No exam submissions for this period."/></p>:<div className="overflow-x-auto"><table className="w-full border-collapse text-left text-sm"><thead><tr className="border-b text-slate-600">{(manager?['Exam period','Teacher','Class','Subject','Received by','Received on','File']:['Exam period','Class','Subject','Submitted on','File']).map(k=><th key={k} className="px-3 py-3 font-semibold"><T text={k}/></th>)}</tr></thead><tbody>{visibleSubmissions.map(s=><tr key={s.id} className="border-b align-top"><td className="px-3 py-3">{s.period_name}</td>{manager&&<td className="px-3 py-3">{s.teacher_name}</td>}<td className="px-3 py-3">{s.class_name}</td><td className="px-3 py-3">{s.subject_name}</td>{manager&&<td className="px-3 py-3">{s.submitted_by_name}</td>}<td className="px-3 py-3">{schoolDateTime(s.submitted_at,locale)}</td><td className="px-3 py-3">{s.file_path?<button type="button" className="text-blue-700 underline" onClick={()=>void openFile(s.file_path!)}><T text="Open exam file"/></button>:manager?<label className="cursor-pointer text-blue-700 underline print:hidden"><T text="Attach file from USB"/><input type="file" className="sr-only" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.mp3,.wav,.m4a,.aac,.ogg,.oga,.webm,.flac" disabled={busy} onChange={e=>{const f=e.target.files?.[0];if(f)void attachExisting(s.id,f);e.currentTarget.value=''}}/></label>:<span className="text-slate-500"><T text="No file"/></span>}</td></tr>)}</tbody></table></div>}
    </section>
   </>}
  </main>

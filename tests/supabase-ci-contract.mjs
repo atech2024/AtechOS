@@ -139,6 +139,6 @@ assert.match(examSubmissionMigration, /revoke all on public\.teacher_exam_submis
 assert.match(examSubmissionMigration, /create policy teacher_exam_submissions_read[\s\S]*?teacher_id=auth\.uid\(\)/);
 assert.ok(examSubmissionMigration.includes("create policy teacher_exam_files_read") && examSubmissionMigration.includes("bucket_id='teacher-exam-files'"));
 assert.ok(examSubmissionMigration.includes("create policy teacher_exam_files_insert") && examSubmissionMigration.includes("bucket_id='teacher-exam-files'"));
-assert.match(examSubmissionMigration, /manager or s\\.teacher_id=actor/);
+assert.ok(examSubmissionMigration.includes('manager or s.teacher_id=actor'));
 for (const assertion of ['teacher did not receive own scoped submission','teacher submitted an unassigned subject','teacher impersonated another teacher','Direction cannot see the full receipt register']) assert.ok(examSubmissionFixture.includes(assertion), `exam submission SQL fixture must check: ${assertion}`);
 console.log('PASS free, isolated Supabase CI contract: synthetic baseline, only targeted migrations, rollback-only data checks, no production credentials or remote database commands.');

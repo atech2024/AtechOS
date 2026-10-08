@@ -17,6 +17,7 @@ export const navigation:NavigationItem[]=[
  {label:'Bulletins',href:'/dashboard/bulletins',icon:'reports',roles:[...administration,'surveillant'],group:'results'},
  {label:'Preschool competency bulletins',href:'/dashboard/preschool',icon:'reports',roles:[...administration,'teacher','censeur'],group:'preschool'},
  {label:'Assignments',href:'/dashboard/assignments',icon:'assignments',roles:[...administration,'teacher'],group:'teaching'},
+ {label:'Exam submissions',href:'/dashboard/exam-submissions',icon:'assignments',roles:['school_admin','director','secretary','censeur','teacher'],group:'teaching'},
  {label:'Academic progression',href:'/dashboard/progression',icon:'progression',roles:['school_admin','director'],group:'results'},
  {label:'Finance & Accounting',href:'/dashboard/finance',icon:'finance',roles:['school_admin','director','secretary','accountant'],group:'finance'},
  {label:'Payments',href:'/dashboard/finance/payments',icon:'finance',roles:['school_admin','director','secretary','accountant'],group:'finance'},

@@ -20,6 +20,9 @@ const badgeLifecycleMigration = readFileSync('supabase/migrations/20260928004221
 const progressionBaseline = readFileSync('supabase/ci-progression/supabase/migrations/20260901000000_progression_integrity_baseline.sql', 'utf8');
 const progressionVerification = readFileSync('supabase/ci-progression/progression-verification.sql', 'utf8');
 const progressionMigration = readFileSync('supabase/migrations/20261005040000_progression_points_weighted_year_average.sql', 'utf8');
+const examSubmissionMigration = readFileSync('supabase/migrations/20261008171500_teacher_exam_submissions.sql', 'utf8');
+const examSubmissionFixture = readFileSync('supabase/ci-exam-submissions/teacher-exam-submissions-verification.sql', 'utf8');
+const examSubmissionBaseline = readFileSync('supabase/ci-exam-submissions/supabase/migrations/20260901000000_teacher_exam_submissions_baseline.sql', 'utf8');
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
 assert.match(workflow, /version:\s*2\.119\.0/);
@@ -131,4 +134,17 @@ assert.match(progressionVerification, /cross-school progression preview was not 
 assert.match(progressionBaseline, /create or replace function private\.has_role/i);
 assert.match(progressionBaseline, /create table public\.grades/i);
 
+assert.ok(workflow.includes('20261008171500_teacher_exam_submissions.sql'));
+assert.ok(workflow.includes('teacher-exam-submissions-verification.sql'));
+assert.ok(workflow.includes('teacher-exam-submissions:'));
+assert.ok(workflow.includes('working-directory: supabase/ci-exam-submissions'));
+assert.ok(workflow.includes('cp ../migrations/20261008171500_teacher_exam_submissions.sql'));
+assert.ok(examSubmissionBaseline.includes('create table public.class_subjects'));
+assert.ok(examSubmissionBaseline.includes('section text'));
+assert.match(examSubmissionMigration, /revoke all on public\.teacher_exam_submissions from public,anon,authenticated[\s\S]*?grant select on public\.teacher_exam_submissions to authenticated/i);
+assert.match(examSubmissionMigration, /create policy teacher_exam_submissions_read[\s\S]*?teacher_id=auth\.uid\(\)/);
+assert.ok(examSubmissionMigration.includes("create policy teacher_exam_files_read") && examSubmissionMigration.includes("bucket_id='teacher-exam-files'"));
+assert.ok(examSubmissionMigration.includes("create policy teacher_exam_files_insert") && examSubmissionMigration.includes("bucket_id='teacher-exam-files'"));
+assert.ok(examSubmissionMigration.includes('manager or s.teacher_id=actor'));
+for (const assertion of ['teacher did not receive own scoped submission','teacher submitted an unassigned subject','teacher impersonated another teacher','Direction cannot see the full receipt register']) assert.ok(examSubmissionFixture.includes(assertion), `exam submission SQL fixture must check: ${assertion}`);
 console.log('PASS free, isolated Supabase CI contract: synthetic baseline, only targeted migrations, rollback-only data checks, no production credentials or remote database commands.');

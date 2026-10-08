@@ -6,7 +6,6 @@ export const extraTranslations:Record<string,[string,string]> = {
   'Select a class, subject and grading period.':['Sélectionnez une classe, une matière et une période.','Chwazi yon klas, yon matyè ak yon peryòd.'],
   'Authorize temporary grade entry':['Autoriser temporairement la saisie des notes','Otorize antre nòt tanporèman'],
   "If a teacher's grade deadline has passed, Direction can grant access for this class, subject and period until an expiry time it chooses.":['Si la date limite est dépassée, la Direction peut autoriser cet enseignant pour cette classe, cette matière et cette période jusqu’à la date et l’heure choisies.','Si dat limit nòt la pase, Direksyon ka otorize pwofesè a pou klas, matyè ak peryòd sa a jiska dat ak lè li chwazi a.'],
-  'Choose a teacher':['Choisir un enseignant','Chwazi yon pwofesè'],
   'Expires at':['Expire le','Ekspire nan dat/lè'],
   'Reason for temporary access':['Motif de l’accès temporaire','Rezon aksè tanporè a'],
   'Grant temporary access':['Accorder l’accès temporaire','Bay aksè tanporè'],

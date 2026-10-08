@@ -34,6 +34,7 @@ export const translations:Record<string,[string,string]> = {
  "Amount still due":['Montant restant dû','Kantite ki rete pou peye'],
  "Already submitted":['Déjà transmis','Deja voye'],
  "Amount paid":['Montant payé','Kantite lajan peye'],
+ "Converted at validation":['Montant converti à la validation','Valè konvèti lè yo valide peman an'],
  "Applied to fee":['Affecté aux frais','Aplike sou frè a'],
  "Where to pay":['Où payer','Ki kote pou peye'],
  "The school has not entered payment details for this method yet. Contact the administration before paying.":['L’école n’a pas encore saisi les coordonnées de ce mode de paiement. Contactez l’administration avant de payer.','Lekòl la poko antre enfòmasyon pou metòd peman sa a. Kontakte administrasyon an anvan ou peye.'],

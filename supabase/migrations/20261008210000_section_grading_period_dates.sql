@@ -89,14 +89,18 @@ end $$;
 do $$
 declare src text; old_clause text; new_clause text;
 begin
- select pg_get_functiondef('private.validate_exam_scope(uuid,uuid,uuid,timestamp with time zone,timestamp with time zone,date,date)'::regprocedure) into src;
- old_clause:='and d between p.start_date and p.end_date';
- new_clause:='and d between coalesce((p.section_dates->public.grade_section(c.grade_level)->>''start_date'')::date,p.start_date) and coalesce((p.section_dates->public.grade_section(c.grade_level)->>''end_date'')::date,p.end_date)';
- if position(old_clause in src)=0 then raise exception 'validate_exam_scope_definition_changed'; end if;
- execute replace(src,old_clause,new_clause);
- select pg_get_functiondef('public.school_calendar(uuid,text)'::regprocedure) into src;
- old_clause:= '''sections'',p.sections,''start_date'',p.start_date,''end_date'',p.end_date';
- new_clause:= '''sections'',p.sections,''start_date'',p.start_date,''end_date'',p.end_date,''section_dates'',case when p.section_dates=''{}''::jsonb then jsonb_build_object(''legacy'',jsonb_build_object(''start_date'',p.start_date,''end_date'',p.end_date)) else p.section_dates end';
- if position(old_clause in src)=0 then raise exception 'school_calendar_period_payload_changed'; end if;
- execute replace(src,old_clause,new_clause);
+ if to_regprocedure('private.validate_exam_scope(uuid,uuid,uuid,timestamptz,timestamptz,date,date)') is not null then
+  select pg_get_functiondef('private.validate_exam_scope(uuid,uuid,uuid,timestamptz,timestamptz,date,date)'::regprocedure) into src;
+  old_clause:='and d between p.start_date and p.end_date';
+  new_clause:='and d between coalesce((p.section_dates->public.grade_section(c.grade_level)->>''start_date'')::date,p.start_date) and coalesce((p.section_dates->public.grade_section(c.grade_level)->>''end_date'')::date,p.end_date)';
+  if position(old_clause in src)=0 then raise exception 'validate_exam_scope_definition_changed'; end if;
+  execute replace(src,old_clause,new_clause);
+ end if;
+ if to_regprocedure('public.school_calendar(uuid,text)') is not null then
+  select pg_get_functiondef('public.school_calendar(uuid,text)'::regprocedure) into src;
+  old_clause:= '''sections'',p.sections,''start_date'',p.start_date,''end_date'',p.end_date';
+  new_clause:= '''sections'',p.sections,''start_date'',p.start_date,''end_date'',p.end_date,''section_dates'',case when p.section_dates=''{}''::jsonb then jsonb_build_object(''legacy'',jsonb_build_object(''start_date'',p.start_date,''end_date'',p.end_date)) else p.section_dates end';
+  if position(old_clause in src)=0 then raise exception 'school_calendar_period_payload_changed'; end if;
+  execute replace(src,old_clause,new_clause);
+ end if;
 end $$;

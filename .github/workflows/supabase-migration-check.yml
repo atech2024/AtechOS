@@ -59,7 +59,7 @@ on:
       - "supabase/migrations/20261006190617_separate_kiosk_and_student_suspensions.sql"
       - "supabase/migrations/20261008134043_family_validated_payment_timeline.sql"
       - "supabase/migrations/20261008171500_teacher_exam_submissions.sql"
-      - "supabase/migrations/20261008171600_teacher_exam_submission_audio_files.sql"
+      - "supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql"
       - "supabase/ci-exam-submissions/**"
       - "supabase/ci/student-followup-badge-verification.sql"
       - "supabase/ci-parent/**"
@@ -125,7 +125,7 @@ on:
       - "supabase/migrations/20261006190617_separate_kiosk_and_student_suspensions.sql"
       - "supabase/migrations/20261008134043_family_validated_payment_timeline.sql"
       - "supabase/migrations/20261008171500_teacher_exam_submissions.sql"
-      - "supabase/migrations/20261008171600_teacher_exam_submission_audio_files.sql"
+      - "supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql"
       - "supabase/ci-exam-submissions/**"
       - "supabase/ci/student-followup-badge-verification.sql"
       - "supabase/ci-parent/**"
@@ -329,7 +329,7 @@ jobs:
         working-directory: supabase/ci-exam-submissions
         run: |
           cp ../migrations/20261008171500_teacher_exam_submissions.sql supabase/migrations/
-          cp ../migrations/20261008171600_teacher_exam_submission_audio_files.sql supabase/migrations/
+          cp ../migrations/20261008171600_teacher_exam_submission_document_types.sql supabase/migrations/
       - name: Start isolated Supabase and apply the exam-submission migration
         working-directory: supabase/ci-exam-submissions
         run: |

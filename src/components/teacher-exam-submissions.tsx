@@ -24,8 +24,8 @@ const EXAM_FILE_MIME_ALIASES:Record<string,string[]>={
 }
 export function examFileMimeType(file:Pick<File,'name'|'type'>){
  const extension=file.name.toLowerCase().match(/\.[^.]+$/)?.[0],expected=extension?EXAM_FILE_TYPES[extension]:undefined
- const reported=file.type.trim().toLowerCase()
- return expected&&(!reported||EXAM_FILE_MIME_ALIASES[extension].includes(reported))?expected:''
+ const reported=file.type.trim().toLowerCase(),acceptedTypes=extension?EXAM_FILE_MIME_ALIASES[extension]:undefined
+ return expected&&(!reported||acceptedTypes?.includes(reported))?expected:''
 }
 export function isAllowedExamFile(file:Pick<File,'name'|'type'|'size'>){return Boolean(examFileMimeType(file))&&file.size>0&&file.size<=MAX_FILE_SIZE}
 export function defaultExamPeriod(periods:Period[],today:string){

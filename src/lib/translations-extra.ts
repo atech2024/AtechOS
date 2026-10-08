@@ -837,5 +837,6 @@ export const extraTranslations:Record<string,[string,string]> = {
  "Review submitted grades":["Réviser les notes soumises","Revize nòt ki soumèt yo"],
  "Manage teacher deadlines":["Gérer les dates limites des enseignants","Jere dat limit pwofesè yo"],
  "Bulletin publication and history":["Publication et historique des bulletins","Piblikasyon ak istorik bilten yo"],
+ "Grade decisions":["Décisions sur les notes","Desizyon sou nòt yo"],
 
 }

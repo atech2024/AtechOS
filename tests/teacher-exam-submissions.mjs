@@ -5,7 +5,7 @@ const component=readFileSync('src/components/teacher-exam-submissions.tsx','utf8
 const route=readFileSync('src/app/dashboard/exam-submissions/page.tsx','utf8');
 const nav=readFileSync('src/lib/navigation.ts','utf8');
 const workflow=readFileSync('.github/workflows/supabase-migration-check.yml','utf8');
-const fixture=readFileSync('supabase/ci/teacher-exam-submissions-verification.sql','utf8');
+const fixture=readFileSync('supabase/ci-exam-submissions/teacher-exam-submissions-verification.sql','utf8');
 assert.match(migration,/unique\(school_id,academic_year_id,period_id,class_id,subject_id,teacher_id\)/);
 assert.match(migration,/revoke all on public\.teacher_exam_submissions from public,anon,authenticated[\s\S]*?grant select on public\.teacher_exam_submissions to authenticated/i);
 assert.match(migration,/create policy teacher_exam_submissions_read[\s\S]*?teacher_id=auth\.uid\(\)/);

@@ -37,3 +37,37 @@ export function paymentMethodFieldLabel(field:string){
   const labels:Record<string,string>={account_name:'Account holder / name',phone:'Phone number',email:'Receiving email',bank_name:'Bank name',account_number:'Account number',branch:'Branch / agency',max_htg:'Maximum amount per payment (HTG)'}
   return labels[field]||field
 }
+
+export type FinanceBankOption={name:string;code:string}
+export const HAITI_BANKS:FinanceBankOption[]=[
+ {name:'Banque Nationale de Crédit',code:'BNC'},
+ {name:'Banque Populaire Haïtienne',code:'BPH'},
+ {name:'Banque de l’Union Haïtienne S.A.',code:'BUH'},
+ {name:'Capital Bank S.A.',code:'CAP'},
+ {name:'Citibank N.A. (Haïti)',code:'CITI'},
+ {name:'SOGEBANK',code:'SOGE'},
+ {name:'SOGEBEL',code:'SOGE'},
+ {name:'Unibank',code:'UNI'},
+ {name:'Banque Nationale de Développement Agricole',code:'BNDA'},
+]
+export const US_BANKS:FinanceBankOption[]=[
+ {name:'JPMorgan Chase Bank',code:'CHASE'},
+ {name:'Bank of America',code:'BOA'},
+ {name:'Wells Fargo',code:'WF'},
+ {name:'Citibank',code:'CITI'},
+ {name:'U.S. Bank',code:'USB'},
+ {name:'PNC Bank',code:'PNC'},
+ {name:'Capital One',code:'COF'},
+ {name:'Truist Bank',code:'TRUIST'},
+ {name:'TD Bank',code:'TD'},
+ {name:'Regions Bank',code:'REG'},
+]
+export function financeBanksForMethod(key:FinancePaymentMethodKey){return key==='bank_transfer_htg'?HAITI_BANKS:[...HAITI_BANKS,...US_BANKS]}
+export function financePaymentTitle(method:string,config?:FinancePaymentMethods){const item=FINANCE_PAYMENT_METHODS.find(entry=>entry.paymentMethod===method);if(!item)return method;const bank=config?.[item.key]?.bank_name;return item.key.startsWith('bank_transfer_')&&bank?bank:item.title}
+export function financePaymentMonogram(method:string,bankName?:string){
+ const item=FINANCE_PAYMENT_METHODS.find(entry=>entry.paymentMethod===method)
+ const bank=bankName||''
+ if(item?.key.startsWith('bank_transfer_')&&bank){const selected=[...HAITI_BANKS,...US_BANKS].find(entry=>entry.name===bank);return selected?.code||bank.trim().split(/\\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase().slice(0,4)}
+ const map:Record<string,string>={moncash:'MC',natcash:'NC',paypal:'P',zelle:'Z',bank_transfer_htg:'HTG',bank_transfer_usd:'USD'}
+ return item?map[item.key]||item.title.slice(0,3).toUpperCase():method.slice(0,3).toUpperCase()
+}

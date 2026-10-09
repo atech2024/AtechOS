@@ -9,15 +9,15 @@ create table if not exists public.exam_schedule (id uuid primary key, school_id 
 create table if not exists public.exam_schedule_versions (id uuid primary key, version integer, published_at timestamptz, revision_start date, revision_end date);
 create table if not exists public.exam_presence (exam_id uuid, version_id uuid, student_id uuid, scanned_at timestamptz);
 create or replace function private.calendar_student_class(p_student uuid,p_class uuid) returns boolean
-language sql stable security definer set search_path='' as $$
+language sql stable security definer set search_path='' as $$$
  select exists(select 1 from public.enrollments where student_id=p_student and class_id=p_class and status<>'transferred')
-$;
+$$;
 create or replace function public.student_device_data(p_token text) returns jsonb
-language sql stable security definer set search_path='' as $
+language sql stable security definer set search_path='' as $$
  select case when p_token='synthetic-student-token' then
   jsonb_build_object('student',jsonb_build_object('id','81000000-0000-0000-0000-000000000001'))
  else null end
-$;
+$$;
 grant execute on function public.student_device_data(text) to authenticated;
 
 insert into public.schools(id,name) values
@@ -132,7 +132,7 @@ do $$ begin
  if public.school_calendar('81000000-0000-0000-0000-000000000001')->'official_exam_dates'->0->>'confirmed_by_name' is not null then raise exception 'family calendar leaked internal actor attribution'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','',true);
-do $ declare student_calendar jsonb; begin
+do $$ declare student_calendar jsonb; begin
  if public.student_device_data('synthetic-student-token') is null then raise exception 'synthetic student token fixture returned no student'; end if;
  student_calendar:=public.school_calendar(null,'synthetic-student-token');
  if jsonb_array_length(student_calendar->'official_exam_dates')<>1 then raise exception 'student portal did not receive confirmed date'; end if;

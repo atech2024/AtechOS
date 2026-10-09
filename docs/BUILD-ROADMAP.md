@@ -55,6 +55,11 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 - **Current checkpoint (2026-10-05):** Finance is FUNCTIONALLY VIABLE and remains IN PROGRESS. PR #68 merged as `25bd507f7b573ff265b3b1d0fdca26f4fe30fc66`; Vercel Production is Ready and the authenticated payment page smoke-test showed the class filter, AtechOS ID search, required digital-method evidence fields, approval state, and payment history. Supabase migration `parent_finance_payment_portal` is recorded live. Finance core does not block BUILD 08.
 - Return Pass: complete authenticated walkthroughs with a linked parent and each configured staff role; verify school receiving instructions and proof approval; review responsive behavior, validation details, and refund evidence lifecycle. Verification did not submit a real financial transaction.
 
+### BUILD 09 — Individual Direction receipt signatures
+
+- The signature profile is being exposed in each eligible staff member's dashboard settings. Direction roles (school_admin, director, censeur) and finance staff roles (accountant, secretary) configure their own account signature; the saved receipt remains tied to the person who actually validates it.
+- Signature setup access is separate from payment validation: finance reviewer roles and the school's existing director setting remain unchanged. The migration and authorization checks are pending PR/CI validation; BUILD 09 remains IN PROGRESS.
+
 ### Current Return Pass Queue
 
 | Build | Status | Functional core | Remaining | Blockers | Field validation | Return pass |

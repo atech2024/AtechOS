@@ -16,7 +16,8 @@ export function studentBulletinsForSelection(report:Report,year:string,periodId:
 }
 export default function StudentOverview({student,grades,attendance,periods,report,qr,selectedYear,onSelectedYearChange}:{student:Student;grades:Grade[];attendance:Attendance[];periods:Period[];report:Report;qr?:string|null;selectedYear?:string;onSelectedYearChange?:(year:string)=>void}){
  const years=Array.from(new Set([student.academic_year,...grades.map(g=>g.year),...periods.map(p=>p.year),...attendance.map(a=>a.year),...(report.preschool_cards||[]).map(card=>card.payload.academic_year)].filter((y):y is string=>!!y)))
- const [internalYear,setInternalYear]=useState(student.academic_year||years[0]||''),[periodId,setPeriodId]=useState('')\n const year=selectedYear??internalYear,chooseYear=onSelectedYearChange??setInternalYear
+ const [internalYear,setInternalYear]=useState(student.academic_year||years[0]||''),[periodId,setPeriodId]=useState('')
+ const year=selectedYear??internalYear,chooseYear=onSelectedYearChange??setInternalYear
  const available=periods.filter(p=>p.year===year),period=available.find(p=>p.id===periodId)
  const bulletins=studentBulletinsForSelection(report,year,periodId)
  const records=attendance.filter(a=>a.year===year&&(!period||a.date>=period.start_date&&a.date<=period.end_date))

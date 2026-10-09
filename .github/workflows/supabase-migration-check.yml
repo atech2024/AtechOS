@@ -46,6 +46,7 @@ on:
       - "supabase/migrations/20261004020000_finance_overpayment_credits.sql"
       - "supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql"
       - "supabase/migrations/20261004220000_finance_payment_refunds.sql"
+      - "supabase/migrations/20261009170000_finance_refund_window_departure.sql"
       - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
       - "supabase/migrations/20261005050000_finance_overpayments_all_fees.sql"
       - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
@@ -117,6 +118,7 @@ on:
       - "supabase/migrations/20261004020000_finance_overpayment_credits.sql"
       - "supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql"
       - "supabase/migrations/20261004220000_finance_payment_refunds.sql"
+      - "supabase/migrations/20261009170000_finance_refund_window_departure.sql"
       - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
       - "supabase/migrations/20261005050000_finance_overpayments_all_fees.sql"
       - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
@@ -199,6 +201,7 @@ jobs:
           cp supabase/migrations/20261004020000_finance_overpayment_credits.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261004220000_finance_payment_refunds.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261009170000_finance_refund_window_departure.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005013350_parent_finance_payment_portal.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005050000_finance_overpayments_all_fees.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql supabase/ci/supabase/migrations/

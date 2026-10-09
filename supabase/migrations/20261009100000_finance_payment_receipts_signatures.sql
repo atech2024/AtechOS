@@ -37,7 +37,7 @@ begin
     set signer_name=excluded.signer_name,style_id=excluded.style_id,approved_at=now(),updated_at=now()
   returning * into saved;
   insert into public.finance_audit_events(school_id,actor_id,actor_role,entity,entity_id,action,before_data,after_data)
-  values(sid,auth.uid(),role_name,'finance_staff_receipt_signatures',auth.uid()::text,'updated',null,
+  values(sid,auth.uid(),role_name,'finance_staff_receipt_signatures',auth.uid()::text,'updated',
     case when prior.user_id is null then null else jsonb_build_object('signer_name',prior.signer_name,'style_id',prior.style_id,'approved_at',prior.approved_at) end,
     jsonb_build_object('signer_name',saved.signer_name,'style_id',saved.style_id,'approved_at',saved.approved_at));
   return jsonb_build_object('signer_name',saved.signer_name,'style_id',saved.style_id,'approved_at',saved.approved_at);

@@ -9,7 +9,7 @@ create table if not exists public.exam_schedule (id uuid primary key, school_id 
 create table if not exists public.exam_schedule_versions (id uuid primary key, version integer, published_at timestamptz, revision_start date, revision_end date);
 create table if not exists public.exam_presence (exam_id uuid, version_id uuid, student_id uuid, scanned_at timestamptz);
 create or replace function private.calendar_student_class(p_student uuid,p_class uuid) returns boolean
-language sql stable security definer set search_path='' as $$$
+language sql stable security definer set search_path='' as $$
  select exists(select 1 from public.enrollments where student_id=p_student and class_id=p_class and status<>'transferred')
 $$;
 create or replace function public.student_device_data(p_token text) returns jsonb

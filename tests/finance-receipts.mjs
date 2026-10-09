@@ -3,6 +3,8 @@ import {readFileSync} from 'node:fs'
 const read=path=>readFileSync(path,'utf8')
 const migration=read('supabase/migrations/20261009100000_finance_payment_receipts_signatures.sql')
 const directionSignatures=read('supabase/migrations/20261009110000_direction_member_receipt_signatures.sql')
+const settings=read('src/app/dashboard/settings/page.tsx')
+const navigation=read('src/lib/navigation.ts')
 const component=read('src/components/finance-payment-receipt.tsx')
 const parent=read('src/components/family-finance-panel.tsx')
 const staff=read('src/app/dashboard/finance/workspace.tsx')

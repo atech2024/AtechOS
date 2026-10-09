@@ -11,6 +11,7 @@ import { financePaymentDisplayStatus } from '@/lib/finance-payment-status'
 import { convertedPaymentValue } from '@/lib/finance-display'
 import FinancePaymentMethodSettings from '@/components/finance-payment-method-settings'
 import {FinancePaymentReceiptButton,FinanceReceiptSignatureSettings} from '@/components/finance-payment-receipt'
+import AccountingDashboard from '@/components/accounting-dashboard'
 import {EMPTY_FINANCE_PAYMENT_METHODS,FINANCE_PAYMENT_METHODS,type FinancePaymentMethods} from '@/lib/finance-payment-methods'
 
 type Year = { id: string; name: string; start_date: string; end_date: string; is_current: boolean }
@@ -327,7 +328,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
 
   return <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
     <header className="flex flex-wrap items-start justify-between gap-4">
-      <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700"><T text="School management"/></p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950"><T text="Finance & Accounting"/></h1><p className="mt-2 max-w-3xl text-sm text-slate-600"><T text="Manage class fees, due dates, partial payments, approvals, scholarships and audit history."/></p></div>
+      <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700"><T text="School management"/></p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950"><T text="Finance & Accounting"/></h1><p className="mt-2 max-w-3xl text-sm text-slate-600"><T text="Overview of school finances, installments and payments."/></p></div>
       <label className="min-w-52 text-sm font-medium text-slate-700"><T text="Academic year"/><select value={yearId} onChange={event => { setYearId(event.target.value); setClassId('') }} className={`${fieldClass} mt-1`}><option value=""><T text="Choose"/></option>{data.years.map(year => <option key={year.id} value={year.id}>{year.name}</option>)}</select></label>
     </header>
 
@@ -339,16 +340,22 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
       {activeTab('overview','Overview')}{activeTab('plans','Fee plans')}{routeTab('payments','Payments','/dashboard/finance/payments')}{activeTab('adjustments','Scholarships & clearances')}{activeTab('history','Audit history')}{routeTab('settings','Finance settings','/dashboard/finance/settings')}
     </nav>
 
-    {tab === 'overview' && <>
-      <section className="grid gap-4 sm:grid-cols-3">
-        {([['Expected',totalExpected],['Validated payments',totalPaid],['Balance remaining',totalBalance]] as const).map(([label,value]) => <article key={label} className={cardClass}><p className="text-sm font-medium text-slate-600"><T text={label}/></p><p className="mt-2 text-2xl font-bold text-slate-950">{code ? money(Number(value),code,locale) : '—'}</p></article>)}
-      </section>
-      {data.credits.length>0&&<section className={`${cardClass} space-y-3`}><div><h2 className="text-lg font-semibold"><T text="Available student credits"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Overpayments are applied automatically to the student’s next outstanding fees; this is the remaining unapplied credit."/></p></div><ul className="divide-y divide-slate-100">{data.credits.map((credit,index)=><li key={`${credit.student_id}-${credit.currency_code}-${index}`} className="flex flex-wrap justify-between gap-2 py-2 text-sm"><span className="font-medium">{credit.student_name}</span><span className="font-semibold">{money(Number(credit.amount),credit.currency_code,locale)}</span></li>)}</ul></section>}
-      <section className={cardClass}><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-lg font-semibold text-slate-950"><T text="Student balances"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Balances use validated payments and approved adjustments only."/></p></div><label className="min-w-56 text-sm text-slate-700"><T text="Class filter"/><select className={`${fieldClass} mt-1`} value={classId} onChange={event => setClassId(event.target.value)}><option value=""><T text="All classes"/></option>{selectedClasses.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
-        <div className="mt-4 overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="border-b text-xs uppercase text-slate-500"><tr>{['Student','Class','Fee','Due date','Expected','Paid','Pending','Balance'].map(title => <th key={title} className="px-3 py-3"><T text={title}/></th>)}</tr></thead><tbody className="divide-y divide-slate-100">{selectedCharges.map(charge => <tr key={charge.id}><td className="px-3 py-3 font-medium text-slate-900">{charge.student_name}</td><td className="px-3 py-3">{charge.class_name}</td><td className="px-3 py-3">{charge.description}</td><td className="px-3 py-3">{dateLabel(charge.due_date,locale)}</td><td className="px-3 py-3">{money(Number(charge.amount)-Number(charge.adjusted_amount),charge.currency_code,locale)}</td><td className="px-3 py-3">{money(Number(charge.paid_amount),charge.currency_code,locale)}</td><td className="px-3 py-3">{money(Number(charge.pending_amount),charge.currency_code,locale)}</td><td className="px-3 py-3 font-semibold">{money(remaining(charge),charge.currency_code,locale)}</td></tr>)}</tbody></table>{selectedCharges.length===0&&<p className="p-6 text-center text-sm text-slate-500"><T text="No fee charges for this academic year yet."/></p>}</div>
-      </section>
-      <section className="grid gap-4 sm:grid-cols-2"><article className={cardClass}><p className="text-sm text-slate-600"><T text="Payments awaiting review"/></p><p className="mt-2 text-2xl font-bold">{data.summary.pending_payments}</p></article><article className={cardClass}><p className="text-sm text-slate-600"><T text="Validated payments"/></p><p className="mt-2 text-2xl font-bold">{data.summary.validated_payment_count}</p></article></section>
-    </>}
+    {tab === 'overview' && <AccountingDashboard
+      expected={totalExpected}
+      paid={totalPaid}
+      balance={totalBalance}
+      pending={data.summary.pending_payments}
+      validatedCount={data.summary.validated_payment_count}
+      charges={selectedCharges}
+      payments={data.payments}
+      classes={selectedClasses}
+      classId={classId}
+      onClassChange={setClassId}
+      currency={code||'HTG'}
+      locale={locale}
+      credits={data.credits}
+      onNavigate={next=>setTab(next)}
+    />}
 
     {tab === 'plans' && <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       {data.can_manage && <form onSubmit={savePlan} className={`${cardClass} space-y-4`}><div><h2 className="text-lg font-semibold"><T text="Create a class fee plan"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Fee installments will become student charges for active enrollments in the selected class and year."/></p></div>

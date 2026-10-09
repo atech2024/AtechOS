@@ -129,7 +129,7 @@ do $$ begin
  if public.school_calendar('81000000-0000-0000-0000-000000000001')->'official_exam_dates'->0->>'confirmed_by_name' is not null then raise exception 'family calendar leaked internal actor attribution'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','',true);
-do $ declare student_calendar jsonb;begin
+do $ declare student_calendar jsonb; begin
  student_calendar:=public.school_calendar(null,'synthetic-student-token');
  if jsonb_array_length(student_calendar->'official_exam_dates')<>1 then raise exception 'student portal did not receive confirmed date'; end if;
  if student_calendar->>'school_scope_id'<>'71000000-0000-0000-0000-000000000011' then raise exception 'student calendar exposed incorrect school scope'; end if;

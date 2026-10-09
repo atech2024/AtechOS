@@ -6,7 +6,7 @@ assert.match(page,/student_portal_overview.*p_token: token/,'student data stays 
 assert.match(page,/school_calendar.*p_token: token/,'calendar keeps the student token scope')
 assert.match(dashboard,/<DynamicDashboard/,'student widgets use the shared ordering component')
 assert.match(dashboard,/calendar\?\.school_scope_id/,'school scope is taken from token-scoped calendar data')
-assert.match(dashboard,/academicYearId:yearId/,'widgets are scoped to selected academic year')
+assert.match(dashboard,/academicYearId:yearId/,'widgets are scoped to selected academic year')\nassert.match(dashboard,/exams:calendar\.exams\.filter\(exam=>exam\.year===year/,'calendar rows are filtered to selected academic year even when an old year is selected')
 assert.match(dashboard,/roles:\['student'\]/,'widgets require the student portal role')
 assert.match(migration,/case when p_token is not null then sid else null end/,'scope id only returns for the validated student token path')
 assert.match(fixture,/student calendar exposed incorrect school scope/,'synthetic SQL verifies tenant scope')

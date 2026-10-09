@@ -30,6 +30,7 @@ assert.match(fixture,/parent read a receipt for an unrelated student/)
 assert.match(fixture,/parent workspace omitted a validated receipt or its approver/)
 console.log('Finance receipt and signature contracts passed.')
 
+assert.match(read('supabase/ci/supabase/migrations/20260901000000_atechos_ci_baseline.sql'),/owner_user_id uuid references public\.users\(id\)/)
 assert.match(directionSignatures,/finance_can_configure_own_receipt_signature/)
 assert.match(directionSignatures,/school_admin','director','censeur','secretary','accountant/)
 assert.match(directionSignatures,/finance_staff_receipt_signature_self/)

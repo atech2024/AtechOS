@@ -217,7 +217,7 @@ begin
   if workspace->'student'->>'id'<>'fa400000-0000-0000-0000-000000000001' or workspace->'settings'->>'moncash_payment_instructions'<>'Finance MonCash' or workspace->'settings'->'payment_methods'->'moncash'->>'phone'<>'50937000001' then raise exception 'linked parent finance details or enabled payment destinations were not returned'; end if;
   if not exists(select 1 from jsonb_array_elements(workspace->'payments') item where item->>'id'=class_overpayment_id::text and item->>'reviewer_name'='Finance Accountant') then raise exception 'parent workspace omitted a validated receipt or its approver'; end if;
   receipt:=public.finance_payment_receipt(class_overpayment_id);
-  if receipt->'student'->>'first_name'<>'Finance' then raise exception 'linked parent could not read their child's receipt'; end if;
+  if receipt->'student'->>'first_name'<>'Finance' then raise exception 'linked parent could not read the linked student receipt'; end if;
   denied:=false;
   begin perform public.finance_payment_receipt(second_payment_id); exception when others then denied:=sqlerrm='not_authorized'; end;
   if not denied then raise exception 'parent read a receipt for an unrelated student'; end if;

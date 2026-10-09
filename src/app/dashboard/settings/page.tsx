@@ -51,7 +51,7 @@ export default async function SettingsPage() {
       <p className="mt-2 max-w-3xl text-slate-600"><T text="Configure school-wide rules in one place. Each setting opens the existing module that manages it."/></p>
     </header>
     {!canManageSettings && !canManageSignature && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900"><T text="You do not have permission to manage school settings."/></p>}
-    {canManageSignature && <FinanceReceiptSignatureSettings/>}
+    {canManageSignature && <FinanceReceiptSignatureSettings isSchoolAdmin={Boolean(data?.owner || roles.includes('school_admin'))}/>}
     {canManageSettings && <div className="space-y-6">
       {settingGroups.map(group => <section key={group.id} aria-labelledby={group.id} className="space-y-3">
         <div>

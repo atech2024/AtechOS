@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 const page=readFileSync('src/app/student/page.tsx','utf8'),dashboard=readFileSync('src/app/student/student-dashboard.tsx','utf8')
 const migration=readFileSync('supabase/migrations/20261009150000_student_dashboard_scope.sql','utf8'),fixture=readFileSync('supabase/ci/official-exam-confirmation-verification.sql','utf8')
-assert.match(page,/student_portal_overview.*p_token: token/,'student data stays on the validated token RPC')
-assert.match(page,/school_calendar.*p_token: token/,'calendar keeps the student token scope')
+assert.match(page,/student_portal_overview.*p_token:\s*token/,'student data stays on the validated token RPC')
+assert.match(page,/school_calendar.*p_token:\s*token/,'calendar keeps the student token scope')
 assert.match(dashboard,/<DynamicDashboard/,'student widgets use the shared ordering component')
 assert.match(dashboard,/calendar\?\.school_scope_id/,'school scope is taken from token-scoped calendar data')
 assert.match(dashboard,/academicYearId:yearId/,'widgets are scoped to selected academic year')

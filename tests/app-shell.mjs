@@ -23,7 +23,7 @@ assert.ok(!nav.permittedNavigation(['secretary']).some(x=>x.href==='/dashboard/s
 assert.ok(!nav.navigation.some(x=>x.href==='/dashboard/grading-settings'),'Grading rules belong under the settings center navigation.')
 const settingsPage=readFileSync('src/app/dashboard/settings/page.tsx','utf8')
 assert.ok(settingsPage.includes("['school_admin', 'director']"),'Settings center must reflect the grading-settings RPC authorization.')
-assert.ok(settingsPage.includes('href="/dashboard/grading-settings"'),'Settings center must link to the existing grading rules page.')
+assert.match(settingsPage,/href:\s*['"]\/dashboard\/grading-settings['"]/,'Settings center must link to the existing grading rules page.')
 let academicYearContext={years:[],year:null,yearId:'',canSelect:false,setYearId:()=>{}}
 const {default:AppShell}=compile('src/components/app-shell.tsx',{'next/link':{default:({children,...props})=>React.createElement('a',props,children)},'next/navigation':{usePathname:()=>'/dashboard/grades'},'@/lib/navigation':nav,'@/lib/school-date':{schoolDateTime:()=>''},'@/lib/translations':{translate:text=>text},'@/components/translation-provider':{T:({text})=>text,useLocale:()=> 'fr'},'@/components/language-selector':{default:()=>null},'@/components/academic-year-context':{useAcademicYear:()=>academicYearContext},'@/lib/supabase/client':{createClient:()=>{throw Error('render must not query')}}})
 const html=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual Fixture Teacher',school:'Fixture School',avatar:null,roles:['teacher'],owner:false,academicYear:'2025–2026'},'Fixture content'))

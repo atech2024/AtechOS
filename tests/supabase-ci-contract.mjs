@@ -28,11 +28,7 @@ const examSubmissionBaseline = readFileSync('supabase/ci-exam-submissions/supaba
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
 assert.match(workflow, /version:\s*2\.119\.0/);
-const pushBranches = workflow.match(/push:\r?
-\s+branches:\r?
-((?:\s+- [^\r
-]+\r?
-)+)/)?.[1] || '';
+const pushBranches = workflow.match(new RegExp(String.raw`push:\r?\n\s+branches:\r?\n((?:\s+- [^\r\n]+\r?\n)+)`))?.[1] || '';
 assert.match(pushBranches, /- feature\/kindergarten-relocation/);
 assert.match(pushBranches, /- feature\/finance-finalization/);
 assert.match(workflow, /supabase start/);

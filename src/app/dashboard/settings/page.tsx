@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { T } from '@/components/translation-provider'
+import { FinanceReceiptSignatureSettings } from '@/components/finance-payment-receipt'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -39,7 +40,9 @@ export default async function SettingsPage() {
   const db = await createClient()
   const { data, error } = await db.rpc('school_context')
   if (error) throw new Error('Unable to verify your settings access.')
-  const canManageSettings = Boolean(data?.owner || data?.roles?.some((role: string) => ['school_admin', 'director'].includes(role)))
+  const roles: string[] = Array.isArray(data?.roles) ? data.roles : []
+  const canManageSettings = Boolean(data?.owner || roles.some((role: string) => ['school_admin', 'director'].includes(role)))
+  const canManageSignature = Boolean(data?.owner || roles.some((role: string) => ['school_admin', 'director', 'censeur', 'secretary', 'accountant'].includes(role)))
 
   return <main className="mx-auto min-h-screen max-w-6xl space-y-7 bg-slate-50 p-5 md:p-8">
     <header>
@@ -47,7 +50,9 @@ export default async function SettingsPage() {
       <h1 className="mt-1 text-3xl font-bold text-slate-900"><T text="Settings center"/></h1>
       <p className="mt-2 max-w-3xl text-slate-600"><T text="Configure school-wide rules in one place. Each setting opens the existing module that manages it."/></p>
     </header>
-    {!canManageSettings ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900"><T text="You do not have permission to manage school settings."/></p> : <div className="space-y-6">
+    {!canManageSettings && !canManageSignature && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900"><T text="You do not have permission to manage school settings."/></p>}
+    {canManageSignature && <FinanceReceiptSignatureSettings/>}
+    {canManageSettings && <div className="space-y-6">
       {settingGroups.map(group => <section key={group.id} aria-labelledby={group.id} className="space-y-3">
         <div>
           <h2 id={group.id} className="text-xl font-semibold text-slate-900"><T text={group.title}/></h2>

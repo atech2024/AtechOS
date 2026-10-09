@@ -19,10 +19,11 @@ assert.ok(nav.permittedNavigation(['school_admin']).some(x=>x.href==='/dashboard
 assert.ok(nav.permittedNavigation(['director']).some(x=>x.href==='/dashboard/settings'))
 for(const role of ['school_admin','director','secretary','accountant'])assert.ok(nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/finance'),`${role} must see Finance.`)
 for(const role of ['teacher','parent','surveillant','censeur','student'])assert.ok(!nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/finance'),`${role} must not see Finance.`)
-assert.ok(!nav.permittedNavigation(['secretary']).some(x=>x.href==='/dashboard/settings'),'Secretaries must not be offered grading-rule configuration that the database denies.')
+for(const role of ['school_admin','director','secretary','accountant','censeur'])assert.ok(nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/settings'),role+' must be able to configure their personal receipt signature.')
 assert.ok(!nav.navigation.some(x=>x.href==='/dashboard/grading-settings'),'Grading rules belong under the settings center navigation.')
 const settingsPage=readFileSync('src/app/dashboard/settings/page.tsx','utf8')
-assert.ok(settingsPage.includes("['school_admin', 'director']"),'Settings center must reflect the grading-settings RPC authorization.')
+assert.ok(settingsPage.includes("['school_admin', 'director']"),'Only school admins and directors can manage school-wide settings.')
+assert.ok(settingsPage.includes("['school_admin', 'director', 'censeur', 'secretary', 'accountant']"),'Authorized staff can configure their own receipt signatures.')
 assert.match(settingsPage,/href:\s*['"]\/dashboard\/grading-settings['"]/,'Settings center must link to the existing grading rules page.')
 let academicYearContext={years:[],year:null,yearId:'',canSelect:false,setYearId:()=>{}}
 const {default:AppShell}=compile('src/components/app-shell.tsx',{'next/link':{default:({children,...props})=>React.createElement('a',props,children)},'next/navigation':{usePathname:()=>'/dashboard/grades'},'@/lib/navigation':nav,'@/lib/school-date':{schoolDateTime:()=>''},'@/lib/translations':{translate:text=>text},'@/components/translation-provider':{T:({text})=>text,useLocale:()=> 'fr'},'@/components/language-selector':{default:()=>null},'@/components/academic-year-context':{useAcademicYear:()=>academicYearContext},'@/lib/supabase/client':{createClient:()=>{throw Error('render must not query')}}})

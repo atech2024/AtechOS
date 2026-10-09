@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 const read=path=>readFileSync(path,'utf8')
 const migration=read('supabase/migrations/20261009100000_finance_payment_receipts_signatures.sql')
+const directionSignatures=read('supabase/migrations/20261009110000_direction_member_receipt_signatures.sql')
 const component=read('src/components/finance-payment-receipt.tsx')
 const parent=read('src/components/family-finance-panel.tsx')
 const staff=read('src/app/dashboard/finance/workspace.tsx')
@@ -28,3 +29,10 @@ assert.match(fixture,/payment validation without an approved receipt signature/)
 assert.match(fixture,/parent read a receipt for an unrelated student/)
 assert.match(fixture,/parent workspace omitted a validated receipt or its approver/)
 console.log('Finance receipt and signature contracts passed.')
+
+assert.match(directionSignatures,/finance_can_configure_own_receipt_signature/)
+assert.match(directionSignatures,/school_admin','director','censeur','secretary','accountant/)
+assert.match(directionSignatures,/finance_staff_receipt_signature_self/)
+assert.match(settings,/FinanceReceiptSignatureSettings/)
+assert.match(navigation,/href:'\/dashboard\/settings'.*'censeur','secretary','accountant'/)
+assert.match(settings,/school_admin', 'director', 'censeur', 'secretary', 'accountant/)

@@ -23,7 +23,7 @@ export const navigation:NavigationItem[]=[
  {label:'Access approvals',href:'/dashboard/approvals',icon:'requests',roles:['school_admin','director','censeur'],group:'followup'},
  {label:'Teacher requests',href:'/dashboard/teacher-requests',icon:'requests',roles:['school_admin','director'],group:'followup'},
  {label:'Users & staff',href:'/dashboard/staff',icon:'users',roles:['school_admin'],group:'administration'},
- {label:'Settings',href:'/dashboard/settings',icon:'settings',roles:['school_admin','director'],group:'administration'},
+ {label:'Settings center',href:'/dashboard/settings',icon:'settings',roles:['school_admin','director','censeur','secretary','accountant'],group:'administration'},
  {label:'Student follow-up cases',href:'/dashboard/guard',icon:'requests',roles:[...administration,'surveillant','parent'],group:'followup'},
  {label:'Sanctions and departures',href:'/dashboard/sanctions',icon:'requests',roles:administration,group:'followup'},
  {label:'Student Badges',href:'/dashboard/parent-badges',icon:'badge',roles:['parent'],group:'family_portals'},

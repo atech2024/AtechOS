@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const migration=readFileSync('supabase/migrations/20261005044450_student_sanctions_emergency_release.sql','utf8')
+const escortMigration=readFileSync('supabase/migrations/20261009110000_student_release_direction_escort.sql','utf8')
 const actions=readFileSync('supabase/migrations/20261006142918_family_parent_finance_and_sanctions.sql','utf8')
 const studentLogin=readFileSync('src/app/student/login/actions.ts','utf8')
 const verification=readFileSync('supabase/ci/student-followup-verification.sql','utf8')
@@ -40,8 +41,8 @@ assert.match(verification,/rollback;\s*$/i)
 for(const assertion of ['teacher accessed follow-up workspace','parent accessed staff follow-up workspace','another school manager modified this school student','contact registered for another student was accepted','release request did not notify the other authorized staff','rejection without a reason was accepted','medical release/return actor timeline was not recorded','follow-up audit record was changed'])assert.ok(verification.includes(assertion),`SQL test must include: ${assertion}`)
 assert.match(workflow,/20261005044450_student_sanctions_emergency_release\.sql/)
 assert.match(workflow,/20261009110000_student_release_direction_escort\.sql/)
-assert.match(migration,/request_student_release_with_escort/)
-assert.match(migration,/release_escort_not_authorized/)
+assert.match(escortMigration,/request_student_release_with_escort/)
+assert.match(escortMigration,/release_escort_not_authorized/)
 assert.match(verification,/medical departure did not retain Direction escort and audit snapshots/)
 assert.match(verification,/non-Direction staff was accepted as emergency escort/)
 assert.match(workflow,/student-followup-verification\.sql/)

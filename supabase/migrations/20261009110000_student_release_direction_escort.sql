@@ -6,8 +6,8 @@ alter table public.student_release_cases
  add column escort_role text,
  add constraint student_release_cases_escort_snapshot check (
   (escort_user_id is null and escort_name is null and escort_role is null)
-  or (escort_user_id is not null and length(trim(escort_name)) between 1 and 200
-      and escort_role in ('school_admin','director','censeur','secretary'))
+  or (escort_user_id is not null and escort_name is not null and escort_role is not null
+      and length(trim(escort_name)) between 1 and 200 and escort_role in ('school_admin','director','censeur','secretary'))
  );
 
 create or replace function public.student_followup_workspace()

@@ -13,7 +13,7 @@ const preschoolDepartureMigration = readFileSync('supabase/migrations/2026100222
 const guardParentMigration = readFileSync('supabase/migrations/20261002233000_guard_active_parent_membership.sql', 'utf8');
 const pickupPrivacyMigration = readFileSync('supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql', 'utf8');
 const pickupUpdateMigration = readFileSync('supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql', 'utf8');
-const publishedOnlyMigration = readFileSync('supabase/migrations/20261003023548_published_only_family_student_bulletins.sql', 'utf8');
+const publishedOnlyMigration = readFileSync('supabase/migrations/20261003023548_published_only_family_student_bulletins.sql', 'utf8');\nconst studentDashboardScopeMigration=readFileSync('supabase/migrations/20261009150000_student_dashboard_scope.sql','utf8');
 const badgeBaseline = readFileSync('supabase/ci-badge/supabase/migrations/20260901000000_badge_pre_lifecycle_baseline.sql', 'utf8');
 const badgeVerification = readFileSync('supabase/ci-badge/badge-verification.sql', 'utf8');
 const badgeLifecycleMigration = readFileSync('supabase/migrations/20260928004221_badge_lifecycle_history.sql', 'utf8');

@@ -55,6 +55,12 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 - **Current checkpoint (2026-10-05):** Finance is FUNCTIONALLY VIABLE and remains IN PROGRESS. PR #68 merged as `25bd507f7b573ff265b3b1d0fdca26f4fe30fc66`; Vercel Production is Ready and the authenticated payment page smoke-test showed the class filter, AtechOS ID search, required digital-method evidence fields, approval state, and payment history. Supabase migration `parent_finance_payment_portal` is recorded live. Finance core does not block BUILD 08.
 - Return Pass: complete authenticated walkthroughs with a linked parent and each configured staff role; verify school receiving instructions and proof approval; review responsive behavior, validation details, and refund evidence lifecycle. Verification did not submit a real financial transaction.
 
+
+
+### BUILD 09 — Payment institution selector and method marks (2026-10-09)
+
+- Added the nine Haitian banks listed by BRH and a curated selection of large U.S. banks to the school payment setup; Haitian bank accounts use the Haiti catalog, while USD accounts can select either catalog. Parent payment options/history and the staff finance ledger now show a local visual mark for each payment method or selected bank.
+- Validation is pending: local shell and the Supabase skill reader are unavailable, so TypeScript, lint, tests and the persistence/security path for per-currency account limits were not verified or changed. The current save RPC does not persist new limit fields. These marks use branded initials rather than verified official image assets; use official artwork before claiming final brand-logo coverage.
 ### BUILD 09 — Individual Direction receipt signatures
 
 - Production verification (2026-10-09): the receipt RPC returned HTTP 404 with PostgREST `PGRST202` at 13:19 UTC, then HTTP 200 at 13:27 UTC after the schema cache refresh; Vercel status for main commit `889fdf12` is success. A read-only aggregate found all 14 validated payments matched the receipt's required student/class/year/installment joins. Ask the reporter to retry the current deployment before treating the receipt issue as open.

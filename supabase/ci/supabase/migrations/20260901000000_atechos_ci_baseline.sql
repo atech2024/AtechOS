@@ -8,6 +8,7 @@ create extension if not exists pgcrypto with schema extensions;
 
 create table public.schools (id uuid primary key, name text not null default 'CI School', code text, address text, phone text, logo_url text);
 create table public.users (id uuid primary key, full_name text not null, email text);
+alter table public.schools add column owner_user_id uuid references public.users(id);
 create table public.grade_levels (
  id uuid primary key,
  code text not null,

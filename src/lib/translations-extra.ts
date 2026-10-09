@@ -862,4 +862,6 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Approve selected signature':["Approuver la signature sélectionnée","Apwouve siyati mwen chwazi a"],
  'Approved signature style':["Style de signature approuvé","Estil siyati ki apwouve a"],
  'This is a generated electronic signature display, not a handwritten signature.':["Il s’agit d’un affichage de signature électronique générée, et non d’une signature manuscrite.","Sa a se yon siyati elektwonik sistèm nan jenere; se pa yon siyati ekri alamen."],
+ 'Loading signature settings…':['Chargement des paramètres de signature…','Ap chaje paramèt siyati yo…'],
+ 'Saving…':['Enregistrement…','Ap anrejistre…'],
 }

@@ -67,7 +67,7 @@ export function financePaymentTitle(method:string,config?:FinancePaymentMethods)
 export function financePaymentMonogram(method:string,bankName?:string){
  const item=FINANCE_PAYMENT_METHODS.find(entry=>entry.paymentMethod===method)
  const bank=bankName||''
- if(item?.key.startsWith('bank_transfer_')&&bank){const selected=[...HAITI_BANKS,...US_BANKS].find(entry=>entry.name===bank);return selected?.code||bank.trim().split(/\\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase().slice(0,4)}
+ if(item?.key.startsWith('bank_transfer_')&&bank){const selected=[...HAITI_BANKS,...US_BANKS].find(entry=>entry.name===bank);return selected?.code||bank.trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase().slice(0,4)}
  const map:Record<string,string>={moncash:'MC',natcash:'NC',paypal:'P',zelle:'Z',bank_transfer_htg:'HTG',bank_transfer_usd:'USD'}
  return item?map[item.key]||item.title.slice(0,3).toUpperCase():method.slice(0,3).toUpperCase()
 }

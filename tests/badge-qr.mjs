@@ -30,7 +30,7 @@ const studentHtml=renderToStaticMarkup(React.createElement(studentExports.defaul
 for(const value of ['Fixture Student','PS1','2026–2027','AOS-123','08:45 AM','04:15 PM','/student/photo'])assert.ok(studentHtml.includes(value),`student identity panel must show ${value}`)
 assert.ok(studentHtml.includes('data-qr="'+props.qr+'"'),'student portal must present the active operational badge QR')
 const studentPageSource=readFileSync('src/app/student/page.tsx','utf8'),studentDashboardSource=readFileSync('src/app/student/student-dashboard.tsx','utf8')
-assert.match(studentPageSource,/<StudentDashboard[\\s\\S]*qr=\\{data\\.badge_qr\\}/,'portal workspace must pass the server-returned badge QR into the student dashboard')
+assert.ok(studentPageSource.includes('<StudentDashboard')&&studentPageSource.includes('qr={data.badge_qr}'),'portal workspace must pass the server-returned badge QR into the student dashboard')
 assert.ok(studentDashboardSource.includes('<StudentOverview qr={qr}'),'student dashboard must preserve the server-returned badge QR in the student overview')
 assert.ok(readFileSync('src/app/student/overview.tsx','utf8').includes('<StudentIdentityCard qr={qr}'),'student overview must render the badge QR in the identity panel')
 assert.ok(readFileSync('supabase/migrations/20260928004221_badge_lifecycle_history.sql','utf8').includes("b.active and b.state=''active''"),'student portal QR must only be returned for an active, non-revoked badge')

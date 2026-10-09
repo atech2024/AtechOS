@@ -17,7 +17,7 @@ function isRequired(key:keyof FinancePaymentMethods,method:FinancePaymentMethod,
  return name==='bank_name'||name==='account_name'||name==='account_number'
 }
 
-export default function FinancePaymentMethodSettings({canManage,canRefreshRate,onRateStatus}:{canManage:boolean;canRefreshRate:boolean;onRateStatus?:(rate:Setup['brh_rate'],latestDate:string|null)=>void}){
+export default function FinancePaymentMethodSettings({canManage,canRefreshRate,onRateStatus}:{canManage:boolean;canRefreshRate:boolean;onRateStatus?:(rate:NonNullable<Setup['brh_rate']>|null,latestDate:string|null)=>void}){
  const db=useMemo(()=>createClient(),[]),locale=useLocale()
  const [methods,setMethods]=useState<FinancePaymentMethods>(EMPTY_FINANCE_PAYMENT_METHODS),[rate,setRate]=useState<Setup['brh_rate']>(null),[latestDate,setLatestDate]=useState(''),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('')
  const [legacyInstructions,setLegacyInstructions]=useState({moncash:'',natcash:'',bank:'',general:''})

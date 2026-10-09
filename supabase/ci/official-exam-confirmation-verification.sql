@@ -12,13 +12,6 @@ create or replace function private.calendar_student_class(p_student uuid,p_class
 language sql stable security definer set search_path='' as $$
  select exists(select 1 from public.enrollments where student_id=p_student and class_id=p_class and status<>'transferred')
 $$;
-create or replace function public.student_device_data(p_token text) returns jsonb
-language sql stable security definer set search_path='' as $$
- select case when p_token='synthetic-student-token' then
-  jsonb_build_object('student',jsonb_build_object('id','81000000-0000-0000-0000-000000000001'))
- else null end
-$$;
-
 insert into public.schools(id,name) values
  ('71000000-0000-0000-0000-000000000011','Synthetic first school'),
  ('71000000-0000-0000-0000-000000000012','Synthetic second school');
@@ -52,6 +45,8 @@ insert into public.exam_schedule(id,school_id,class_id,subject_id,period_id,star
 insert into public.students(id,school_id,first_name,last_name) values
  ('81000000-0000-0000-0000-000000000001','71000000-0000-0000-0000-000000000011','Synthetic','Student One'),
  ('81000000-0000-0000-0000-000000000002','71000000-0000-0000-0000-000000000012','Synthetic','Student Two');
+insert into private.student_sessions(token_hash,student_id,expires_at) values
+ (encode(extensions.digest('synthetic-student-token','sha256'),'hex'),'81000000-0000-0000-0000-000000000001',now()+interval '1 hour');
 insert into public.enrollments(id,school_id,student_id,class_id,status) values
  ('82000000-0000-0000-0000-000000000001','71000000-0000-0000-0000-000000000011','81000000-0000-0000-0000-000000000001','74000000-0000-0000-0000-000000000011','active'),
  ('82000000-0000-0000-0000-000000000002','71000000-0000-0000-0000-000000000012','81000000-0000-0000-0000-000000000002','74000000-0000-0000-0000-000000000012','active');

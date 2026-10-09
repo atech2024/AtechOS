@@ -57,7 +57,7 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 
 ### BUILD 09 — Individual Direction receipt signatures
 
-- The personal signature editor is part of the Settings Center and available to school_admin, director, censeur, secretary, and accountant roles. School-wide configuration cards remain limited to the owner, school_admin, and director.
+- The personal signature editor is part of the Settings Center and available to school_admin, director, censeur, secretary, and accountant roles. School-wide configuration cards remain limited to the owner, school_admin, and director. Staff can enter and edit the receipt display name, preview ten styles, and approve the selected version; the scoped save RPC records that name with an audit trail.
 - Migration `20261009110000_direction_member_receipt_signatures.sql` separates permission to configure one's own signature from payment validation. Each validated receipt keeps its approver signature snapshot. Build and database checks remain required before release.
 
 ### Current Return Pass Queue

@@ -52,6 +52,8 @@ export const translations:Record<string,[string,string]> = {
  "Enable this method":['Activer ce moyen','Aktive metòd sa a'],
  "Save payment destinations":['Enregistrer les coordonnées','Anrejistre kote pou resevwa peman'],
  "BRH reference rate":['Taux de référence BRH','To referans BRH'],
+ "Finance operations":['Opérations financières','Operasyon finansye'],
+ "Refresh the official BRH rate without accessing school finance rules.":['Actualisez le taux officiel de la BRH sans modifier les paramètres financiers de l’école.','Rafrechi to ofisyèl BRH la san w pa chanje paramèt finansye lekòl la.'],
  "USD payment approval is blocked until the BRH publishes a rate for today in Haiti. The approved payment stores the rate, date and source as an immutable snapshot.":['La validation des paiements en USD est bloquée jusqu’à la publication du taux BRH du jour en Haïti. Le taux, la date et la source sont conservés dans le paiement validé.','Apwobasyon peman USD bloke jiskaske BRH pibliye to jodi a ann Ayiti. To a, dat la ak sous la konsève sou peman ki valide a.'],
  "Refresh BRH rate":['Actualiser le taux BRH','Rafrechi to BRH'],
  "No BRH rate has been confirmed for today yet.":['Aucun taux BRH du jour n’a encore été confirmé.','Poko gen to BRH pou jodi a ki konfime.'],

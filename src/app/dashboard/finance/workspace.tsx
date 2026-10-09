@@ -346,7 +346,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview', ca
     {!data.settings && <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><strong><T text="Set up Finance before creating fees."/></strong><p className="mt-1"><T text="A school manager must choose a currency before fee plans and payments can be recorded."/></p></section>}
 
     <nav aria-label="Finance sections" className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-      {activeTab('overview','Overview')}{activeTab('plans','Fee plans')}{routeTab('payments','Payments','/dashboard/finance/payments')}{activeTab('adjustments','Scholarships & clearances')}{activeTab('history','Audit history')}{routeTab('settings','Finance settings','/dashboard/finance/settings')}
+      {activeTab('overview','Overview')}{activeTab('plans','Fee plans')}{routeTab('payments','Payments','/dashboard/finance/payments')}{activeTab('adjustments','Scholarships & clearances')}{activeTab('history','Audit history')}
     </nav>
 
     {tab === 'overview' && <AccountingDashboard

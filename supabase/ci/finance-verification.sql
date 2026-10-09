@@ -30,8 +30,9 @@ insert into public.student_parents(student_id,parent_id,relationship) values
  ('fa400000-0000-0000-0000-000000000001','fa600000-0000-0000-0000-000000000001','parent');
 
 do $$
-declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; summary jsonb; payment_events jsonb; setup jsonb; ledger jsonb; denied boolean; allocated_before numeric; expected_paid numeric; reported_paid numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid; cross_plan_id uuid; cross_charge_id uuid; cross_payment_id uuid;
+declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; summary jsonb; payment_events jsonb; setup jsonb; ledger jsonb; receipt jsonb; denied boolean; allocated_before numeric; expected_paid numeric; reported_paid numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid; cross_plan_id uuid; cross_charge_id uuid; cross_payment_id uuid;
 begin
+  if has_table_privilege('authenticated','public.finance_staff_receipt_signatures','SELECT') then raise exception 'authenticated can read private receipt signature settings directly'; end if;
   if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') or has_table_privilege('authenticated','public.finance_payments','DELETE') then raise exception 'authenticated can directly mutate finance payments'; end if;
   if has_table_privilege('authenticated','public.finance_payment_refunds','INSERT') or has_table_privilege('authenticated','public.finance_payment_refunds','UPDATE') or has_table_privilege('authenticated','public.finance_payment_refunds','DELETE') then raise exception 'authenticated can directly mutate finance refunds'; end if;
   if has_table_privilege('authenticated','public.finance_audit_events','UPDATE') or has_table_privilege('authenticated','public.finance_audit_events','DELETE') then raise exception 'finance audit events are mutable through the Data API'; end if;
@@ -101,8 +102,15 @@ begin
   if not denied then raise exception 'director validated a payment without school setting'; end if;
 
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
+  denied:=false;
+  begin perform public.review_finance_payment(credit_payment_id,'validated',null); exception when others then denied:=sqlerrm='finance_reviewer_signature_required'; end;
+  if not denied then raise exception 'payment validation without an approved receipt signature was accepted'; end if;
+  perform public.save_finance_receipt_signature(2);
   perform public.review_finance_payment(credit_payment_id,'validated',null);
   perform public.review_finance_payment(class_overpayment_id,'validated',null);
+  receipt:=public.finance_payment_receipt(class_overpayment_id);
+  if receipt->'reviewer'->>'name'<>'Finance Accountant' or receipt->'reviewer'->>'role'<>'accountant' or (receipt->'reviewer'->>'signature_style')::integer<>2 then raise exception 'receipt did not preserve the approving accountant and approved signature'; end if;
+  if receipt->'payment'->>'payment_method'<>'Cash' or receipt->'payment'->>'currency_code'<>'HTG' or receipt->'current_installment'->>'remaining' is null then raise exception 'receipt omitted payment details or current installment balance'; end if;
   if not exists(select 1 from public.finance_student_credits cr where cr.source_payment_id=class_overpayment_id and cr.student_id='fa400000-0000-0000-0000-000000000001' and cr.amount=1) then raise exception 'ordinary fee overpayment did not create student-scoped credit'; end if;
   if not exists(select 1 from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where a.credit_id=(select id from public.finance_student_credits where source_payment_id=class_overpayment_id) and c.student_id='fa400000-0000-0000-0000-000000000001') then raise exception 'ordinary fee credit was not confined to its student'; end if;
   if not exists(select 1 from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id) and c.id=(select fc.id from public.finance_charges fc where fc.fee_plan_id=plan_id order by fc.due_date limit 1) and a.amount=20) then raise exception 'overpayment credit was not automatically applied to the next due charge'; end if;
@@ -207,6 +215,13 @@ begin
   if not denied then raise exception 'parent accessed internal finance workspace'; end if;
   workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
   if workspace->'student'->>'id'<>'fa400000-0000-0000-0000-000000000001' or workspace->'settings'->>'moncash_payment_instructions'<>'Finance MonCash' or workspace->'settings'->'payment_methods'->'moncash'->>'phone'<>'50937000001' then raise exception 'linked parent finance details or enabled payment destinations were not returned'; end if;
+  if not exists(select 1 from jsonb_array_elements(workspace->'payments') item where item->>'id'=class_overpayment_id::text and item->>'reviewer_name'='Finance Accountant') then raise exception 'parent workspace omitted a validated receipt or its approver'; end if;
+  receipt:=public.finance_payment_receipt(class_overpayment_id);
+  if receipt->'student'->>'first_name'<>'Finance' then raise exception 'linked parent could not read their child's receipt'; end if;
+  denied:=false;
+  begin perform public.finance_payment_receipt(second_payment_id); exception when others then denied:=sqlerrm='not_authorized'; end;
+  if not denied then raise exception 'parent read a receipt for an unrelated student'; end if;
+  if not has_function_privilege('authenticated','public.finance_payment_receipt(uuid)','EXECUTE') or has_function_privilege('anon','public.finance_payment_receipt(uuid)','EXECUTE') then raise exception 'receipt RPC grants are unsafe'; end if;
   payment_events:=public.family_validated_payment_events('fa400000-0000-0000-0000-000000000001','2026-09-01','2026-09-30');
   if not exists(select 1 from jsonb_array_elements(payment_events->'payments') item where item->>'id'=class_overpayment_id::text) then
     raise exception 'linked parent timeline omitted a validated staff-recorded payment';

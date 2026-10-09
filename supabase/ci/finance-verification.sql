@@ -105,7 +105,7 @@ begin
   denied:=false;
   begin perform public.review_finance_payment(credit_payment_id,'validated',null); exception when others then denied:=sqlerrm='finance_reviewer_signature_required'; end;
   if not denied then raise exception 'payment validation without an approved receipt signature was accepted'; end if;
-  perform public.save_finance_receipt_signature(2);
+  perform public.save_finance_receipt_signature(2::smallint);
   perform public.review_finance_payment(credit_payment_id,'validated',null);
   perform public.review_finance_payment(class_overpayment_id,'validated',null);
   receipt:=public.finance_payment_receipt(class_overpayment_id);

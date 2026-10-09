@@ -137,6 +137,7 @@ do $$ declare student_calendar jsonb; begin
  student_calendar:=public.school_calendar(null,'synthetic-student-token');
  if jsonb_array_length(student_calendar->'official_exam_dates')<>1 then raise exception 'student portal did not receive confirmed date'; end if;
  if student_calendar->>'school_scope_id'<>'71000000-0000-0000-0000-000000000011' then raise exception 'student calendar exposed incorrect school scope'; end if;
+ perform set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000011',true);
  if public.school_calendar()->>'school_scope_id' is not null then raise exception 'non-student calendar exposed student scope'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000014',true);

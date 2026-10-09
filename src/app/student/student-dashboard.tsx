@@ -39,8 +39,8 @@ export default function StudentDashboard({student,grades,attendance,periods,repo
  const schoolId=calendar?.school_scope_id||null
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Port-au-Prince'}).format(new Date())
  const events=useMemo(()=>studentEvents(schoolId,yearId,today,calendar,periods,year),[schoolId,yearId,today,calendar,periods,year])
- const yearPeriods=periods.filter(period=>period.year===year)
- const periodIds=new Set(yearPeriods.map(period=>period.id))
+ const yearPeriods=useMemo(()=>periods.filter(period=>period.year===year),[periods,year])
+ const periodIds=useMemo(()=>new Set(yearPeriods.map(period=>period.id)),[yearPeriods])
  const yearStart=yearPeriods.map(period=>period.start_date).sort()[0]
  const yearEnd=yearPeriods.map(period=>period.end_date).sort().at(-1)
  const calendarForYear=useMemo(()=>calendar?({

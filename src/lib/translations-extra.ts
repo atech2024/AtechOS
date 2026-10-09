@@ -912,4 +912,12 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Finance filters':["Filtres financiers","Filtè finansye"],
  'Summary cards cover the school year; details follow the selected class.':['Les indicateurs résument l’année scolaire ; les détails suivent la classe sélectionnée.','Kat rezime yo kouvri ane lekòl la; detay yo suiv klas ki chwazi a.'],
  'Awaiting review':['En attente de validation','Ap tann verifikasyon'],
+ 'Paraphes':['Paraphes','Paraf'],
+ 'Écriture manuscrite':['Écriture manuscrite','Ekriti alamen'],
+ 'Paraphe':['Paraphe','Paraf'],
+ 'Signature manuscrite':['Signature manuscrite','Siyati ekri alamen'],
+ 'Approved signature preview (school administrator)':['Aperçu de la signature approuvée (administrateur de l’école)','Aperçu siyati admin lekòl la apwouve a'],
+ 'Choose one of five blue paraphe styles or five handwritten signature styles generated from your display name.':['Choisissez un des cinq paraphes bleus ou une des cinq écritures manuscrites stylisées générées à partir du nom affiché.','Chwazi youn nan senk paraf ble yo oswa youn nan senk ekriti alamen stilize ki fèt ak non pou afiche a.'],
+ 'Enter the name to display on receipts. Preview the ten options before approving.':['Saisissez le nom à afficher sur les reçus et prévisualisez les dix options avant l’approbation.','Ekri non pou parèt sou resi yo epi gade 10 opsyon yo anvan ou apwouve.'],
+ 'A blue, digitally generated signature display is created from your entered name.':['Une signature numérique stylisée en plume bleue est générée à partir du nom saisi.','Sistèm nan jenere yon siyati dijital stil plim ble ak non ou antre a.'],
 }

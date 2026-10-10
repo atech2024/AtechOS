@@ -6,6 +6,7 @@ import ts from 'typescript'
 
 const read=path=>readFileSync(path,'utf8')
 const migration=read('supabase/migrations/20261001222000_school_calendar_year_successor.sql')
+const yearRoleMigration=read('supabase/migrations/20261008215500_academic_year_write_roles.sql')
 const invariantMigration=read('supabase/migrations/20261002153945_enforce_single_current_academic_year_per_school.sql')
 const calendar=read('src/app/dashboard/calendar/page.tsx')
 const yearCalendar=read('src/components/academic-year-calendar.tsx')
@@ -20,6 +21,13 @@ const officialExamMigration=read('supabase/migrations/20261003162629_confirm_off
 const officialExamFixture=read('supabase/ci/official-exam-confirmation-verification.sql')
 
 assert.match(migration,/create_academic_year_with_successor/,'year setup exposes the successor-aware RPC')
+assert.match(yearRoleMigration,/private\.has_role\(sid,array\['school_admin','director'\]\)/,'only school administrators and directors can create academic years')
+assert.match(sqlCheck,/set local role authenticated/i,'academic-year RPC checks run with authenticated privileges')
+assert.match(sqlCheck,/teacher created an academic year/,'teachers cannot create academic years')
+assert.match(sqlCheck,/teacher edited an academic year/,'teachers cannot edit academic years')
+assert.match(sqlCheck,/secretary created an academic year/,'secretaries cannot create academic years')
+assert.match(sqlCheck,/secretary edited an academic year/,'secretaries cannot edit academic years')
+assert.match(sqlCheck,/cross-school director edited another school year/,'a director cannot edit another school year')
 assert.match(migration,/successor_start:=p_end_date/,'successor starts on the configured current-year end date')
 assert.match(migration,/successor_start\+span_days/,'successor date range is derived from the first year length')
 assert.match(migration,/start_date>=successor_start/,'do not create another successor when a later year exists')

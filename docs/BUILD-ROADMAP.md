@@ -224,6 +224,7 @@ Bulletin publication boundary follow-up: the existing calculated report is still
 ### BUILD 15 — Same-day school release protocol (2026-10-05)
 
 - Added an audited, same-day school-wide dismissal protocol on the Attendance page. The school administrator, director, or secretary activates it with a reason; the actor and role are retained in an immutable record. KIOS permits checkout only for students already checked in and outside Preschool. Preschool children remain on the authorized pickup workflow, and the existing Finance and GUARD checks still run before checkout.
+- Medical and exceptional release requests can optionally name an active Direction escort (school administrator, director, censeur, or secretary). The RPC validates same-school enabled membership, stores an immutable name/role snapshot, and includes it in the staff-only history and audit event. Keep BUILD 15 IN PROGRESS until isolated SQL checks and school staff validation pass.
 - Local `npm test`, `npm run typecheck`, and `npm run build` pass. The migration, tenant/role checks, audit link, and rollback-only synthetic fixture are wired into Supabase CI. Await the isolated hosted migration/SQL result before production migration or deployment; no production schema was changed for this feature.
 
 

@@ -15,7 +15,8 @@ insert into public.users(id,full_name) values
  ('fb300000-0000-0000-0000-000000000003','Follow-up Secretary'),
  ('fb300000-0000-0000-0000-000000000004','Follow-up Teacher'),
  ('fb300000-0000-0000-0000-000000000005','Follow-up Parent'),
- ('fb300000-0000-0000-0000-000000000006','Follow-up Other-school Admin');
+ ('fb300000-0000-0000-0000-000000000006','Follow-up Other-school Admin'),
+ ('fb300000-0000-0000-0000-000000000007','Follow-up Censeur');
 insert into public.parents(id,school_id,user_id,full_name,email) values
  ('fb600000-0000-0000-0000-000000000001','fb000000-0000-0000-0000-000000000001','fb300000-0000-0000-0000-000000000005','Follow-up Parent','followup-parent@example.invalid');
 insert into public.school_members(school_id,user_id,role,enabled) values
@@ -24,7 +25,8 @@ insert into public.school_members(school_id,user_id,role,enabled) values
  ('fb000000-0000-0000-0000-000000000001','fb300000-0000-0000-0000-000000000003','secretary',true),
  ('fb000000-0000-0000-0000-000000000001','fb300000-0000-0000-0000-000000000004','teacher',true),
  ('fb000000-0000-0000-0000-000000000001','fb300000-0000-0000-0000-000000000005','parent',true),
- ('fb000000-0000-0000-0000-000000000002','fb300000-0000-0000-0000-000000000006','school_admin',true);
+ ('fb000000-0000-0000-0000-000000000002','fb300000-0000-0000-0000-000000000006','school_admin',true),
+ ('fb000000-0000-0000-0000-000000000001','fb300000-0000-0000-0000-000000000007','censeur',true);
 insert into public.students(id,school_id,first_name,last_name,atechos_id,active,school_status) values
  ('fb400000-0000-0000-0000-000000000001','fb000000-0000-0000-0000-000000000001','Followup','Student One','AOS-FOLLOWUP-1',true,'active'),
  ('fb400000-0000-0000-0000-000000000002','fb000000-0000-0000-0000-000000000001','Followup','Student Two','AOS-FOLLOWUP-2',true,'active'),
@@ -95,7 +97,16 @@ begin
  kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000001');
  if kiosk->>'error'<>'sanction_student_suspended' then raise exception 'student suspension did not also block KIOS'; end if;
  perform public.resolve_student_sanction(portal_sanction_id,'Access suspension CI test complete');
- release_id:=public.request_student_release('fb400000-0000-0000-0000-000000000001','medical',contact_id,'Student needs to leave for medical care');
+ release_id:=public.request_student_release_with_escort('fb400000-0000-0000-0000-000000000001','medical',contact_id,'Student needs to leave for medical care','fb300000-0000-0000-0000-000000000007');
+ if not exists(select 1 from public.student_release_cases where id=release_id and escort_user_id='fb300000-0000-0000-0000-000000000007' and escort_name='Follow-up Censeur' and escort_role='censeur')
+    or not exists(select 1 from public.student_followup_events where entity='release_case' and entity_id=release_id and action='requested' and detail->>'escort_user_id'='fb300000-0000-0000-0000-000000000007')
+ then raise exception 'medical departure did not retain Direction escort and audit snapshots'; end if;
+ workspace:=public.student_followup_workspace();
+ if not exists(select 1 from jsonb_array_elements(workspace->'direction_members') m where m->>'id'='fb300000-0000-0000-0000-000000000007')
+    or not exists(select 1 from jsonb_array_elements(workspace->'releases') r where r->>'id'=release_id::text and r->>'escort_name'='Follow-up Censeur')
+ then raise exception 'Direction escort was not available to authorized staff or shown in release history'; end if;
+ denied:=false; begin perform public.request_student_release_with_escort('fb400000-0000-0000-0000-000000000001','medical',contact_id,'Teacher cannot be an escort','fb300000-0000-0000-0000-000000000004'); exception when others then denied:=sqlerrm='release_escort_not_authorized'; end;
+ if not denied then raise exception 'non-Direction staff was accepted as emergency escort'; end if;
  if (select count(*) from public.notifications where type='student_release' and event_key like 'student-release-request:%')<>2 then raise exception 'release request did not notify the other authorized staff'; end if;
  denied:=false; begin perform public.review_student_release(release_id,false,' '); exception when others then denied:=sqlerrm='decision_reason_required'; end;
  if not denied then raise exception 'rejection without a reason was accepted'; end if;
@@ -246,8 +257,8 @@ begin
  portal_sanction_type:=public.save_student_sanction_type(null,'Collective test',true,'none',null);
  kiosk:=public.student_followup_class_attendees('fb200000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date);
  if jsonb_array_length(kiosk)<>1 or kiosk->0->>'id'<>'fb400000-0000-0000-0000-000000000002' then raise exception 'class preview included Direction-only student: %',kiosk;end if;
- kiosk:=public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Collective class follow-up',now()-interval '20 minutes',array['fb400000-0000-0000-0000-000000000002'::uuid]);
- denied:=false;begin perform public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Stale roster test',now()-interval '20 minutes',array['fb400000-0000-0000-0000-000000000001'::uuid,'fb400000-0000-0000-0000-000000000002'::uuid]);exception when others then denied:=sqlerrm='class_attendance_changed';end;
+ kiosk:=public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Collective class follow-up',now(),array['fb400000-0000-0000-0000-000000000002'::uuid]);
+ denied:=false;begin perform public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Stale roster test',now(),array['fb400000-0000-0000-0000-000000000001'::uuid,'fb400000-0000-0000-0000-000000000002'::uuid]);exception when others then denied:=sqlerrm='class_attendance_changed';end;
  if not denied then raise exception 'stale class preview was accepted';end if;
  if kiosk->>'created_count'<>'1' or not exists(select 1 from public.student_sanctions where student_id='fb400000-0000-0000-0000-000000000002' and reason='Collective class follow-up')
    or exists(select 1 from public.student_sanctions where student_id='fb400000-0000-0000-0000-000000000001' and reason='Collective class follow-up') then raise exception 'collective class target was incorrect: %',kiosk;end if;

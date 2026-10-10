@@ -65,6 +65,8 @@ on:
       - "supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql"
       - "supabase/migrations/20261008171500_teacher_exam_submissions.sql"
       - "supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql"
+      - "supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql"
+      - "supabase/ci-grade-deadline/**"
       - "supabase/ci-exam-submissions/**"
       - "supabase/ci/student-followup-badge-verification.sql"
       - "supabase/ci-parent/**"
@@ -132,6 +134,8 @@ on:
       - "supabase/migrations/20261009100000_finance_payment_receipts_signatures.sql"
       - "supabase/migrations/20261008171500_teacher_exam_submissions.sql"
       - "supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql"
+      - "supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql"
+      - "supabase/ci-grade-deadline/**"
       - "supabase/ci-exam-submissions/**"
       - "supabase/ci/student-followup-badge-verification.sql"
       - "supabase/ci-parent/**"
@@ -355,4 +359,32 @@ jobs:
       - name: Stop exam-submissions verification Supabase
         if: always()
         working-directory: supabase/ci-exam-submissions
+        run: supabase stop --no-backup
+
+  grade-deadline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Stage grade workflow migration over its isolated schema
+        working-directory: supabase/ci-grade-deadline
+        run: cp ../migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql supabase/migrations/
+      - name: Start isolated Supabase and apply grade workflow migration
+        working-directory: supabase/ci-grade-deadline
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Verify scoped deadline, role denial, subject maximum and expiry
+        working-directory: supabase/ci-grade-deadline
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-grade-deadline-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < grade-deadline-verification.sql
+      - name: Stop grade-deadline verification Supabase
+        if: always()
+        working-directory: supabase/ci-grade-deadline
         run: supabase stop --no-backup

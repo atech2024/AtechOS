@@ -1,0 +1,19 @@
+project_id = "atechos-grade-deadline-check"
+
+[api]
+enabled = true
+port = 54351
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54352
+shadow_port = 54350
+major_version = 15
+
+[studio]
+enabled = false
+
+[local_smtp]
+enabled = false

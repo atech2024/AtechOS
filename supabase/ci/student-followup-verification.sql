@@ -281,6 +281,12 @@ begin
  update public.student_sanctions set parent_meeting_at=now() where id=portal_sanction_id;
  update public.attendance set status='absent',check_in_at=null,check_out_at=null,direction_only=false
  where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date;
+ -- The runner may execute this workflow on a weekend. Emulate a valid school
+ -- day only for the current-day KIOS meeting branch; the actual school-day
+ -- helper was already exercised above with the most recent Friday fixture.
+ create or replace function private.guard_school_day(p_school uuid,p_day date)
+ returns boolean language sql stable security definer set search_path=''
+ as $meeting_school_day$ select p_school='fb000000-0000-0000-0000-000000000001'::uuid and p_day=(now() at time zone 'America/Port-au-Prince')::date $meeting_school_day$;
  kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
  if kiosk->>'action'<>'check_in' or kiosk->>'direction_only'<>'true'
    or not exists(select 1 from public.attendance where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date and direction_only) then raise exception 'meeting KIOS check-in was not Direction-only: %',kiosk;end if;

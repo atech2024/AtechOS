@@ -17,9 +17,15 @@ const EXAM_FILE_TYPES:Record<string,string>={
  '.doc':'application/msword',
  '.docx':'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 }
+const EXAM_FILE_MIME_ALIASES:Record<string,string[]>={
+ '.pdf':['application/pdf','application/x-pdf','application/acrobat','application/octet-stream'],
+ '.doc':['application/msword','application/vnd.ms-word','application/x-msword','application/octet-stream'],
+ '.docx':['application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/zip','application/octet-stream']
+}
 export function examFileMimeType(file:Pick<File,'name'|'type'>){
- const extension=file.name.toLowerCase().match(/\\.[^.]+$/)?.[0],expected=extension?EXAM_FILE_TYPES[extension]:undefined
- return expected&&(!file.type||file.type.toLowerCase()===expected)?expected:''
+ const extension=file.name.toLowerCase().match(/\.[^.]+$/)?.[0],expected=extension?EXAM_FILE_TYPES[extension]:undefined
+ const reported=file.type.trim().toLowerCase(),acceptedTypes=extension?EXAM_FILE_MIME_ALIASES[extension]:undefined
+ return expected&&(!reported||acceptedTypes?.includes(reported))?expected:''
 }
 export function isAllowedExamFile(file:Pick<File,'name'|'type'|'size'>){return Boolean(examFileMimeType(file))&&file.size>0&&file.size<=MAX_FILE_SIZE}
 export function defaultExamPeriod(periods:Period[],today:string){
@@ -71,19 +77,18 @@ export default function TeacherExamSubmissions(){
  }
  async function save(e:FormEvent){
   e.preventDefault();setBusy(true);setError('');setMessage('')
+  if(!file){setError(t('Choose an exam file before submitting.'));setBusy(false);return}
   if(!activePeriod||!classId||!subjectId||!chosenSubject||(manager&&!teacherId)){setError(t('Choose an active period, class, subject and teacher.'));setBusy(false);return}
   const {data,error:submitError}=await db.rpc('create_teacher_exam_submission',{p_class_id:classId,p_subject_id:subjectId,p_period_id:periodId,p_teacher_id:manager?teacherId:null})
   if(submitError){setError(t(submitError.code==='23505'?'This exam has already been registered for this period.':errorLabels[submitError.message]||submitError.message));setBusy(false);return}
-  if(file){
-   try{await uploadFile(String(data),file,manager)}catch(uploadError){setError(t('The exam was recorded, but the file could not be uploaded. You can attach it from the register.'));setBusy(false);await load();return}
-  }
+  try{await uploadFile(String(data),file,manager)}catch(uploadError){setError(t('The exam record was created, but the required file could not be uploaded. Contact the school office to complete it.'));setBusy(false);await load();return}
   setMessage(t('Exam submission recorded.'))
   setClassId('');setSubjectId('');setFile(null)
   const input=document.getElementById('teacher-exam-file') as HTMLInputElement|null;if(input)input.value=''
   setBusy(false);await load()
  }
  async function attachExisting(id:string,next:File){
-  if(!isAllowedExamFile(next)){setError(t('File must be PDF, Word, an image or audio and no larger than 25 MB.'));return}
+  if(!isAllowedExamFile(next)){setError(t('File must be PDF, DOC or DOCX and no larger than 25 MB.'));return}
   setBusy(true);setError('');setMessage('')
   try{await uploadFile(id,next,true);setMessage(t('Exam file attached to the register.'));await load()}
   catch(e){setError(t((e as {message?:string})?.message||'Unable to upload the exam file.'))}
@@ -106,14 +111,14 @@ export default function TeacherExamSubmissions(){
      {manager&&<label className="grid gap-1 text-sm font-medium"><T text="Teacher"/><select className="rounded-lg border p-3" value={teacherId} onChange={e=>{setTeacherId(e.target.value);setClassId('');setSubjectId('')}} required><option value=""><T text="Choose a teacher"/></option>{teachers.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
      <label className="grid gap-1 text-sm font-medium"><T text="Class"/><select className="rounded-lg border p-3" value={classId} onChange={e=>selectClass(e.target.value)} required disabled={!periodId||!eligibleClasses.length||(manager&&!teacherId)}><option value=""><T text={manager&&!teacherId?"Choose a teacher first to list their classes":periodId&&!eligibleClasses.length?"No class is included in this exam period.":"Choose a class"}/></option>{eligibleClasses.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
      <label className="grid gap-1 text-sm font-medium"><T text="Subject"/><select className="rounded-lg border p-3" value={subjectId} onChange={e=>setSubjectId(e.target.value)} required disabled={!classId}><option value=""><T text="Choose a subject"/></option>{eligibleSubjects.map(x=><option key={x.subject_id} value={x.subject_id}>{x.subject_name}</option>)}</select></label>
-     <label className="grid gap-1 text-sm font-medium md:col-span-2"><T text={manager?'Optional exam file received on USB':'Optional exam file'}/><input id="teacher-exam-file" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onFile} className="rounded-lg border p-3"/><span className="font-normal text-slate-500"><T text="PDF, DOC or DOCX · maximum 25 MB. The submission can be saved without a file."/></span></label>
+     <label className="grid gap-1 text-sm font-medium md:col-span-2"><T text={manager?'Exam file received on USB':'Exam file (required)'}/><input id="teacher-exam-file" type="file" required accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onFile} className="rounded-lg border p-3"/><span className="font-normal text-slate-500"><T text="PDF, DOC or DOCX · maximum 25 MB. Attach the exam file to submit."/></span></label>
     </div>
     <button disabled={busy} className="mt-5 rounded-xl bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-60">{busy?<T text="Saving..."/>:<T text={manager?'Save received exam':'Submit exam'}/>}</button>
    </form>
    <section id="exam-submission-register" className="rounded-2xl border bg-white p-5 shadow-sm">
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold"><T text={manager?'Exam receipt register':'My exam submissions'}/></h2><p className="text-sm text-slate-600"><T text="Each record shows the period, teacher, class, subject and receipt date."/></p></div><button type="button" onClick={()=>window.print()} className="rounded-lg border px-4 py-2 font-medium text-blue-800 print:hidden"><T text="Print register"/></button></div>
     <label className="mb-4 flex items-center gap-2 text-sm print:hidden"><T text="Exam period"/><select className="rounded-lg border p-2" value={periodId} onChange={e=>selectPeriod(e.target.value)}>{periods.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-    {!visibleSubmissions.length?<p className="rounded-lg bg-slate-50 p-4 text-slate-600"><T text="No exam submissions for this period."/></p>:<div className="overflow-x-auto"><table className="w-full border-collapse text-left text-sm"><thead><tr className="border-b text-slate-600">{(manager?['Exam period','Teacher','Class','Subject','Received by','Received on','File']:['Exam period','Class','Subject','Submitted on','File']).map(k=><th key={k} className="px-3 py-3 font-semibold"><T text={k}/></th>)}</tr></thead><tbody>{visibleSubmissions.map(s=><tr key={s.id} className="border-b align-top"><td className="px-3 py-3">{s.period_name}</td>{manager&&<td className="px-3 py-3">{s.teacher_name}</td>}<td className="px-3 py-3">{s.class_name}</td><td className="px-3 py-3">{s.subject_name}</td>{manager&&<td className="px-3 py-3">{s.submitted_by_name}</td>}<td className="px-3 py-3">{schoolDateTime(s.submitted_at,locale)}</td><td className="px-3 py-3">{s.file_path?<button type="button" className="text-blue-700 underline" onClick={()=>void openFile(s.file_path!)}><T text="Open exam file"/></button>:manager?<label className="cursor-pointer text-blue-700 underline print:hidden"><T text="Attach file from USB"/><input type="file" className="sr-only" accept=".pdf,.doc,.docx" disabled={busy} onChange={e=>{const f=e.target.files?.[0];if(f)void attachExisting(s.id,f);e.currentTarget.value=''}}/></label>:<span className="text-slate-500"><T text="No file"/></span>}</td></tr>)}</tbody></table></div>}
+    {!visibleSubmissions.length?<p className="rounded-lg bg-slate-50 p-4 text-slate-600"><T text="No exam submissions for this period."/></p>:<div className="overflow-x-auto"><table className="w-full border-collapse text-left text-sm"><thead><tr className="border-b text-slate-600">{(manager?['Exam period','Teacher','Class','Subject','Received by','Received on','File']:['Exam period','Class','Subject','Submitted on','File']).map(k=><th key={k} className="px-3 py-3 font-semibold"><T text={k}/></th>)}</tr></thead><tbody>{visibleSubmissions.map(s=><tr key={s.id} className="border-b align-top"><td className="px-3 py-3">{s.period_name}</td>{manager&&<td className="px-3 py-3">{s.teacher_name}</td>}<td className="px-3 py-3">{s.class_name}</td><td className="px-3 py-3">{s.subject_name}</td>{manager&&<td className="px-3 py-3">{s.submitted_by_name}</td>}<td className="px-3 py-3">{schoolDateTime(s.submitted_at,locale)}</td><td className="px-3 py-3">{s.file_path?<button type="button" className="text-blue-700 underline" onClick={()=>void openFile(s.file_path!)}><T text="Open exam file"/></button>:<label className="cursor-pointer text-blue-700 underline print:hidden"><T text={manager?'Attach file from USB':'Attach exam file'}/><input type="file" className="sr-only" accept=".pdf,.doc,.docx" disabled={busy} onChange={e=>{const f=e.target.files?.[0];if(f)void attachExisting(s.id,f);e.currentTarget.value=''}}/></label>}</td></tr>)}</tbody></table></div>}
    </section>
   </>}
  </main>

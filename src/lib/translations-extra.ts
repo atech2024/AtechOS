@@ -950,4 +950,10 @@ export const extraTranslations:Record<string,[string,string]> = {
  'confirm_student_departure':["Enregistrer le départ définitif de cet élève ? Son inscription active sera clôturée. L’historique familial sera conservé.","Anrejistre depa ofisyèl elèv sa a? Enskripsyon aktyèl li ap fèmen. Istwa fanmi an ap konsève."],
  'student_departure_recorded':["Départ de l’élève enregistré. L’historique financier reste consultable.","Depa elèv la anrejistre. Istwa finansye a ap rete vizib."],
  'departure_refund_recorded':["Remboursement enregistré. L’historique financier est conservé.","Ranbousman an anrejistre. Istwa finansye a konsève."],
+ 'HTG equivalent':["Équivalent en HTG","Ekivalan an goud"],
+ 'Rate':["Taux de change","To dechanj"],
+ 'Remaining credit':["Crédit restant à appliquer","Kredi ki rete pou aplike"],
+ 'School administration signature':["Signature de l’administration scolaire","Siyati administrasyon lekòl la"],
+ 'No school administrator signature was recorded when this payment was approved.':["Aucune signature de l’administration scolaire n’a été enregistrée lors de la validation de ce paiement.","Pa t anrejistre siyati administrasyon lekòl la lè yo te apwouve peman sa a."],
+ 'The approved signature editor is hidden. Contact the school administrator if a correction is required.':["Le formulaire de signature approuvée est masqué. Contactez l’administrateur de l’école si une correction est nécessaire.","Fòm siyati apwouve a kache. Kontakte administratè lekòl la si gen yon koreksyon ki nesesè."],
 }

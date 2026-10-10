@@ -270,6 +270,9 @@ begin
  if kiosk->>'error'<>'sanction_meeting_not_today' then raise exception 'KIOS allowed a family meeting visit before its scheduled day: %',kiosk;end if;
  -- Fast-forward the fixture to its appointment; this exercises the meeting
  -- arrival branch without relying on the hosted runner's wall clock.
+ create or replace function private.guard_school_day(p_school uuid,p_day date)
+ returns boolean language sql stable security definer set search_path=''
+ as $meeting_day$ select p_school='fb000000-0000-0000-0000-000000000001'::uuid; $meeting_day$;
  update public.student_sanction_settings set school_entry_time='00:00',school_departure_time='23:59'
  where school_id='fb000000-0000-0000-0000-000000000001';
  update public.student_sanctions set parent_meeting_at=now() where id=portal_sanction_id;

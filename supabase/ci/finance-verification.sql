@@ -106,6 +106,8 @@ begin
   begin perform public.review_finance_payment(payment_id,'validated',null); exception when others then denied:=sqlerrm='not_authorized'; end;
   if not denied then raise exception 'director validated a payment without school setting'; end if;
 
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000002',true);
+  perform public.save_finance_receipt_signature(7::smallint,'Finance Administrator');
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
   denied:=false;
   begin perform public.review_finance_payment(credit_payment_id,'validated',null); exception when others then denied:=sqlerrm='finance_reviewer_signature_required'; end;
@@ -116,6 +118,8 @@ begin
   receipt:=public.finance_payment_receipt(class_overpayment_id);
   if receipt->'reviewer'->>'name'<>'Finance Accountant' or receipt->'reviewer'->>'role'<>'accountant' or (receipt->'reviewer'->>'signature_style')::integer<>2 then raise exception 'receipt did not preserve the approving accountant and approved signature'; end if;
   if receipt->'payment'->>'payment_method'<>'Cash' or receipt->'payment'->>'currency_code'<>'HTG' or receipt->'current_installment'->>'remaining' is null then raise exception 'receipt omitted payment details or current installment balance'; end if;
+  if receipt->'student'->>'atechos_id'<>'AOS-FINANCE-CI' or receipt->'school_admin_signature'->>'name'<>'Finance Administrator' or (receipt->'school_admin_signature'->>'style_id')::integer<>7 then raise exception 'receipt omitted the school administrator signature or AtechOS student ID'; end if;
+  if not (receipt->'payment' ? 'exchange_rate_snapshot') or receipt->>'student_credit_remaining' is null then raise exception 'receipt omitted the remaining credit or currency snapshot field'; end if;
   if not exists(select 1 from public.finance_student_credits cr where cr.source_payment_id=class_overpayment_id and cr.student_id='fa400000-0000-0000-0000-000000000001' and cr.amount=1) then raise exception 'ordinary fee overpayment did not create student-scoped credit'; end if;
   if not exists(select 1 from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where a.credit_id=(select id from public.finance_student_credits where source_payment_id=class_overpayment_id) and c.student_id='fa400000-0000-0000-0000-000000000001') then raise exception 'ordinary fee credit was not confined to its student'; end if;
   if not exists(select 1 from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id) and c.id=(select fc.id from public.finance_charges fc where fc.fee_plan_id=plan_id order by fc.due_date limit 1) and a.amount=20) then raise exception 'overpayment credit was not automatically applied to the next due charge'; end if;

@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+const page=readFileSync('src/app/student/page.tsx','utf8'),dashboard=readFileSync('src/app/student/student-dashboard.tsx','utf8')
+const migration=readFileSync('supabase/migrations/20261009150000_student_dashboard_scope.sql','utf8'),fixture=readFileSync('supabase/ci/official-exam-confirmation-verification.sql','utf8')
+assert.match(page,/student_portal_overview.*p_token:\s*token/,'student data stays on the validated token RPC')
+assert.match(page,/school_calendar.*p_token:\s*token/,'calendar keeps the student token scope')
+assert.match(dashboard,/<DynamicDashboard/,'student widgets use the shared ordering component')
+assert.match(dashboard,/calendar\?\.school_scope_id/,'school scope is taken from token-scoped calendar data')
+assert.match(dashboard,/academicYearId:yearId/,'widgets are scoped to selected academic year')
+assert.match(dashboard,/exams:calendar\.exams\.filter\(exam=>exam\.year===year/,'calendar rows are filtered to selected academic year even when an old year is selected')
+assert.match(dashboard,/roles:\['student'\]/,'widgets require the student portal role')
+assert.match(dashboard,/buildStudentDashboardEvents\(\{schoolId,yearId,today,calendar,periods,report,year\}\)/,'the dashboard ranks events from the selected-year published report payload')
+assert.match(migration,/case when p_token is not null then sid else null end/,'scope id only returns for the validated student token path')
+assert.match(fixture,/student calendar exposed incorrect school scope/,'synthetic SQL verifies tenant scope')
+assert.match(fixture,/non-student calendar exposed student scope/,'non-student calls do not receive scope id')
+assert.ok(dashboard.includes("year===student.academic_year?[widget('home-arrival-confirmation'"),'today-only home-arrival confirmation is hidden while reviewing a prior academic year')
+assert.match(dashboard,/<T text="Due date"\/>/,'assignment deadline label uses the selected locale')
+console.log('PASS student dashboard uses existing token-scoped RPCs and school/year-bound calendar events.')

@@ -14,6 +14,7 @@ const guardParentMigration = readFileSync('supabase/migrations/20261002233000_gu
 const pickupPrivacyMigration = readFileSync('supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql', 'utf8');
 const pickupUpdateMigration = readFileSync('supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql', 'utf8');
 const publishedOnlyMigration = readFileSync('supabase/migrations/20261003023548_published_only_family_student_bulletins.sql', 'utf8');
+const studentDashboardScopeMigration=readFileSync('supabase/migrations/20261009150000_student_dashboard_scope.sql','utf8');
 const badgeBaseline = readFileSync('supabase/ci-badge/supabase/migrations/20260901000000_badge_pre_lifecycle_baseline.sql', 'utf8');
 const badgeVerification = readFileSync('supabase/ci-badge/badge-verification.sql', 'utf8');
 const badgeLifecycleMigration = readFileSync('supabase/migrations/20260928004221_badge_lifecycle_history.sql', 'utf8');
@@ -27,7 +28,7 @@ const examSubmissionBaseline = readFileSync('supabase/ci-exam-submissions/supaba
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
 assert.match(workflow, /version:\s*2\.119\.0/);
-const pushBranches = workflow.match(/push:\r?\n\s+branches:\r?\n((?:\s+- [^\r\n]+\r?\n)+)/)?.[1] || '';
+const pushBranches = workflow.match(new RegExp(String.raw`push:\r?\n\s+branches:\r?\n((?:\s+- [^\r\n]+\r?\n)+)`))?.[1] || '';
 assert.match(pushBranches, /- feature\/kindergarten-relocation/);
 assert.match(pushBranches, /- feature\/finance-finalization/);
 assert.match(workflow, /supabase start/);

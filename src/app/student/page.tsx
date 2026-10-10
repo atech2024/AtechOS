@@ -1,22 +1,24 @@
-import {CalendarView} from '@/components/exam-calendar'
-import StudentChanges from '@/components/student-changes'
-import {schoolDate} from '@/lib/school-date'
-import SubmissionForm from './submission-form'
 import { T } from '@/components/translation-provider'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { studentLogout } from './login/actions'
-import StudentOverview from './overview'
-import StudentHomeArrival from '@/components/student-home-arrival'
-export const dynamic='force-dynamic'
+import StudentDashboard from './student-dashboard'
+import type { CalendarData } from '@/components/exam-calendar'
+export const dynamic = 'force-dynamic'
 export default async function StudentPortal() {
  const token=(await cookies()).get('atechos_student_session')?.value
  if(!token)redirect('/student/login')
- const {data,error}=await (await createClient()).rpc('student_portal_overview',{p_token:token})
- if(error || !data?.student)redirect('/student/login')
- const {data:calendar,error:calendarError}=await (await createClient()).rpc('school_calendar',{p_token:token})
- const {data:homeArrival}=await (await createClient()).rpc('student_home_arrival_status',{p_token:token})
- const grades=(data.grades || []).map((g:{[key:string]:unknown})=>({...g,student_id:data.student.id}))
- return <main className="mx-auto max-w-5xl p-6"><header className="flex justify-between print:hidden"><h1 className="text-2xl font-bold"><T text="Student portal"/></h1><form action={studentLogout}><button className="rounded border p-3"><T text="Logout"/></button></form></header><p className="my-4">Les bulletins apparaissent après publication par la direction. Si aucun bulletin ne s’affiche, demandez à la direction de publier la période.</p><StudentOverview qr={data.badge_qr} student={data.student} grades={grades} attendance={data.attendance||[]} periods={data.periods||[]} report={data.report}/><StudentHomeArrival data={homeArrival||null}/><div className="print:hidden"><a className="inline-block rounded border px-4 py-2 text-blue-700" href="#exam-calendar"><T text="Exams and school calendar"/></a>{calendarError&&<p role="alert"><T text="Unable to load the calendar."/></p>}{calendar&&<CalendarView data={calendar}/>}</div><StudentChanges changes={data.changes||[]}/><section className="print:hidden"><h2 className="text-2xl font-bold"><T text="Assignments"/></h2>{data.assignments?.map((a:{id:string;title:string;description:string;due_at:string;attachment_url:string|null;subject:string;teacher:string;online_submission:boolean;submission_status:string},i:number)=><article key={i} className="my-3 rounded border p-4"><h3 className="font-semibold">{a.title}</h3><p><T text="Subject"/>: {a.subject||"—"} · <T text="Teacher"/>: {a.teacher||"—"}</p><p className="whitespace-pre-wrap">{a.description}</p><p>{a.due_at?schoolDate(a.due_at):''}</p>{a.attachment_url && <a href={`/student/attachment/${a.id}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline"><T text="Open attachment ↗"/></a>}<p>{a.submission_status==='received'?'Devoir remis':a.submission_status==='missing'?'Non remis':'En attente'}</p>{a.online_submission&&a.due_at&&new Date(a.due_at).getTime()>=Date.now()&&<SubmissionForm id={a.id}/>}</article>)}{!data.assignments?.length && <p><T text="No current assignments."/></p>}</section></main>
+ const db=await createClient()
+ const {data,error}=await db.rpc('student_portal_overview',{p_token:token})
+ if(error||!data?.student)redirect('/student/login')
+ const [calendarResult,arrivalResult]=await Promise.all([
+  db.rpc('school_calendar',{p_token:token}),
+  db.rpc('student_home_arrival_status',{p_token:token}),
+ ])
+ const grades=(data.grades||[]).map((g:{[key:string]:unknown})=>({...g,student_id:data.student.id}))
+ return <main className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6 lg:p-8">
+  <header className="flex flex-wrap items-center justify-between gap-4 print:hidden"><div><p className="text-sm font-semibold uppercase tracking-wide text-blue-700">AtechOS</p><h1 className="text-3xl font-bold tracking-tight"><T text="Student portal"/></h1><p className="mt-1 max-w-2xl text-sm text-slate-600">Les bulletins apparaissent après publication par la direction. Si aucun bulletin ne s’affiche, demandez à la direction de publier la période.</p></div><form action={studentLogout}><button className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-semibold shadow-sm"><T text="Logout"/></button></form></header>
+  <StudentDashboard student={data.student} grades={grades} attendance={data.attendance||[]} periods={data.periods||[]} report={data.report} qr={data.badge_qr} calendar={calendarResult.error?null:calendarResult.data as CalendarData} calendarError={Boolean(calendarResult.error)} homeArrival={arrivalResult.error?null:arrivalResult.data||null} changes={data.changes||[]} assignments={data.assignments||[]}/>
+ </main>
 }

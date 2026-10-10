@@ -60,9 +60,11 @@ on:
       - "supabase/migrations/20261008134043_family_validated_payment_timeline.sql"
       - "supabase/migrations/20261009100000_finance_payment_receipts_signatures.sql"
       - "supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql"
+      - "supabase/migrations/20261009150000_student_dashboard_scope.sql"
       - "supabase/migrations/20261009110000_direction_member_receipt_signatures.sql"
       - "supabase/migrations/20261009133000_editable_receipt_signature_name.sql"
       - "supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql"
+      - "supabase/migrations/20261009150000_student_dashboard_scope.sql"
       - "supabase/migrations/20261008171500_teacher_exam_submissions.sql"
       - "supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql"
       - "supabase/ci-exam-submissions/**"
@@ -219,6 +221,7 @@ jobs:
           cp supabase/migrations/20261009110000_direction_member_receipt_signatures.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009133000_editable_receipt_signature_name.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261009150000_student_dashboard_scope.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

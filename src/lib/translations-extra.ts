@@ -1,4 +1,8 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Devoir remis':['Devoir remis','Devwa remèt'],
+ 'Non remis':['Non remis','Poko remèt'],
+ 'En attente':['En attente','An atant'],
+
  'No class is included in this exam period.':['Aucune classe n’est rattachée à cette période d’examen.','Pa gen klas ki nan peryòd egzamen sa.'],
  'Choose a teacher first to list their classes':['Choisissez d’abord un enseignant pour afficher ses classes.','Chwazi pwofesè a anvan pou wè klas li yo.'],
  'No available appointment times remain before the deadline. Contact the school office.':['Aucun créneau de rendez-vous n’est disponible avant la date limite. Contactez le secrétariat.','Pa gen lè randevou ki rete anvan dat limit la. Kontakte biwo lekòl la.'],

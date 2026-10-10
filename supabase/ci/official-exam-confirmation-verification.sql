@@ -18,6 +18,7 @@ language sql stable security definer set search_path='' as $$
   jsonb_build_object('student',jsonb_build_object('id','81000000-0000-0000-0000-000000000001'))
  else null end
 $$;
+grant execute on function public.student_device_data(text) to authenticated;
 
 insert into public.schools(id,name) values
  ('71000000-0000-0000-0000-000000000011','Synthetic first school'),
@@ -52,6 +53,8 @@ insert into public.exam_schedule(id,school_id,class_id,subject_id,period_id,star
 insert into public.students(id,school_id,first_name,last_name) values
  ('81000000-0000-0000-0000-000000000001','71000000-0000-0000-0000-000000000011','Synthetic','Student One'),
  ('81000000-0000-0000-0000-000000000002','71000000-0000-0000-0000-000000000012','Synthetic','Student Two');
+insert into private.student_sessions(token_hash,student_id,expires_at) values
+ (encode(extensions.digest('synthetic-student-token','sha256'),'hex'),'81000000-0000-0000-0000-000000000001',now()+interval '1 hour');
 insert into public.enrollments(id,school_id,student_id,class_id,status) values
  ('82000000-0000-0000-0000-000000000001','71000000-0000-0000-0000-000000000011','81000000-0000-0000-0000-000000000001','74000000-0000-0000-0000-000000000011','active'),
  ('82000000-0000-0000-0000-000000000002','71000000-0000-0000-0000-000000000012','81000000-0000-0000-0000-000000000002','74000000-0000-0000-0000-000000000012','active');
@@ -129,8 +132,13 @@ do $$ begin
  if public.school_calendar('81000000-0000-0000-0000-000000000001')->'official_exam_dates'->0->>'confirmed_by_name' is not null then raise exception 'family calendar leaked internal actor attribution'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','',true);
-do $$ begin
- if jsonb_array_length(public.school_calendar(null,'synthetic-student-token')->'official_exam_dates')<>1 then raise exception 'student portal did not receive confirmed date'; end if;
+do $$ declare student_calendar jsonb; begin
+ if public.student_device_data('synthetic-student-token') is null then raise exception 'synthetic student token fixture returned no student'; end if;
+ student_calendar:=public.school_calendar(null,'synthetic-student-token');
+ if jsonb_array_length(student_calendar->'official_exam_dates')<>1 then raise exception 'student portal did not receive confirmed date'; end if;
+ if student_calendar->>'school_scope_id'<>'71000000-0000-0000-0000-000000000011' then raise exception 'student calendar exposed incorrect school scope'; end if;
+ perform set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000011',true);
+ if public.school_calendar()->>'school_scope_id' is not null then raise exception 'non-student calendar exposed student scope'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','72000000-0000-0000-0000-000000000014',true);
 do $$ begin

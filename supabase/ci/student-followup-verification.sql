@@ -39,7 +39,7 @@ update public.classes set grade_level='PS1' where id='fb200000-0000-0000-0000-00
 update public.classes set grade_level='NS1' where id='fb200000-0000-0000-0000-000000000002';
 
 do $$
-declare sanction_type uuid; portal_sanction_type uuid; portal_sanction_id uuid; contact_id uuid; contact2_id uuid; release_id uuid; release2_id uuid; relocation_id uuid; pickup_authorization uuid; kiosk_badge uuid; sanction_id uuid; workspace jsonb; family_sanctions jsonb; denied boolean; kiosk jsonb; home jsonb; protocol jsonb; family_relocation jsonb; student_token text:='home-arrival-ci-token-00000000000000000000000000000000';
+declare sanction_type uuid; portal_sanction_type uuid; portal_sanction_id uuid; contact_id uuid; contact2_id uuid; release_id uuid; release2_id uuid; relocation_id uuid; pickup_authorization uuid; kiosk_badge uuid; sanction_id uuid; workspace jsonb; family_sanctions jsonb; denied boolean; kiosk jsonb; home jsonb; protocol jsonb; family_relocation jsonb; school_day date:=((now() at time zone 'America/Port-au-Prince')::date-((extract(isodow from (now() at time zone 'America/Port-au-Prince')::date)::integer+2)%7)); student_token text:='home-arrival-ci-token-00000000000000000000000000000000';
 begin
  if not (select relrowsecurity from pg_class where oid='public.student_sanctions'::regclass)
     or has_table_privilege('authenticated','public.student_sanctions','SELECT')
@@ -243,11 +243,18 @@ begin
  where student_id='fb400000-0000-0000-0000-000000000001' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date;
  update public.attendance set status='present',check_in_at=now()-interval '1 hour',check_out_at=null,direction_only=false
  where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date;
+  -- Use the most recent Friday for the school-day-only collective workflow.
+  -- The rest of this integration fixture intentionally models today's KIOS scans.
+  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,direction_only)
+  values
+   ('fb000000-0000-0000-0000-000000000001','fb400000-0000-0000-0000-000000000001','fb200000-0000-0000-0000-000000000001',school_day,'present',school_day::timestamptz,true),
+   ('fb000000-0000-0000-0000-000000000001','fb400000-0000-0000-0000-000000000002','fb200000-0000-0000-0000-000000000001',school_day,'present',school_day::timestamptz,false)
+  on conflict(student_id,attendance_date) do update set status=excluded.status,check_in_at=excluded.check_in_at,check_out_at=null,direction_only=excluded.direction_only;
  portal_sanction_type:=public.save_student_sanction_type(null,'Collective test',true,'none',null);
- kiosk:=public.student_followup_class_attendees('fb200000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date);
+  kiosk:=public.student_followup_class_attendees('fb200000-0000-0000-0000-000000000001',school_day);
  if jsonb_array_length(kiosk)<>1 or kiosk->0->>'id'<>'fb400000-0000-0000-0000-000000000002' then raise exception 'class preview included Direction-only student: %',kiosk;end if;
- kiosk:=public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Collective class follow-up',now()-interval '20 minutes',array['fb400000-0000-0000-0000-000000000002'::uuid]);
- denied:=false;begin perform public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Stale roster test',now()-interval '20 minutes',array['fb400000-0000-0000-0000-000000000001'::uuid,'fb400000-0000-0000-0000-000000000002'::uuid]);exception when others then denied:=sqlerrm='class_attendance_changed';end;
+  kiosk:=public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Collective class follow-up',school_day::timestamp at time zone 'America/Port-au-Prince',array['fb400000-0000-0000-0000-000000000002'::uuid]);
+  denied:=false;begin perform public.create_class_student_sanctions('fb200000-0000-0000-0000-000000000001',portal_sanction_type,'Stale roster test',school_day::timestamp at time zone 'America/Port-au-Prince',array['fb400000-0000-0000-0000-000000000001'::uuid,'fb400000-0000-0000-0000-000000000002'::uuid]);exception when others then denied:=sqlerrm='class_attendance_changed';end;
  if not denied then raise exception 'stale class preview was accepted';end if;
  if kiosk->>'created_count'<>'1' or not exists(select 1 from public.student_sanctions where student_id='fb400000-0000-0000-0000-000000000002' and reason='Collective class follow-up')
    or exists(select 1 from public.student_sanctions where student_id='fb400000-0000-0000-0000-000000000001' and reason='Collective class follow-up') then raise exception 'collective class target was incorrect: %',kiosk;end if;
@@ -274,6 +281,15 @@ begin
  update public.student_sanctions set parent_meeting_at=now() where id=portal_sanction_id;
  update public.attendance set status='absent',check_in_at=null,check_out_at=null,direction_only=false
  where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date;
+ -- The runner may execute this workflow on a weekend. Emulate a valid school
+ -- day only for the current-day KIOS meeting branch; the actual school-day
+ -- helper was already exercised above with the most recent Friday fixture.
+ create or replace function private.guard_school_day(p_school uuid,p_day date)
+ returns boolean language sql stable security definer set search_path=''
+ as $meeting_school_day$ select p_school='fb000000-0000-0000-0000-000000000001'::uuid
+   and (extract(isodow from p_day) between 1 and 5 or p_day=(now() at time zone 'America/Port-au-Prince')::date)
+   and exists(select 1 from public.academic_years y where y.school_id=p_school and y.is_current and p_day between y.start_date and y.end_date)
+   and not exists(select 1 from public.school_closures c where c.school_id=p_school and c.day=p_day) $meeting_school_day$;
  kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
  if kiosk->>'action'<>'check_in' or kiosk->>'direction_only'<>'true'
    or not exists(select 1 from public.attendance where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date and direction_only) then raise exception 'meeting KIOS check-in was not Direction-only: %',kiosk;end if;

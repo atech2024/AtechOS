@@ -1,6 +1,6 @@
 'use client'
 
-import {useMemo,useState} from 'react'
+import {useEffect,useMemo,useState} from 'react'
 import {BarChart3,CalendarDays,ChevronRight,Clock3,Download,FileText,GraduationCap,Plus,RotateCcw,Wallet} from 'lucide-react'
 import {T,useLocale} from '@/components/translation-provider'
 import {translate} from '@/lib/translations'
@@ -13,6 +13,9 @@ type Props={
   paid:number
   balance:number
   pending:number
+  pendingPayments:{id:string;student_name:string;charge_description:string;class_name:string;amount:number;currency_code:string;recorded_at:string}[]
+  brhRate:{date:string;rate:number;source_url?:string}|null
+  latestBrhDate:string|null
   validatedCount:number
   charges:FinanceDashboardCharge[]
   payments:FinanceDashboardPayment[]
@@ -37,6 +40,15 @@ function date(value:string,locale:string,withTime=false){
   if(Number.isNaN(parsed.getTime()))return value
   return new Intl.DateTimeFormat(locale==='fr'?'fr-HT':locale==='ht'?'ht-HT':'en-US',{dateStyle:'medium',...(withTime?{timeStyle:'short' as const}:{}),timeZone:'America/Port-au-Prince'}).format(parsed)
 }
+function elapsedSince(value:string,locale:string,now:number){
+  const timestamp=new Date(value).getTime()
+  if(!Number.isFinite(timestamp))return value
+  const minutes=Math.max(0,Math.floor((now-timestamp)/60000))
+  if(minutes<1)return locale==='fr'?'À l’instant':locale==='ht'?'Kounye a':'Just now'
+  const amount=minutes<60?minutes:minutes<1440?Math.floor(minutes/60):Math.floor(minutes/1440)
+  const unit=minutes<60?(locale==='fr'?'min':locale==='ht'?'min':'min'):minutes<1440?(locale==='fr'?'h':locale==='ht'?'èdtan':'hr'):(locale==='fr'?'j':locale==='ht'?'jou':'days')
+  return amount+' '+unit
+}
 function safeCsv(value:unknown){
   const text=String(value??'')
   return `"${(/^[=+\-@]/.test(text)?`'${text}`:text).replace(/"/g,'""')}"`
@@ -49,6 +61,8 @@ function monthLabel(value:string,locale:string,style:Intl.DateTimeFormatOptions[
 export default function AccountingDashboard(props:Props){
   const locale=useLocale()
   const [month,setMonth]=useState(currentMonth())
+  const [now,setNow]=useState(0)
+  useEffect(()=>{setNow(Date.now());const timer=window.setInterval(()=>setNow(Date.now()),60_000);return()=>window.clearInterval(timer)},[])
   const activeClassName=props.classes.find(item=>item.id===props.classId)?.name
   const visiblePayments=useMemo(()=>props.payments.filter(payment=>!activeClassName||payment.class_name===activeClassName),[props.payments,activeClassName])
   const monthPayments=useMemo(()=>visiblePayments.filter(payment=>financePaymentMonth(payment.paid_at)===month),[visiblePayments,month])
@@ -114,6 +128,31 @@ export default function AccountingDashboard(props:Props){
       <p className="w-full text-xs text-slate-500"><T text="Summary cards cover the school year; details follow the selected class."/></p>
     </div>
 
+    <section className="grid gap-4 xl:grid-cols-[1.25fr_1fr]">
+      <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3"><h3 className="font-bold"><T text="Quick actions"/></h3></div>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">{[
+          {label:'Add a payment',icon:Plus,onClick:undefined,tab:'payments' as const,color:'border-blue-200 bg-blue-50 text-blue-800'},
+          {label:'Create a fee plan',icon:FileText,onClick:undefined,tab:'plans' as const,color:'border-emerald-200 bg-emerald-50 text-emerald-800'},
+          {label:'Scholarships and discounts',icon:GraduationCap,onClick:undefined,tab:'adjustments' as const,color:'border-violet-200 bg-violet-50 text-violet-800'},
+          {label:'Record a refund',icon:RotateCcw,onClick:undefined,tab:'payments' as const,color:'border-orange-200 bg-orange-50 text-orange-800'},
+          {label:'Export financial report',icon:BarChart3,tab:undefined,onClick:()=>exportCsv(),color:'border-amber-200 bg-amber-50 text-amber-800'}
+        ].map(action=><button key={action.label} type="button" onClick={()=>action.tab?props.onNavigate(action.tab):action.onClick?.()} className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center text-xs font-semibold hover:shadow-sm ${action.color}`}><action.icon className="size-6"/><T text={action.label}/></button>)}</div>
+        <p className="mt-3 text-xs text-slate-500"><T text="Amounts use recorded fee and payment data."/></p>
+      </article>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+        <article className="rounded-2xl border border-blue-200 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3"><div><h3 className="font-bold text-slate-950">{locale==='fr'?'Taux BRH du jour':locale==='ht'?'To BRH pou jodi a':'Today’s BRH rate'}</h3><p className="mt-1 text-xs text-slate-500">{locale==='fr'?'Taux officiel de référence USD/HTG':locale==='ht'?'To ofisyèl USD/HTG':'Official USD/HTG reference rate'}</p></div><Wallet className="size-5 shrink-0 text-blue-700"/></div>
+          {props.brhRate?.date===haitiToday()?<><p className="mt-3 text-2xl font-extrabold tracking-tight text-slate-950">1 USD = {Number(props.brhRate.rate).toLocaleString(locale==='fr'?'fr-HT':locale==='ht'?'ht-HT':'en-US',{minimumFractionDigits:2,maximumFractionDigits:4})} HTG</p><p className="mt-1 text-xs text-emerald-700">{locale==='fr'?'Publié le':locale==='ht'?'Pibliye':'Published'} {date(props.brhRate.date,locale)}</p></>:<><p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">{locale==='fr'?'Taux du jour non disponible':locale==='ht'?'To jodi a poko disponib':'Today’s rate is not available'}</p>{props.latestBrhDate&&<p className="mt-2 text-xs text-slate-500">{locale==='fr'?'Dernier taux publié':locale==='ht'?'Dènye to pibliye':'Last published rate'}: {date(props.latestBrhDate,locale)}</p>}</>}
+          <a className="mt-2 inline-flex text-xs font-semibold text-blue-700 underline" href={props.brhRate?.source_url||'https://www.brh.ht/taux-du-jour/'} target="_blank" rel="noreferrer">BRH · {locale==='fr'?'Source officielle':locale==='ht'?'Sous ofisyèl':'Official source'}</a>
+        </article>
+        <article className="rounded-2xl border border-amber-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3"><div><h3 className="font-bold text-slate-950">{locale==='fr'?'Paiements en attente':locale==='ht'?'Peman k ap tann':'Pending payments'}</h3><p className="mt-1 text-xs text-slate-500">{props.pending} · {locale==='fr'?'à traiter':locale==='ht'?'pou trete':'to review'}</p></div><button type="button" onClick={()=>props.onNavigate('payments')} className="text-sm font-semibold text-blue-700 hover:underline">{locale==='fr'?'Voir tout':locale==='ht'?'Gade tout':'View all'}</button></div>
+          {props.pendingPayments.length>0?<ul className="mt-3 divide-y divide-amber-100">{props.pendingPayments.slice(0,3).map(payment=><li key={payment.id} className="flex items-start justify-between gap-3 py-2 first:pt-0"><div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-900">{payment.student_name}</p><p className="truncate text-xs text-slate-600">{payment.class_name} · {payment.charge_description}</p><p className="mt-1 text-xs font-semibold text-amber-800">{locale==='fr'?'En attente depuis':locale==='ht'?'Ap tann depi':'Pending for'} {elapsedSince(payment.recorded_at,locale,now)}<span className="mt-0.5 block font-normal text-slate-500">{date(payment.recorded_at,locale,true)}</span></p></div><strong className="shrink-0 text-sm text-slate-950">{money(payment.amount,payment.currency_code,locale)}</strong></li>)}</ul>:<p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{locale==='fr'?'Aucun paiement en attente.':locale==='ht'?'Pa gen peman k ap tann.':'No pending payments.'}</p>}
+        </article>
+      </div>
+    </section>
+
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {cards.map((card,index)=><article key={card.label} className="flex min-h-28 items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <span className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${card.color}`}><card.icon className="size-6"/></span>
@@ -165,22 +204,13 @@ export default function AccountingDashboard(props:Props){
       </article>
     </section>
 
-    <section className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-      <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-3"><h3 className="font-bold"><T text="Quick actions"/></h3></div>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">{[
-          {label:'Add a payment',icon:Plus,onClick:undefined,tab:'payments' as const,color:'border-blue-200 bg-blue-50 text-blue-800'},
-          {label:'Create a fee plan',icon:FileText,onClick:undefined,tab:'plans' as const,color:'border-emerald-200 bg-emerald-50 text-emerald-800'},
-          {label:'Scholarships and discounts',icon:GraduationCap,onClick:undefined,tab:'adjustments' as const,color:'border-violet-200 bg-violet-50 text-violet-800'},
-          {label:'Record a refund',icon:RotateCcw,onClick:undefined,tab:'payments' as const,color:'border-orange-200 bg-orange-50 text-orange-800'},
-          {label:'Export financial report',icon:BarChart3,tab:undefined,onClick:()=>exportCsv(),color:'border-amber-200 bg-amber-50 text-amber-800'}
-        ].map(action=><button key={action.label} type="button" onClick={()=>action.tab?props.onNavigate(action.tab):action.onClick?.()} className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center text-xs font-semibold hover:shadow-sm ${action.color}`}><action.icon className="size-6"/><T text={action.label}/></button>)}</div>
-        <p className="mt-3 text-xs text-slate-500"><T text="Amounts use recorded fee and payment data."/></p>
-      </article>
+    <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
       <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between"><h3 className="font-bold"><T text="Upcoming installments"/></h3><button type="button" onClick={()=>props.onNavigate('plans')} className="text-sm font-semibold text-blue-700 hover:underline"><T text="View all"/></button></div>
         <div className="mt-2 overflow-x-auto"><table className="min-w-[540px] w-full text-left text-xs"><thead className="border-y border-slate-100 text-slate-600"><tr>{['Date','Fee','Student','Amount'].map(label=><th key={label} className="px-3 py-2"><T text={label}/></th>)}</tr></thead><tbody className="divide-y divide-slate-100">{upcoming.map(charge=><tr key={charge.id}><td className="whitespace-nowrap px-3 py-2">{date(charge.due_date,locale)}</td><td className="px-3 py-2">{charge.description}</td><td className="px-3 py-2">{charge.student_name}</td><td className="whitespace-nowrap px-3 py-2">{money(Math.max(0,Number(charge.amount)-Number(charge.adjusted_amount)-Number(charge.paid_amount)),charge.currency_code,locale)}</td></tr>)}</tbody></table>{upcoming.length===0&&<p className="p-4 text-sm text-slate-500"><T text="No upcoming installments."/></p>}</div>
       </article>
     </section>
+
+
   </div>
 }

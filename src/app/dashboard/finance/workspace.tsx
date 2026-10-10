@@ -12,6 +12,7 @@ import { convertedPaymentValue } from '@/lib/finance-display'
 import FinancePaymentMethodSettings from '@/components/finance-payment-method-settings'
 import {FinancePaymentReceiptButton,FinanceReceiptSignatureSettings} from '@/components/finance-payment-receipt'
 import AccountingDashboard from '@/components/accounting-dashboard'
+import FinanceDepartureRefundPanel from '@/components/finance-departure-refund'
 import {EMPTY_FINANCE_PAYMENT_METHODS,FINANCE_PAYMENT_METHODS,type FinancePaymentMethods} from '@/lib/finance-payment-methods'
 
 type Year = { id: string; name: string; start_date: string; end_date: string; is_current: boolean }
@@ -37,9 +38,10 @@ const isDigitalPaymentMethod = (value:string) => ['moncash','natcash','paypal','
 function financeErrorMessage(cause: unknown, locale: string) {
   const code = cause && typeof cause === 'object' && 'code' in cause ? String(cause.code) : ''
   const message = typeof cause === 'string' ? cause : cause instanceof Error ? cause.message : ''
-  const known = new Set(['payment_reference_required','not_authorized','invalid_payment','charge_not_found','payment_not_pending','payment_proof_required','payment_exceeds_balance','overpayment_only_allowed_for_entry_fees','payment_balance_conflict','proof_unavailable','finance_workspace_empty','not_authenticated','payment_method_disabled','payment_destination_required','brh_rate_unavailable','payment_currency_mismatch','payment_method_limit_exceeded','finance_reviewer_signature_required'])
+  const known = new Set(['refund_window_expired','payment_reference_required','not_authorized','invalid_payment','charge_not_found','payment_not_pending','payment_proof_required','payment_exceeds_balance','overpayment_only_allowed_for_entry_fees','payment_balance_conflict','proof_unavailable','finance_workspace_empty','not_authenticated','payment_method_disabled','payment_destination_required','brh_rate_unavailable','payment_currency_mismatch','payment_method_limit_exceeded','finance_reviewer_signature_required'])
   const key = known.has(message) ? message : known.has(code) ? code : 'finance_action_failed'
   const labels: Record<string, [string,string,string]> = {
+    refund_window_expired: ['The 15-day refund window has ended. Refunds after that require an official school departure.','Le délai de remboursement de 15 jours est dépassé. Après ce délai, l’élève doit être officiellement déclaré sortant.','Delè ranbousman 15 jou a fini. Apre sa, fòk lekòl la anrejistre elèv la kòm li kite lekòl la.'],
     payment_reference_required: ['Add the transaction reference for this digital payment.','Saisissez la référence de cette transaction numérique.','Antre referans tranzaksyon dijital sa a.'],
     payment_method_disabled: ['This payment method is not enabled by the school.','Ce moyen de paiement n’est pas activé par l’école.','Lekòl la pa aktive metòd peman sa a.'],
     payment_destination_required: ['The school must complete the receiving account details first.','L’école doit d’abord compléter les coordonnées de réception.','Lekòl la dwe ranpli enfòmasyon kont k ap resevwa lajan an anvan.'],
@@ -82,7 +84,7 @@ function adjustmentLabel(type: string) {
   return labels[type] || type
 }
 
-export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: { schoolId: string; initialTab?: 'overview' | 'plans' | 'payments' | 'adjustments' | 'history' | 'settings' }) {
+export default function FinanceWorkspace({ schoolId, initialTab = 'overview', canRefreshBrhRate = false }: { schoolId: string; initialTab?: 'overview' | 'plans' | 'payments' | 'adjustments' | 'history' | 'settings'; canRefreshBrhRate?: boolean }) {
   const locale = useLocale()
   const db = useMemo(() => createClient(), [])
   const [data, setData] = useState(blank)
@@ -130,27 +132,36 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
   const [restrictBulletins, setRestrictBulletins] = useState(false)
   const [configuredMethods,setConfiguredMethods] = useState<FinancePaymentMethods>(EMPTY_FINANCE_PAYMENT_METHODS)
   const [brhRateAvailable,setBrhRateAvailable] = useState(false)
+  const [brhRate,setBrhRate] = useState<{date:string;rate:number;source_url?:string}|null>(null)
+  const [latestBrhDate,setLatestBrhDate] = useState<string|null>(null)
+  const [pendingPayments,setPendingPayments] = useState<Payment[]>([])
   const loadSequence = useRef(0)
 
   const load = useCallback(async () => {
     const sequence = ++loadSequence.current
     setError('')
     try {
-      const [workspaceResult, optionsResult] = await Promise.all([
+      const [workspaceResult, optionsResult, pendingResult] = await Promise.all([
         db.rpc('finance_workspace', { p_academic_year_id: yearId || null, p_class_id: classId || null }),
         db.rpc('finance_payment_options', { p_academic_year_id: yearId || null, p_class_id: classId || null }),
+        db.rpc('finance_payment_ledger', { p_academic_year_id: yearId || null, p_class_id: classId || null, p_status: 'pending', p_search: null, p_offset: 0, p_limit: 5 }),
       ])
       if (workspaceResult.error) throw workspaceResult.error
       if (optionsResult.error) throw optionsResult.error
+      if (pendingResult.error) throw pendingResult.error
       const result = workspaceResult.data
       if (sequence !== loadSequence.current) return
       const next = (Array.isArray(result) ? result[0] : result) as WorkspaceData | null
       if (!next) throw new Error('finance_workspace_empty')
       const {data:paymentSetup,error:setupError}=await db.rpc('finance_payment_setup')
       if(setupError)throw setupError
-      const setup=(Array.isArray(paymentSetup)?paymentSetup[0]:paymentSetup) as {payment_methods?:FinancePaymentMethods;brh_rate?:{date:string;rate:number}|null}|null
+      const setup=(Array.isArray(paymentSetup)?paymentSetup[0]:paymentSetup) as {payment_methods?:FinancePaymentMethods;brh_rate?:{date:string;rate:number;source_url?:string}|null;latest_brh_date?:string|null}|null
+      const pendingPage=(Array.isArray(pendingResult.data)?pendingResult.data[0]:pendingResult.data) as {items?:Payment[]}|null
       setConfiguredMethods({...EMPTY_FINANCE_PAYMENT_METHODS,...setup?.payment_methods})
-      setBrhRateAvailable(Boolean(setup?.brh_rate))
+      setBrhRateAvailable(setup?.brh_rate?.date===haitiToday())
+      setBrhRate(setup?.brh_rate||null)
+      setLatestBrhDate(setup?.latest_brh_date||null)
+      setPendingPayments(pendingPage?.items||[])
       setData(current => ({ ...blank, ...next, payments: initialTab === 'payments' ? current.payments : next.payments }))
       const options = optionsResult.data as { items?: Charge[] } | null
       setPaymentOptions(options?.items || [])
@@ -337,7 +348,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
     {!data.settings && <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><strong><T text="Set up Finance before creating fees."/></strong><p className="mt-1"><T text="A school manager must choose a currency before fee plans and payments can be recorded."/></p></section>}
 
     <nav aria-label="Finance sections" className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-      {activeTab('overview','Overview')}{activeTab('plans','Fee plans')}{routeTab('payments','Payments','/dashboard/finance/payments')}{activeTab('adjustments','Scholarships & clearances')}{activeTab('history','Audit history')}{routeTab('settings','Finance settings','/dashboard/finance/settings')}
+      {activeTab('overview','Overview')}{activeTab('plans','Fee plans')}{routeTab('payments','Payments','/dashboard/finance/payments')}{activeTab('adjustments','Scholarships & clearances')}{activeTab('history','Audit history')}
     </nav>
 
     {tab === 'overview' && <AccountingDashboard
@@ -345,6 +356,9 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
       paid={totalPaid}
       balance={totalBalance}
       pending={data.summary.pending_payments}
+      pendingPayments={pendingPayments}
+      brhRate={brhRate}
+      latestBrhDate={latestBrhDate}
       validatedCount={data.summary.validated_payment_count}
       charges={selectedCharges}
       payments={data.payments}
@@ -369,7 +383,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
       <section className={`${cardClass} space-y-3`}><h2 className="text-lg font-semibold"><T text="Fee plans"/></h2>{data.plans.filter(plan=>!yearId||plan.academic_year_id===yearId).map(plan=><article key={plan.id} className="rounded-xl border border-slate-200 p-4"><div className="flex flex-wrap justify-between gap-2"><div><p className="font-semibold">{plan.label}</p><p className="mt-1 text-sm text-slate-600">{plan.class_name} · {plan.academic_year_name} · <T text={feeLabel(plan.fee_type)}/></p></div>{data.can_manage&&<button disabled={saving||!plan.active} className={buttonClass} onClick={()=>void issuePlan(plan)}><T text="Generate charges"/></button>}</div><ul className="mt-3 space-y-1 text-sm">{[...plan.installments].sort((a,b)=>a.due_date.localeCompare(b.due_date)||a.installment_number-b.installment_number).map((item,index)=><li key={item.id} className="flex justify-between gap-3"><span><T text="Installment"/> {index+1} · {dateLabel(item.due_date,locale)}</span><span className="font-medium">{money(Number(item.amount),plan.currency_code,locale)}</span></li>)}</ul></article>)}{data.plans.length===0&&<p className="text-sm text-slate-500"><T text="No fee plans yet."/></p>}</section>
     </div>}
 
-    {tab === 'payments' && <><div className="mb-5">{data.can_validate&&<FinanceReceiptSignatureSettings/>}</div><div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+    {tab === 'payments' && <><div className="mb-5">{data.can_validate&&<FinanceReceiptSignatureSettings/>}</div><FinanceDepartureRefundPanel currentYearId={data.years.find(year=>year.is_current)?.id||''} canManage={data.can_manage} canRefund={data.can_validate}/><div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
       {data.can_record&&<form onSubmit={recordPayment} className={`${cardClass} space-y-4`}><div><h2 className="text-lg font-semibold"><T text="Record a payment"/></h2><p className="mt-1 text-sm text-slate-600"><T text="A recorded payment remains pending until an authorized person validates it."/></p></div>
         <label className="block text-sm"><T text="Class"/><select className={`${fieldClass} mt-1`} value={paymentClassFilter} onChange={event=>{setPaymentClassFilter(event.target.value);setChargeId('')}}><option value=""><T text="All classes"/></option>{selectedClasses.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
         <label className="block text-sm"><T text="Find student by name, AtechOS ID or class"/><input type="search" className={`${fieldClass} mt-1`} value={paymentSearch} onChange={event=>setPaymentSearch(event.target.value)} placeholder="AtechOS ID · élève · classe"/></label>
@@ -391,7 +405,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview' }: 
 
     {tab === 'history' && <section className={`${cardClass} space-y-3`}><h2 className="text-lg font-semibold"><T text="Immutable audit history"/></h2><p className="text-sm text-slate-600"><T text="Finance changes keep the actor, role, timestamp and before/after values. Audit rows cannot be edited through the app."/></p><div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="border-b text-xs uppercase text-slate-500"><tr>{['When','Actor','Role','Record','Action','Details'].map(label=><th key={label} className="px-3 py-3"><T text={label}/></th>)}</tr></thead><tbody className="divide-y">{data.audit.map(event=><tr key={event.id}><td className="px-3 py-3">{new Intl.DateTimeFormat(locale==='fr'?'fr-HT':locale==='ht'?'ht-HT':'en-US',{dateStyle:'short',timeStyle:'short',timeZone:'America/Port-au-Prince'}).format(new Date(event.occurred_at))}</td><td className="px-3 py-3">{event.actor_name||'—'}</td><td className="px-3 py-3"><T text={event.actor_role||'System'}/></td><td className="px-3 py-3">{event.entity}</td><td className="px-3 py-3"><T text={event.action}/></td><td className="max-w-md px-3 py-3"><details><summary className="cursor-pointer text-blue-700"><T text="View change"/></summary><pre className="mt-2 max-w-full overflow-auto whitespace-pre-wrap break-all rounded-lg bg-slate-50 p-2 text-xs">{JSON.stringify(event.after_data||event.before_data,null,2)}</pre></details></td></tr>)}</tbody></table>{data.audit.length===0&&<p className="p-6 text-center text-sm text-slate-500"><T text="No finance actions have been recorded."/></p>}</div></section>}
 
-    {tab === 'settings' && (data.can_manage ? <><form onSubmit={saveSettings} className={`${cardClass} grid gap-4 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]`}><div><h2 className="text-lg font-semibold"><T text="Finance settings"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Only school managers can change currency and critical finance rules. Secretaries cannot change these settings."/></p></div><div className="space-y-3"><label className="block text-sm"><T text="Currency code"/><input required minLength={3} maxLength={3} pattern="[A-Za-z]{3}" className={`${fieldClass} mt-1 uppercase`} placeholder="HTG" value={currencyCode} onChange={event=>setCurrencyCode(event.target.value.toUpperCase())}/></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={directorCanValidate} onChange={event=>setDirectorCanValidate(event.target.checked)}/><span><T text="Allow the director to validate payments."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={proofRequired} onChange={event=>setProofRequired(event.target.checked)}/><span><T text="Require proof before a payment can be validated."/></span></label><fieldset className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3"><legend className="px-1 text-sm font-semibold text-slate-900"><T text="Optional overdue-fee restrictions"/></legend><p className="text-xs text-slate-700"><T text="A restriction applies only after a fee due date has passed and the remaining balance is positive. Pending payments do not reduce the balance; approved reductions do. Restrictions are off until the school selects them."/></p><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictKiosk} onChange={event=>setRestrictKiosk(event.target.checked)}/><span><T text="Block student KIOS check-in for an overdue balance."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictExams} onChange={event=>setRestrictExams(event.target.checked)}/><span><T text="Hide published exam schedules in the student and parent portals for an overdue balance."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictBulletins} onChange={event=>setRestrictBulletins(event.target.checked)}/><span><T text="Hide current-year bulletins in the student and parent portals for an overdue balance; prior-year bulletins remain available."/></span></label></fieldset><button disabled={saving} className={buttonClass}><T text="Save finance settings"/></button></div></form><FinancePaymentMethodSettings onRateStatus={setBrhRateAvailable}/></> : <section className={cardClass}><p className="text-sm text-slate-600"><T text="Only school managers can change finance settings."/></p></section>)}
+    {tab === 'settings' && <>{data.can_manage && <><form onSubmit={saveSettings} className={`${cardClass} grid gap-4 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]`}><div><h2 className="text-lg font-semibold"><T text="Finance settings"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Only school managers can change currency and critical finance rules. Secretaries cannot change these settings."/></p></div><div className="space-y-3"><label className="block text-sm"><T text="Currency code"/><input required minLength={3} maxLength={3} pattern="[A-Za-z]{3}" className={`${fieldClass} mt-1 uppercase`} placeholder="HTG" value={currencyCode} onChange={event=>setCurrencyCode(event.target.value.toUpperCase())}/></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={directorCanValidate} onChange={event=>setDirectorCanValidate(event.target.checked)}/><span><T text="Allow the director to validate payments."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={proofRequired} onChange={event=>setProofRequired(event.target.checked)}/><span><T text="Require proof before a payment can be validated."/></span></label><fieldset className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3"><legend className="px-1 text-sm font-semibold text-slate-900"><T text="Optional overdue-fee restrictions"/></legend><p className="text-xs text-slate-700"><T text="A restriction applies only after a fee due date has passed and the remaining balance is positive. Pending payments do not reduce the balance; approved reductions do. Restrictions are off until the school selects them."/></p><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictKiosk} onChange={event=>setRestrictKiosk(event.target.checked)}/><span><T text="Block student KIOS check-in for an overdue balance."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictExams} onChange={event=>setRestrictExams(event.target.checked)}/><span><T text="Hide published exam schedules in the student and parent portals for an overdue balance."/></span></label><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={restrictBulletins} onChange={event=>setRestrictBulletins(event.target.checked)}/><span><T text="Hide current-year bulletins in the student and parent portals for an overdue balance; prior-year bulletins remain available."/></span></label></fieldset><button disabled={saving} className={buttonClass}><T text="Save finance settings"/></button></div></form></>}{(data.can_manage||canRefreshBrhRate)&&<FinancePaymentMethodSettings canManage={data.can_manage} canRefreshRate={canRefreshBrhRate||data.can_manage} onRateStatus={(rate,date)=>{setBrhRate(rate);setLatestBrhDate(date);setBrhRateAvailable(rate?.date===haitiToday())}}/ >}{!data.can_manage&&!canRefreshBrhRate&&<section className={cardClass}><p className="text-sm text-slate-600"><T text="Only school managers can change finance settings."/></p></section>}</>}
 
   </main>
 }

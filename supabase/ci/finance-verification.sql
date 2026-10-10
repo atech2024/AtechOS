@@ -72,6 +72,8 @@ begin
   insert into public.finance_charges(school_id,student_id,academic_year_id,class_id,fee_plan_id,fee_installment_id,description,amount,currency_code,due_date,created_by)
   values('fa000000-0000-0000-0000-000000000001','fa400000-0000-0000-0000-000000000002','fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001',plan_id,future_installment,'Future installment',200,'HTG','2027-01-15','fa300000-0000-0000-0000-000000000002') returning id into future_charge;
 
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  perform public.save_finance_payment_methods('{"moncash":{"enabled":true,"account_name":"Finance CI","phone":"50900000000","max_htg":100000},"natcash":{"enabled":true,"account_name":"Finance CI","phone":"50900000001","max_htg":100000}}'::jsonb);
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000003',true);
   denied:=false;
   begin perform public.save_finance_payment_methods('{}'::jsonb); exception when others then denied:=sqlerrm='not_authorized'; end;
@@ -82,6 +84,9 @@ begin
   denied:=false;
   begin perform public.record_finance_payment(charge_id,5,'NatCash','CI-MISSING-PROOF',null,'2026-09-01 12:00:00-04'); exception when others then denied:=sqlerrm='payment_proof_required'; end;
   if not denied then raise exception 'staff digital payment without proof was accepted'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  perform public.save_finance_payment_methods('{}'::jsonb);
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000003',true);
   payment_id:=public.record_finance_payment(charge_id,50,'Cash','CI-PARTIAL-1',null,'2026-09-01 12:00:00-04');
   denied:=false;
   begin perform public.review_finance_payment(payment_id,'validated',null); exception when others then denied:=sqlerrm='not_authorized'; end;
@@ -91,7 +96,7 @@ begin
   if not denied then raise exception 'secretary refunded a payment'; end if;
   class_overpayment_id:=public.record_finance_payment(class_charge_id,11,'Cash','CI-CLASS-OVERPAY',null,'2026-09-01 12:00:00-04');
   if not exists(select 1 from public.finance_payments where id=class_overpayment_id and applied_amount=10 and amount=11) then raise exception 'ordinary class-fee overpayment was not split into applied amount and student credit'; end if;
-  credit_payment_id:=public.record_finance_payment(entry_charge_id,45,'Cash','CI-ENTRY-OVERPAY',null,'2026-09-01 12:00:00-04');
+  credit_payment_id:=public.record_finance_payment(entry_charge_id,45,'Cash','CI-ENTRY-OVERPAY',null,now()-interval '1 day');
   if (select applied_amount from public.finance_payments where id=credit_payment_id)<>25 then raise exception 'entry overpayment was not split into charge payment and student credit'; end if;
   second_payment_id:=public.record_finance_payment(second_entry_charge_id,300,'Cash','CI-UNAPPLIED-CREDIT',null,'2026-09-01 12:00:00-04');
   select id into payment_id from public.finance_payments where reference='CI-PARTIAL-1';
@@ -101,6 +106,8 @@ begin
   begin perform public.review_finance_payment(payment_id,'validated',null); exception when others then denied:=sqlerrm='not_authorized'; end;
   if not denied then raise exception 'director validated a payment without school setting'; end if;
 
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000002',true);
+  perform public.save_finance_receipt_signature(7::smallint,'Finance Administrator');
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
   denied:=false;
   begin perform public.review_finance_payment(credit_payment_id,'validated',null); exception when others then denied:=sqlerrm='finance_reviewer_signature_required'; end;
@@ -111,6 +118,8 @@ begin
   receipt:=public.finance_payment_receipt(class_overpayment_id);
   if receipt->'reviewer'->>'name'<>'Finance Accountant' or receipt->'reviewer'->>'role'<>'accountant' or (receipt->'reviewer'->>'signature_style')::integer<>2 then raise exception 'receipt did not preserve the approving accountant and approved signature'; end if;
   if receipt->'payment'->>'payment_method'<>'Cash' or receipt->'payment'->>'currency_code'<>'HTG' or receipt->'current_installment'->>'remaining' is null then raise exception 'receipt omitted payment details or current installment balance'; end if;
+  if receipt->'student'->>'atechos_id'<>'AOS-FINANCE-CI' or receipt->'school_admin_signature'->>'name'<>'Finance Administrator' or (receipt->'school_admin_signature'->>'style_id')::integer<>7 then raise exception 'receipt omitted the school administrator signature or AtechOS student ID'; end if;
+  if not (receipt->'payment' ? 'exchange_rate_snapshot') or receipt->>'student_credit_remaining' is null then raise exception 'receipt omitted the remaining credit or currency snapshot field'; end if;
   if not exists(select 1 from public.finance_student_credits cr where cr.source_payment_id=class_overpayment_id and cr.student_id='fa400000-0000-0000-0000-000000000001' and cr.amount=1) then raise exception 'ordinary fee overpayment did not create student-scoped credit'; end if;
   if not exists(select 1 from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where a.credit_id=(select id from public.finance_student_credits where source_payment_id=class_overpayment_id) and c.student_id='fa400000-0000-0000-0000-000000000001') then raise exception 'ordinary fee credit was not confined to its student'; end if;
   if not exists(select 1 from public.finance_credit_allocations a join public.finance_charges c on c.id=a.charge_id where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id) and c.id=(select fc.id from public.finance_charges fc where fc.fee_plan_id=plan_id order by fc.due_date limit 1) and a.amount=20) then raise exception 'overpayment credit was not automatically applied to the next due charge'; end if;
@@ -154,7 +163,7 @@ begin
   raise notice 'Finance fixture payments %, credit records %, allocations %',(select coalesce(jsonb_agg(jsonb_build_object('charge_id',p.charge_id,'amount',p.amount,'applied',p.applied_amount,'status',p.status)), '[]'::jsonb) from public.finance_payments p where p.school_id='fa000000-0000-0000-0000-000000000001'),(select coalesce(jsonb_agg(jsonb_build_object('payment',cr.source_payment_id,'amount',cr.amount)), '[]'::jsonb) from public.finance_student_credits cr where cr.school_id='fa000000-0000-0000-0000-000000000001'),(select coalesce(jsonb_agg(jsonb_build_object('charge',a.charge_id,'amount',a.amount)), '[]'::jsonb) from public.finance_credit_allocations a where a.school_id='fa000000-0000-0000-0000-000000000001');
   if (workspace->'summary'->>'expected')::numeric<>535 or (workspace->'summary'->>'paid')::numeric<>431 or (workspace->'summary'->>'balance')::numeric<>104 then raise exception 'finance totals mismatch; got expected %, paid %, balance %', workspace->'summary'->>'expected', workspace->'summary'->>'paid', workspace->'summary'->>'balance'; end if;
   if (workspace->>'can_manage')::boolean is distinct from true or (workspace->>'can_validate')::boolean is distinct from false then raise exception 'director validation must remain disabled unless the school enables it'; end if;
-  if workspace::text ilike '%atechos_id%' or workspace::text ilike '%nis%' then raise exception 'finance workspace exposed unnecessary student identity fields'; end if;
+  if workspace::text ilike '%atechos_id%' or workspace::text ilike '%"nis":%' then raise exception 'finance workspace exposed unnecessary student identity fields'; end if;
   if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000003' and actor_role='secretary' and entity='finance_payments' and action='created') then raise exception 'payment creation audit did not retain secretary identity and role'; end if;
   if not exists(select 1 from public.finance_audit_events where school_id='fa000000-0000-0000-0000-000000000001' and actor_id='fa300000-0000-0000-0000-000000000004' and actor_role='accountant' and entity='finance_payments' and action='updated') then raise exception 'payment validation audit did not retain accountant identity and role'; end if;
 
@@ -167,6 +176,9 @@ begin
   begin perform public.refund_finance_payment(pending_payment_id,1,'Pending payments cannot be refunded'); exception when others then denied:=sqlerrm='payment_not_refundable'; end;
   if not denied then raise exception 'pending payment was refundable'; end if;
   select coalesce(sum(a.amount),0) into allocated_before from public.finance_credit_allocations a where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id);
+  denied:=false;
+  begin perform public.refund_finance_payment(payment_id,1,'Payment older than 15 days'); exception when others then denied:=sqlerrm='refund_window_expired'; end;
+  if not denied then raise exception 'active student payment outside the 15-day window was refundable'; end if;
   refund_id:=public.refund_finance_payment(credit_payment_id,15,'Partial refund from spent student credit');
   if not exists(select 1 from public.finance_payment_refunds r where r.id=refund_id and r.amount=15 and r.credit_amount=15 and r.applied_amount=0) then raise exception 'partial refund did not ledger the credit portion'; end if;
   ledger:=public.finance_payment_ledger(null,null,null,'CI-ENTRY-OVERPAY',0,50);
@@ -293,6 +305,53 @@ begin
   refund_id:=public.refund_finance_payment(cross_payment_id,2,'Partial USD refund for HTG fee');
   if not exists(select 1 from public.finance_payment_refunds r where r.id=refund_id and r.amount=2 and r.applied_amount=261.12 and r.credit_amount=0) then raise exception 'USD refund was not converted into the HTG fee currency'; end if;
   if not exists(select 1 from public.finance_payments p where p.id=cross_payment_id and p.applied_amount=1044.46) then raise exception 'USD refund did not restore the converted HTG balance'; end if;
+end $$;
+
+
+-- An old payment remains blocked for an active student, then becomes eligible
+-- only after Direction records the student's official school departure.
+do $$
+declare departure_charge_id uuid; departure_payment_id uuid; departure_view jsonb; denied boolean;
+begin
+  insert into public.students(id,school_id,first_name,last_name,atechos_id,active,school_status)
+  values('fa400000-0000-0000-0000-000000000003','fa000000-0000-0000-0000-000000000001','Departure','Student','AOS-FINANCE-DEPARTURE-CI',true,'active');
+  insert into public.finance_charges(school_id,student_id,academic_year_id,class_id,fee_plan_id,fee_installment_id,description,amount,currency_code,due_date,created_by)
+  select school_id,'fa400000-0000-0000-0000-000000000003',academic_year_id,class_id,fee_plan_id,fee_installment_id,'Departure CI fee',amount,currency_code,due_date,created_by
+  from public.finance_charges where id=(select id from public.finance_charges where student_id='fa400000-0000-0000-0000-000000000001' order by created_at limit 1)
+  returning id into departure_charge_id;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  departure_payment_id:=public.record_finance_payment(departure_charge_id,20,'Cash','CI-DEPARTURE-OLD-PAYMENT',null,now()-interval '20 days');
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
+  perform public.review_finance_payment(departure_payment_id,'validated',null);
+  denied:=false;
+  begin perform public.refund_finance_payment(departure_payment_id,5,'Expired refund period'); exception when others then denied:=sqlerrm='refund_window_expired'; end;
+  if not denied then raise exception 'old active-student refund was not blocked'; end if;
+  departure_view:=public.finance_departure_refund_workspace(null,'fa400000-0000-0000-0000-000000000003');
+  if departure_view->'student'->>'school_status'<>'active'
+    or (departure_view->'totals'->0->>'paid_amount')::numeric<>20
+    or (departure_view->'payments'->0->>'refunded_amount')::numeric<>0
+    or (departure_view->'payments'->0->>'refund_allowed')::boolean then
+    raise exception 'departure finance summary omitted active status or paid/refunded totals';
+  end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000005',true);
+  denied:=false;
+  begin perform public.finance_departure_refund_workspace(null,'fa400000-0000-0000-0000-000000000003'); exception when others then denied:=sqlerrm='not_authorized'; end;
+  if not denied then raise exception 'parent accessed finance departure/refund workspace'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  update public.students set school_status='departed',departure_year_id='fa100000-0000-0000-0000-000000000001'
+  where id='fa400000-0000-0000-0000-000000000003';
+  departure_view:=public.finance_departure_refund_workspace(null,'fa400000-0000-0000-0000-000000000003');
+  if departure_view->'student'->>'school_status'<>'departed'
+    or not (departure_view->'payments'->0->>'refund_allowed')::boolean then
+    raise exception 'official school departure did not unlock the refund exception';
+  end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
+  if public.refund_finance_payment(departure_payment_id,5,'Approved school departure refund') is null then raise exception 'school-departure refund was not recorded'; end if;
+  departure_view:=public.finance_departure_refund_workspace(null,'fa400000-0000-0000-0000-000000000003');
+  if (departure_view->'totals'->0->>'refunded_amount')::numeric<>5
+    or (departure_view->'totals'->0->>'remaining_amount')::numeric<>15 then
+    raise exception 'departure summary did not refresh paid/refunded totals';
+  end if;
 end $$;
 
 rollback;

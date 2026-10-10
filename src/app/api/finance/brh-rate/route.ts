@@ -14,7 +14,10 @@ export async function POST(request:Request){
  const {data,error}=await db.rpc('finance_payment_setup')
  if(error)return NextResponse.json({error:'finance_access_unavailable'},{status:503})
  const setup=(Array.isArray(data)?data[0]:data) as {can_manage?:boolean}|null
- if(!setup?.can_manage)return NextResponse.json({error:'not_authorized'},{status:403})
+ const {data:context,error:contextError}=await db.rpc('school_context')
+ if(contextError)return NextResponse.json({error:'finance_access_unavailable'},{status:503})
+ const roles:unknown[]=Array.isArray(context?.roles)?context.roles:[]
+ if(!setup?.can_manage&&!roles.includes('accountant'))return NextResponse.json({error:'not_authorized'},{status:403})
  try{return NextResponse.json(await refreshBrhReferenceRate())}
  catch(error){console.error('BRH rate refresh failed',error instanceof Error?error.message:'unknown error');return NextResponse.json({error:error instanceof Error?error.message:'brh_rate_refresh_failed'},{status:502})}
 }

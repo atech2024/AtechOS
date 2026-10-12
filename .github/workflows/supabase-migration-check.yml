@@ -369,7 +369,7 @@ jobs:
         if: always()
         working-directory: supabase/ci-exam-submissions
         run: supabase stop --no-backup
-grade-deadline:
+  grade-deadline:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

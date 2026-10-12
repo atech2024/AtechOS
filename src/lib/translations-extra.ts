@@ -990,4 +990,10 @@ export const extraTranslations:Record<string,[string,string]> = {
   'No teacher is assigned to this class and subject.':['Aucun enseignant n’est affecté à cette classe et à cette matière.','Pa gen pwofesè ki asiyen nan klas ak matyè sa a.'],
   'The grade deadline has passed. Contact Direction to request temporary access.':['La date limite des notes est dépassée. Contactez la Direction pour demander un accès temporaire.','Dat limit pou mete nòt la pase. Kontakte Direksyon pou mande aksè tanporè.'],
   'Max score':['Note maximale','Nòt maksimòm'],
-}
+
+ 'Edit dates':['Modifier les dates','Modifye dat yo'],
+ 'Update period':['Mettre à jour la période','Mete peryòd la ajou'],
+ 'Cancel edit':['Annuler la modification','Anile chanjman an'],
+ 'Editing period':['Modification de la période','Peryòd la ap modifye'],
+ 'Choose a period below to load its saved dates for editing.':['Choisissez une période ci-dessous pour charger ses dates et les modifier.','Chwazi peryòd anba a pou chaje dat li yo pou modifye.'],
+ 'Period dates updated.':['Dates de la période mises à jour.','Dat peryòd la mete ajou.'],}

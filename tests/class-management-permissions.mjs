@@ -11,7 +11,7 @@ assert.match(page,/getSupabase\(\)\.rpc\('school_context'\)/,'page gets authoriz
 assert.match(page,/\['school_admin', 'director', 'secretary'\]\.includes\(role\)/,'admin, director and secretary can manage classes and sections')
 assert.match(page,/\['school_admin', 'director'\]\.includes\(role\)/,'only admin and director can manage academic years')
 assert.match(page,/canManageAcademicYears && <button onClick=\{\(\) => setYearOpen\(true\)\}/,'authorized users have a reachable create academic year button')
-assert.match(page,/yearOpen && canManageAcademicYears && <Modal title="Create academic year"/,'year creation modal is role-gated')
+assert.match(page,/yearOpen && canManageAcademicYears && <Modal title=\{<T text="Create academic year"\/>\}/,'year creation modal is role-gated and localized')
 assert.match(page,/schoolDate\(y\.start_date, locale\).*schoolDate\(y\.end_date, locale\)/,'school-year dates use the localized long-date formatter')
 for(const label of ['Manage official grade levels, cycles, classes and school years.','configured grade levels','Current','Current year','No room','Grade level not set'])assert.match(baseTranslations,new RegExp(`'${label}':\\[`),`${label} has French and Haitian Creole translations`)
 assert.match(page,/canManageStructure && <button onClick=\{\(\) => setClassOpen\(true\)\}/,'class creation is hidden from roles without permission')
@@ -21,6 +21,7 @@ assert.match(foundations,/create policy config_write on public\.%I for all to au
 assert.match(foundations,/create policy classes_write on public\.classes for all to authenticated using\(private\.has_role\(school_id,array\['school_admin','director','secretary'\]\)\)/,'class writes permit admins, directors and secretaries')
 assert.match(sections,/public\.activate_school_section[\s\S]*?array\['school_admin', 'director', 'secretary'\]/i,'section activation permits admins, directors and secretaries')
 assert.ok(baseTranslations.includes("'+ Academic year':['"),'create academic year action is translated')
+for(const key of ['Activate classes','Deactivate','Create academic year','Create year','Create class','Class name','Room','Set as current academic year']) assert.ok(baseTranslations.includes(`'${key}':['`),`${key} is translated`)
 assert.ok(translations.includes("'You can view classes and school sections here, but your role cannot change them.':['"),'read-only message is translated')
 
 console.log('PASS class and academic-year controls match database role permissions; academic-year modal is reachable.')

@@ -15,4 +15,6 @@ assert.equal(legacy.sameDates,true);assert.equal(legacy.sectionDates.fundamental
 const page=readFileSync('src/app/dashboard/grading-periods/page.tsx','utf8')
 assert.ok(page.includes('onClick={()=>editPeriod(p)}')&&page.includes('setSectionDates(editor.sectionDates)'),'saved period edit action hydrates every section date')
 assert.ok(page.includes('p_section_dates:dates'),'save continues using the validated section-date RPC')
+assert.ok(page.includes('readOnly={Boolean(editingPeriodId)}'),'period code stays stable while editing the RPC-matched period')
+assert.ok(page.includes('{p.is_active&&p.academic_year_id&&p.sections.length>0'),'inactive periods cannot be edited through the activation RPC')
 console.log('PASS grading period editor: shared dates, distinct section dates, partial/legacy fallback and edit hydration')

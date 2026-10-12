@@ -996,4 +996,5 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Cancel edit':['Annuler la modification','Anile chanjman an'],
  'Editing period':['Modification de la période','Peryòd la ap modifye'],
  'Choose a period below to load its saved dates for editing.':['Choisissez une période ci-dessous pour charger ses dates et les modifier.','Chwazi peryòd anba a pou chaje dat li yo pou modifye.'],
- 'Period dates updated.':['Dates de la période mises à jour.','Dat peryòd la mete ajou.'],}
+ 'Period dates updated.':['Dates de la période mises à jour.','Dat peryòd la mete ajou.'],
+ 'Period code cannot be changed while editing.':['Le code de la période ne peut pas être modifié pendant sa modification.','Kòd peryòd la pa ka chanje pandan w ap modifye l.'],}

@@ -86,6 +86,7 @@ on:
       - "supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql"
       - "supabase/migrations/20261005210100_school_release_protocol.sql"
       - "supabase/migrations/20261009120000_student_release_direction_escort.sql"
+      - "supabase/migrations/20261012130000_sanction_departure_after_family_meeting.sql"
       - ".github/workflows/supabase-migration-check.yml"
   pull_request:
     paths:
@@ -159,6 +160,7 @@ on:
       - "supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql"
       - "supabase/migrations/20261005210100_school_release_protocol.sql"
       - "supabase/migrations/20261009120000_student_release_direction_escort.sql"
+      - "supabase/migrations/20261012130000_sanction_departure_after_family_meeting.sql"
       - ".github/workflows/supabase-migration-check.yml"
   workflow_dispatch:
 
@@ -227,6 +229,7 @@ jobs:
           cp supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261005210100_school_release_protocol.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009120000_student_release_direction_escort.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261012130000_sanction_departure_after_family_meeting.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261006142918_family_parent_finance_and_sanctions.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261006150000_sanction_student_badge_lookup.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261006185128_collective_sanctions_parent_meetings_20261006.sql supabase/ci/supabase/migrations/

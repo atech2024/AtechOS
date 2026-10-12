@@ -47,7 +47,7 @@ export default function ClassesPage() {
     if (firstError) setError(firstError.message)
     const roles = context.data?.roles || []
     const owner = Boolean(context.data?.owner)
-    setCanManageStructure(owner || roles.some((role: string) => ['school_admin', 'director', 'secretary'].includes(role)))
+    setCanManageStructure(owner || roles.some((role: string) => ['school_admin', 'director', 'secretary', 'censeur'].includes(role)))
     setCanManageAcademicYears(owner || roles.some((role: string) => ['school_admin', 'director'].includes(role)))
     setYears((y.data || []) as Year[])
     setGrades((g.data || []) as GradeLevel[])

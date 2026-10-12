@@ -30,9 +30,10 @@ assert.ok(shell.includes("placeholder={t('Search students, parents, teachers…'
 for (const key of ['Academic-year term count saved.', 'Period activated.', 'Historical control retained', 'Legacy period - no specific academic year.', 'Préscolaire', 'Primaire', 'Fondamentale · 3e cycle', 'Secondaire']) {
   assert.ok(translationKeys.has(key), `Missing translated dynamic grading-period label: ${key}`)
 }
-assert.ok(periods.includes('schoolDate(p.start_date)'))
-assert.ok(periods.includes('SchoolDateInput name="start"'))
-assert.ok(periods.includes('SchoolDateInput name="end"'))
+assert.ok(periods.includes('schoolDate(dates.start_date)'))
+assert.ok(periods.includes('SchoolDateInput required value={start}'))
+assert.ok(periods.includes('SchoolDateInput required value={end}'))
+assert.ok(periods.includes('schoolDate(revision.start_date)'))
 assert.ok(guard.includes('schoolDate(c.event_date)'))
 assert.ok(guard.includes('schoolDateTime(value)'))
 assert.ok(!guard.includes("new Intl.DateTimeFormat('fr-HT'"))

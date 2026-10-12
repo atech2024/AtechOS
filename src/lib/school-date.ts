@@ -1,3 +1,4 @@
+export function previousSchoolWeek(start:string){const day=new Date(start.slice(0,10)+'T00:00:00Z');if(!Number.isFinite(day.getTime()))throw new Error('Date invalide');const offset=(day.getUTCDay()+6)%7;day.setUTCDate(day.getUTCDate()-offset-7);const from=day.toISOString().slice(0,10);day.setUTCDate(day.getUTCDate()+4);return {start_date:from,end_date:day.toISOString().slice(0,10)}}
 export const SCHOOL_TIME_ZONE='America/Port-au-Prince'
 import type {Locale} from './i18n'
 const months:Record<Locale,string[]>={fr:['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],ht:['Janvye','Fevriye','Mas','Avril','Me','Jen','Jiyè','Out','Septanm','Oktòb','Novanm','Desanm'],en:['January','February','March','April','May','June','July','August','September','October','November','December']}

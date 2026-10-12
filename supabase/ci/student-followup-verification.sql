@@ -309,11 +309,26 @@ begin
  if jsonb_array_length(family_sanctions->'meeting_options')=0 then raise exception 'departure did not offer family meeting slots';end if;
  perform public.submit_student_sanction_meeting(portal_sanction_id,(family_sanctions->'meeting_options'->>0)::timestamptz);
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000001',true);
+ denied:=false;begin perform public.decide_student_sanction_departure(portal_sanction_id,'retained','Meeting decision attempted before scheduled time.');exception when others then denied:=sqlerrm='sanction_departure_meeting_not_held';end;
+ if not denied then raise exception 'school departure was decided before the scheduled family meeting';end if;
  denied:=false;begin perform public.resolve_student_sanction(portal_sanction_id,'Generic resolution must not bypass decision');exception when others then denied:=sqlerrm='use_departure_decision';end;
  if not denied then raise exception 'generic resolution bypassed departure decision';end if;
+
+ update public.student_sanctions set parent_meeting_at=now()-interval '5 minutes' where id=portal_sanction_id;
  perform public.decide_student_sanction_departure(portal_sanction_id,'retained','Family meeting completed; student remains enrolled.');
  if not exists(select 1 from public.student_sanctions where id=portal_sanction_id and departure_decision='retained' and status='resolved')
    or not exists(select 1 from public.students where id='fb400000-0000-0000-0000-000000000002' and school_status='active') then raise exception 'Director retention decision did not preserve active enrollment';end if;
+ portal_sanction_id:=public.create_student_sanction('fb400000-0000-0000-0000-000000000002',portal_sanction_type,'School departure confirmation test',now()-interval '5 minutes');
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000005',true);
+ family_sanctions:=public.family_student_sanctions('fb400000-0000-0000-0000-000000000002');
+ if jsonb_array_length(family_sanctions->'meeting_options')=0 then raise exception 'departure did not offer a second family meeting slot';end if;
+ perform public.submit_student_sanction_meeting(portal_sanction_id,(family_sanctions->'meeting_options'->>0)::timestamptz);
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000001',true);
+ update public.student_sanctions set parent_meeting_at=now()-interval '5 minutes' where id=portal_sanction_id;
+ perform public.decide_student_sanction_departure(portal_sanction_id,'departed','Family meeting completed; permanent departure approved.');
+ if not exists(select 1 from public.students where id='fb400000-0000-0000-0000-000000000002' and school_status='departed' and departure_year_id='fb100000-0000-0000-0000-000000000001')
+   or not exists(select 1 from public.student_sanctions where id=portal_sanction_id and departure_decision='departed' and status='resolved' and departure_decided_by='fb300000-0000-0000-0000-000000000001')
+   or not exists(select 1 from public.student_followup_events where entity_id=portal_sanction_id and action='school_departure_confirmed' and actor_id='fb300000-0000-0000-0000-000000000001') then raise exception 'Director permanent departure, current-year snapshot, or immutable audit event failed';end if;
  end $$;
 
 rollback;

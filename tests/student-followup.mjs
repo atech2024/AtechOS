@@ -43,7 +43,7 @@ assert.match(migration,/grant execute on function public\.student_followup_works
 assert.match(verification,/rollback;\s*$/i)
 assert.match(verification,/sanction_departure_meeting_not_held/)
 assert.match(verification,/Director permanent departure, current-year snapshot, or immutable audit event failed/)
-assert.match(workflow,/20261012130000_sanction_departure_after_family_meeting\\.sql/)
+assert.match(workflow,/20261012130000_sanction_departure_after_family_meeting\.sql/)
 for(const assertion of ['teacher accessed follow-up workspace','parent accessed staff follow-up workspace','another school manager modified this school student','contact registered for another student was accepted','release request did not notify the other authorized staff','rejection without a reason was accepted','medical release/return actor timeline was not recorded','follow-up audit record was changed'])assert.ok(verification.includes(assertion),`SQL test must include: ${assertion}`)
 assert.match(workflow,/20261005044450_student_sanctions_emergency_release\.sql/)
 assert.match(workflow,/20261009120000_student_release_direction_escort\.sql/)

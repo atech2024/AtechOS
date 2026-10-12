@@ -22,7 +22,7 @@ insert into public.category_grade_deadlines(period_id,section,deadline) values
  ('50000000-0000-0000-0000-000000000001','primary',now()-interval '1 minute');
 
 do $test$
-declare subject_id uuid; failed boolean:=false; saved uuid;
+declare subject_id uuid; failed boolean:=false; saved uuid; saved_grade uuid;
 begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  subject_id:=public.create_subject_with_max_score('CI Math','CIM',20);
@@ -50,7 +50,12 @@ begin
  begin perform public.create_grade('60000000-0000-0000-0000-000000000001',subject_id,'40000000-0000-0000-0000-000000000001','Contrôle 1',8,10,null,'50000000-0000-0000-0000-000000000001',100);
  exception when others then failed:=sqlerrm='subject_max_score_mismatch';end;
  if not failed then raise exception 'subject maximum score was not enforced';end if;
- perform public.create_grade('60000000-0000-0000-0000-000000000001',subject_id,'40000000-0000-0000-0000-000000000001','Contrôle 1',15,20,null,'50000000-0000-0000-0000-000000000001',100);
+ saved_grade:=(public.create_grade('60000000-0000-0000-0000-000000000001',subject_id,'40000000-0000-0000-0000-000000000001','Contrôle 1',15,20,null,'50000000-0000-0000-0000-000000000001',100)).id;
+ failed:=false;
+ begin update public.grades set score=16,max_score=10 where id=saved_grade;
+ exception when others then failed:=sqlerrm='subject_max_score_mismatch';end;
+ if not failed then raise exception 'grade update bypassed the configured subject maximum';end if;
+ update public.grades set score=16,max_score=20 where id=saved_grade;
 
  update public.grade_deadline_exceptions set expires_at=now()-interval '1 minute' where id=saved;
  failed:=false;

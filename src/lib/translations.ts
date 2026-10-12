@@ -2,6 +2,12 @@ import type {Locale} from './i18n'
 import {extraTranslations} from './translations-extra'
 export const translations:Record<string,[string,string]> = {
  ...extraTranslations,
+ "Schedule the family meeting before recording a departure decision.":[['Planifiez la rencontre avec la famille avant de confirmer la décision de départ.','Fikse rankont ak fanmi an anvan ou konfime desizyon depa a.']],
+ "Record the decision after the scheduled family meeting.":[['Enregistrez la décision après la rencontre prévue avec la famille.','Anrejistre desizyon an apre reyinyon ki te pwograme ak fanmi an.']],
+ "The sanction record could not be found. Refresh the page.":[['Le dossier de sanction est introuvable. Actualisez la page.','Dosye sanksyon an pa jwenn. Rafrechi paj la.']],
+ "This departure decision has already changed. Refresh the page before trying again.":[['Cette décision de départ a déjà changé. Actualisez la page avant de réessayer.','Desizyon depa sa a deja chanje. Rafrechi paj la anvan ou eseye ankò.']],
+ "The scheduled family meeting has not taken place yet.":[['La rencontre prévue avec la famille n’a pas encore eu lieu.','Rankont ki te pwograme ak fanmi an poko fèt.']],
+ "Choose a valid decision and enter a reason between 3 and 2000 characters.":[['Choisissez une décision valide et indiquez un motif de 3 à 2 000 caractères.','Chwazi yon desizyon ki valab epi ekri yon rezon ant 3 ak 2 000 karaktè.']],
  "Attendance history":['Historique des présences','Istwa prezans'],
  "Recent family updates":['Actualités récentes de la famille','Dènye nouvèl pou fanmi an'],
  "School messages and updates for your family.":['Messages et mises à jour de l’école pour votre famille.','Mesaj ak dènye enfòmasyon lekòl la pou fanmi ou.'],

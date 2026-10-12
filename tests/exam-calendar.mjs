@@ -10,6 +10,9 @@ function compile(path,imports={}){const exports={};vm.runInNewContext(ts.transpi
 const extra=compile('src/lib/translations-extra.ts')
 const translations=compile('src/lib/translations.ts',{'./translations-extra':extra})
 const dates=compile('src/lib/school-date.ts')
+assert.deepEqual(JSON.parse(JSON.stringify(dates.previousSchoolWeek('2026-10-12'))),{start_date:'2026-10-05',end_date:'2026-10-09'})
+assert.deepEqual(JSON.parse(JSON.stringify(dates.previousSchoolWeek('2026-10-19'))),{start_date:'2026-10-12',end_date:'2026-10-16'})
+assert.deepEqual(JSON.parse(JSON.stringify(dates.previousSchoolWeek('2027-01-04'))),{start_date:'2026-12-28',end_date:'2027-01-01'})
 const nav=compile('src/lib/navigation.ts')
 for(const role of ['censeur','director','school_admin','teacher','surveillant','secretary'])assert.ok(nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/calendar'))
 const data={can_manage:false,can_publish:false,exams:[{id:'fixture',class_id:'class',class:'Class A',year_id:'year',year:'2026',section:'fundamental',subject_id:'subject',subject:'Math',period_id:'period',period:'Period 1',starts_at:'2026-09-25T12:00:00Z',ends_at:'2026-09-25T14:00:00Z',cancelled:false,scanned_at:'2026-09-25T11:30:00Z',version:2,published_at:'2026-09-20T12:00:00Z',revision_start:'2026-09-14',revision_end:'2026-09-18'}],periods:[],classes:[],subjects:[],closures:[]}
@@ -43,4 +46,7 @@ assert.ok(publication.includes('setFilters(academicYearId?{year_id:academicYearI
 assert.ok(publication.includes('new Map(yearRows.filter(r=>r[key]!==null)')&&publication.includes('No grades match the selected filters.'),'grade filters and empty state reflect only the selected academic year')
 const bulletinPublication=readFileSync('src/components/bulletin-publication.tsx','utf8')
 assert.ok(bulletinPublication.includes("year_id===academicYearId")&&bulletinPublication.includes('classes.map(c=>'),'bulletin publishing and archived versions use the selected academic year class set')
+const gradingPeriods=readFileSync('src/app/dashboard/grading-periods/page.tsx','utf8')
+assert.ok(gradingPeriods.includes('activate_grading_period_by_section_dates')&&gradingPeriods.includes('p_section_dates:dates'),'section-specific dates use the validated database RPC')
+assert.ok(gradingPeriods.includes('previousSchoolWeek')&&gradingPeriods.includes('Automatic revision week'),'revision week is previewed automatically')
 console.log('PASS calendar UI: official version, Haiti date/time, revision week, kiosk arrival and no family edit controls; scoped staff menu.')

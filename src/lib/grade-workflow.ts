@@ -11,12 +11,13 @@ export const gradeEvents: Record<string, string> = {
 export function gradeError(error: unknown) {
   const code = typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : ''
   const messages: Record<string, string> = {
-    grade_deadline_passed: 'The grade deadline has passed. Contact the school administration.',
+    grade_deadline_passed: 'The grade deadline has passed. Contact Direction to request temporary access.',
     reason_required: 'Provide a reason of at least three characters.',
     grade_locked_pending_review: 'This grade is locked during review.',
     correction_already_pending: 'A correction is already awaiting review for this grade.',
     review_required: 'Only reviewed grades can be published.',
     selection_too_large: 'Select at most 1000 grades at a time using the filters.',
+    subject_max_score_mismatch: 'Configure the subject maximum score before entering grades.',
   }
   return messages[code] || 'Action refused. Reload the records and verify your access and selection.'
 }

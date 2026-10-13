@@ -54,7 +54,7 @@ for(const assertion of ['Censeur follow-up workspace exposed private emergency-r
 for(const functionName of ['save_student_sanction_type','create_student_sanction','create_student_sanctions_bulk','create_class_student_sanctions','resolve_student_sanction','decide_student_sanction_departure'])assert.ok(censeurMigration.includes(`public.${functionName}`)||censeurMigration.includes(`private.${functionName}`),`Censeur permission migration must include ${functionName}`)
 assert.match(verification,/sanction_departure_meeting_not_held/)
 assert.match(verification,/Director permanent departure, current-year snapshot, or immutable audit event failed/)
-assert.match(workflow,/20261012131356_sanction_departure_after_family_meeting\.sql/)
+assert.match(workflow,/20261012131356_sanction_departure_after_family_meeting_20261012\.sql/)
 for(const assertion of ['teacher accessed follow-up workspace','parent accessed staff follow-up workspace','another school manager modified this school student','contact registered for another student was accepted','release request did not notify the other authorized staff','rejection without a reason was accepted','medical release/return actor timeline was not recorded','follow-up audit record was changed'])assert.ok(verification.includes(assertion),`SQL test must include: ${assertion}`)
 assert.match(workflow,/20261005044450_student_sanctions_emergency_release\.sql/)
 assert.match(workflow,/20261009120000_student_release_direction_escort\.sql/)

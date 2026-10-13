@@ -41,7 +41,7 @@ insert into public.grade_levels(id,code,name,sort_order) values
 select set_config('request.jwt.claim.sub','22000000-0000-0000-0000-000000000001',true);
 
 do $test$
-declare failed boolean:=false; class_id uuid;
+declare failed boolean:=false; class_id uuid; primary_class_count integer;
 begin
  perform public.activate_school_section('32000000-0000-0000-0000-000000000001','primary',true);
  if (select count(*) from public.classes c join public.grade_levels g on g.id=c.grade_level_id where c.academic_year_id='32000000-0000-0000-0000-000000000001' and g.code between 'AF1' and 'AF6' and c.enabled)<>6 then
@@ -86,18 +86,17 @@ begin
  if not exists(select 1 from public.classes where id=class_id and enabled) then raise exception 'secretary could not create a class'; end if;
 
  perform set_config('request.jwt.claim.sub','22000000-0000-0000-0000-000000000005',true);
- begin
-  perform public.create_class('32000000-0000-0000-0000-000000000001','Censeur bypass','AF1');
-  raise exception 'Censeur created a class';
- exception when raise_exception then
-  if sqlerrm<>'school_membership_required' then raise; end if;
- end;
- begin
-  perform public.activate_school_section('32000000-0000-0000-0000-000000000001','primary',false);
-  raise exception 'Censeur changed an activated section';
- exception when raise_exception then
-  if sqlerrm<>'not_authorized' then raise; end if;
- end;
+ class_id:=public.create_class('32000000-0000-0000-0000-000000000001','3e AF - Censeur','AF3');
+ if not exists(select 1 from public.classes where id=class_id and enabled) then raise exception 'Censeur could not create a class'; end if;
+ select count(*) into primary_class_count
+ from public.classes c
+ join public.grade_levels g on g.id=c.grade_level_id
+ where c.academic_year_id='32000000-0000-0000-0000-000000000001'
+   and public.grade_section(g.code)='primary';
+ perform public.activate_school_section('32000000-0000-0000-0000-000000000001','primary',false);
+ if exists(select 1 from public.classes c join public.grade_levels g on g.id=c.grade_level_id where c.academic_year_id='32000000-0000-0000-0000-000000000001' and public.grade_section(g.code)='primary' and c.enabled) then raise exception 'Censeur could not deactivate a section'; end if;
+ perform public.activate_school_section('32000000-0000-0000-0000-000000000001','primary',true);
+ if (select count(*) from public.classes c join public.grade_levels g on g.id=c.grade_level_id where c.academic_year_id='32000000-0000-0000-0000-000000000001' and public.grade_section(g.code)='primary' and c.enabled)<>primary_class_count then raise exception 'Censeur reactivation did not preserve and enable existing classes'; end if;
 
  perform set_config('request.jwt.claim.sub','22000000-0000-0000-0000-000000000006',true);
  begin

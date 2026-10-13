@@ -41,7 +41,7 @@ update public.classes set grade_level='PS1' where id='fb200000-0000-0000-0000-00
 update public.classes set grade_level='NS1' where id='fb200000-0000-0000-0000-000000000002';
 
 do $$
-declare sanction_type uuid; portal_sanction_type uuid; portal_sanction_id uuid; contact_id uuid; contact2_id uuid; release_id uuid; release2_id uuid; relocation_id uuid; pickup_authorization uuid; kiosk_badge uuid; sanction_id uuid; workspace jsonb; family_sanctions jsonb; denied boolean; kiosk jsonb; home jsonb; protocol jsonb; family_relocation jsonb; student_token text:='home-arrival-ci-token-00000000000000000000000000000000'; school_day date := (now() at time zone 'America/Port-au-Prince')::date - case extract(isodow from now() at time zone 'America/Port-au-Prince')::integer when 6 then 1 when 7 then 2 else 0 end;
+declare censeur_sanction_type uuid; censeur_departure_type uuid; censeur_sanction_id uuid; censeur_workspace jsonb; sanction_type uuid; portal_sanction_type uuid; portal_sanction_id uuid; contact_id uuid; contact2_id uuid; release_id uuid; release2_id uuid; relocation_id uuid; pickup_authorization uuid; kiosk_badge uuid; sanction_id uuid; workspace jsonb; family_sanctions jsonb; denied boolean; kiosk jsonb; home jsonb; protocol jsonb; family_relocation jsonb; student_token text:='home-arrival-ci-token-00000000000000000000000000000000'; school_day date := (now() at time zone 'America/Port-au-Prince')::date - case extract(isodow from now() at time zone 'America/Port-au-Prince')::integer when 6 then 1 when 7 then 2 else 0 end;
 begin
  if not (select relrowsecurity from pg_class where oid='public.student_sanctions'::regclass)
     or has_table_privilege('authenticated','public.student_sanctions','SELECT')
@@ -329,6 +329,26 @@ begin
  if not exists(select 1 from public.students where id='fb400000-0000-0000-0000-000000000002' and school_status='departed' and departure_year_id='fb100000-0000-0000-0000-000000000001')
    or not exists(select 1 from public.student_sanctions where id=portal_sanction_id and departure_decision='departed' and status='resolved' and departure_decided_by='fb300000-0000-0000-0000-000000000001')
    or not exists(select 1 from public.student_followup_events where entity_id=portal_sanction_id and action='school_departure_confirmed' and actor_id='fb300000-0000-0000-0000-000000000001') then raise exception 'Director permanent departure, current-year snapshot, or immutable audit event failed';end if;
+
+ -- Censeur can manage sanctions and confirm permanent departure, but does not
+ -- receive health-release cases or authorized-contact details.
+ perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000007',true);
+ censeur_workspace:=public.student_followup_workspace();
+ if censeur_workspace->>'can_manage_releases'<>'false'
+   or jsonb_array_length(censeur_workspace->'contacts')<>0
+   or jsonb_array_length(censeur_workspace->'releases')<>0 then raise exception 'Censeur follow-up workspace exposed private emergency-release data';end if;
+ denied:=false;begin perform public.save_student_release_contact('fb400000-0000-0000-0000-000000000001',null,'Censeur Contact Attempt','Parent',null,true);exception when others then denied:=sqlerrm='not_authorized';end;
+ if not denied then raise exception 'Censeur unexpectedly managed emergency release contacts';end if;
+ censeur_sanction_type:=public.save_student_sanction_type(null,'Censeur sanction test',true,'none',null);
+ censeur_sanction_id:=public.create_student_sanction('fb400000-0000-0000-0000-000000000001',censeur_sanction_type,'Sanction recorded by Censeur',now()-interval '2 minutes');
+ if not exists(select 1 from public.student_sanctions where id=censeur_sanction_id and created_role='censeur') then raise exception 'Censeur sanction was not attributed correctly';end if;
+ perform public.resolve_student_sanction(censeur_sanction_id,'Censeur resolved the sanction');
+ censeur_departure_type:=public.save_student_sanction_type(null,'Censeur departure test',true,'school_departure',null);
+ censeur_sanction_id:=public.create_student_sanction('fb400000-0000-0000-0000-000000000001',censeur_departure_type,'Departure approved after Censeur review',now()-interval '1 minute');
+ update public.student_sanctions set parent_meeting_at=now()-interval '1 minute' where id=censeur_sanction_id;
+ perform public.decide_student_sanction_departure(censeur_sanction_id,'departed','Family meeting completed; Censeur confirms permanent departure.');
+ if not exists(select 1 from public.students where id='fb400000-0000-0000-0000-000000000001' and school_status='departed')
+   or not exists(select 1 from public.student_followup_events where entity_id=censeur_sanction_id and action='school_departure_confirmed' and actor_id='fb300000-0000-0000-0000-000000000007' and actor_role='censeur') then raise exception 'Censeur departure decision or audit attribution failed';end if;
  end $$;
 
 rollback;

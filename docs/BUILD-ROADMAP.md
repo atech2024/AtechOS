@@ -65,6 +65,11 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 - **Current checkpoint (2026-10-05):** Finance is FUNCTIONALLY VIABLE and remains IN PROGRESS. PR #68 merged as `25bd507f7b573ff265b3b1d0fdca26f4fe30fc66`; Vercel Production is Ready and the authenticated payment page smoke-test showed the class filter, AtechOS ID search, required digital-method evidence fields, approval state, and payment history. Supabase migration `parent_finance_payment_portal` is recorded live. Finance core does not block BUILD 08.
 - Return Pass: complete authenticated walkthroughs with a linked parent and each configured staff role; verify school receiving instructions and proof approval; review responsive behavior, validation details, and refund evidence lifecycle. Verification did not submit a real financial transaction.
 
+### BUILD 09 — Legacy receipt-signature approval lock (2026-10-14)
+
+- Production audit found that the authenticated one-argument `save_finance_receipt_signature(smallint)` still overwrites an approved signature, while the two-argument overload rejects edits. The proposed migration delegates the legacy call to the locked overload and retains first-time approval compatibility.
+- The rollback-only finance fixture now checks that neither overload can replace an approved signature and that the stored signer name and style remain unchanged. BUILD 09 stays IN PROGRESS until isolated SQL CI passes, the migration is applied, and authenticated staff verification confirms the lock. No Production schema or payment record was changed by this PR.
+
 ### BUILD 09 — Individual Direction receipt signatures
 
 - Production verification (2026-10-09): the receipt RPC returned HTTP 404 with PostgREST `PGRST202` at 13:19 UTC, then HTTP 200 at 13:27 UTC after the schema cache refresh; Vercel status for main commit `889fdf12` is success. A read-only aggregate found all 14 validated payments matched the receipt's required student/class/year/installment joins. Ask the reporter to retry the current deployment before treating the receipt issue as open.

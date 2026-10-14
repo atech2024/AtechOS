@@ -113,6 +113,26 @@ begin
   begin perform public.review_finance_payment(credit_payment_id,'validated',null); exception when others then denied:=sqlerrm='finance_reviewer_signature_required'; end;
   if not denied then raise exception 'payment validation without an approved receipt signature was accepted'; end if;
   perform public.save_finance_receipt_signature(2::smallint);
+  denied:=false;
+  begin
+    perform public.save_finance_receipt_signature(3::smallint);
+  exception when others then
+    denied:=sqlerrm='receipt_signature_already_approved';
+  end;
+  if not denied then raise exception 'legacy receipt signature RPC changed an approved signature'; end if;
+  denied:=false;
+  begin
+    perform public.save_finance_receipt_signature(3::smallint,'Altered Accountant');
+  exception when others then
+    denied:=sqlerrm='receipt_signature_already_approved';
+  end;
+  if not denied then raise exception 'current receipt signature RPC changed an approved signature'; end if;
+  if not exists(
+    select 1 from public.finance_staff_receipt_signatures
+    where school_id='fa000000-0000-0000-0000-000000000001'
+      and user_id='fa300000-0000-0000-0000-000000000004'
+      and signer_name='Finance Accountant' and style_id=2 and approved_at is not null
+  ) then raise exception 'approved receipt signature was modified'; end if;
   perform public.review_finance_payment(credit_payment_id,'validated',null);
   perform public.review_finance_payment(class_overpayment_id,'validated',null);
   receipt:=public.finance_payment_receipt(class_overpayment_id);

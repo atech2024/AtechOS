@@ -64,9 +64,11 @@ on:
       - "supabase/migrations/20261008134043_family_validated_payment_timeline.sql"
       - "supabase/migrations/20261009100000_finance_payment_receipts_signatures.sql"
       - "supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql"
+      - "supabase/migrations/20261014150655_lock_legacy_finance_receipt_signature.sql"
       - "supabase/migrations/20261009110000_direction_member_receipt_signatures.sql"
       - "supabase/migrations/20261009133000_editable_receipt_signature_name.sql"
       - "supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql"
+      - "supabase/migrations/20261014150655_lock_legacy_finance_receipt_signature.sql"
       - "supabase/migrations/20261008171500_teacher_exam_submissions.sql"
       - "supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql"
       - "supabase/ci-grade-deadline/**"
@@ -131,6 +133,7 @@ on:
       - "supabase/migrations/20261004220000_finance_payment_refunds.sql"
       - "supabase/migrations/20261009170000_finance_refund_window_departure.sql"
       - "supabase/migrations/20261010193000_finance_receipt_signature_fx_details.sql"
+      - "supabase/migrations/20261014150655_lock_legacy_finance_receipt_signature.sql"
       - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
       - "supabase/migrations/20261005050000_finance_overpayments_all_fees.sql"
       - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
@@ -246,6 +249,7 @@ jobs:
           cp supabase/migrations/20261009110000_direction_member_receipt_signatures.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009133000_editable_receipt_signature_name.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261014150655_lock_legacy_finance_receipt_signature.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

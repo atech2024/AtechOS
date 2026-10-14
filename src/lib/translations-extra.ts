@@ -1,4 +1,12 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Set assessment counts and the passing average.':['Définissez le nombre de contrôles et la moyenne de passage.','Fikse kantite kontwòl yo ak mwayèn pou pase a.'],
+ 'Default: 4. A school can choose 3, 4, or another value.':['Valeur par défaut : 4. L’école peut choisir 3, 4 ou un autre nombre.','Valè pa defo : 4. Lekòl la ka chwazi 3, 4 oswa yon lòt kantite.'],
+ 'Default: 5. A school can choose 6, for example.':['Valeur par défaut : 5. L’école peut choisir 6, par exemple.','Valè pa defo : 5. Lekòl la ka chwazi 6, pa egzanp.'],
+ 'Grade privacy:':['Confidentialité des notes :','Konfidansyalite nòt yo :'],
+ 'Teachers enter grades only for subjects assigned to them. They can see and edit only their own grade records. School administration can review the complete school record.':['Les enseignants saisissent les notes uniquement pour les matières qui leur sont attribuées. Ils ne peuvent consulter et modifier que leurs propres notes. L’administration peut consulter l’ensemble des notes de l’école.','Pwofesè yo antre nòt sèlman pou matyè yo ba yo. Yo ka wè epi modifye sèlman nòt yo antre yo. Administrasyon an ka wè tout nòt lekòl la.'],
+ 'Number of controls must be a whole number between 1 and 20.':['Le nombre de contrôles doit être un entier compris entre 1 et 20.','Kantite kontwòl yo dwe yon nonb antye ant 1 ak 20.'],
+ 'Passing average must be between 0 and 10.':['La moyenne de passage doit être comprise entre 0 et 10.','Mwayèn pou pase a dwe ant 0 ak 10.'],
+ 'Grading settings saved.':['Les règles de notation ont été enregistrées.','Règ nòt yo anrejistre.'],
  'No class is included in this exam period.':['Aucune classe n’est rattachée à cette période d’examen.','Pa gen klas ki nan peryòd egzamen sa.'],
  'Choose a teacher first to list their classes':['Choisissez d’abord un enseignant pour afficher ses classes.','Chwazi pwofesè a anvan pou wè klas li yo.'],
  'No available appointment times remain before the deadline. Contact the school office.':['Aucun créneau de rendez-vous n’est disponible avant la date limite. Contactez le secrétariat.','Pa gen lè randevou ki rete anvan dat limit la. Kontakte biwo lekòl la.'],

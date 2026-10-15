@@ -30,6 +30,7 @@ for(const locale of ['fr','ht','en']){
   '@/components/student-identity-card':{default:()=>null},
   '@/components/report-card':reportCardMock,
   '@/lib/school-date':{schoolDate:(value,selected)=>`${selected}:${value}`},
+  '@/lib/translations':translations,
   '@/components/translation-provider':{T:({text})=>translations.translate(text,locale),useLocale:()=>locale},
  }
  const overview=compile('src/app/student/overview.tsx',modules)
@@ -47,5 +48,6 @@ for(const locale of ['fr','ht','en']){
  assert.ok(html.includes('2025/2026'),'historic Preschool bulletin year remains selectable')
  assert.ok(html.includes(`${locale}:2026-10-20`),'exam dates use the selected locale formatter')
  assert.ok(html.includes(locale==='fr'?'Présences, retards et absences':locale==='ht'?'Prezans, reta ak absans':'Attendance, lateness and absences'),'attendance summary is translated for the selected locale')
+ for(const [label,expected] of Object.entries(locale==='fr'?{Present:'Présent',Late:'En retard',Absent:'Absent'}:locale==='ht'?{Present:'Prezans',Late:'An reta',Absent:'Absan'}:{Present:'Present',Late:'Late',Absent:'Absent'})) assert.ok(html.includes(`aria-label="${expected}"`),`${label} progress accessibility label follows ${locale}`)
 }
 console.log('PASS student portal renders year-scoped bulletins and localizes attendance and exam dates in French, Haitian Creole, and English.')

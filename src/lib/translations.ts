@@ -52,6 +52,7 @@ export const translations:Record<string,[string,string]> = {
  "The school has not entered payment details yet.":['L’école n’a pas encore saisi de coordonnées de paiement.','Lekòl la poko antre enfòmasyon peman.'],
  "The school has not enabled a digital payment method for this currency.":['L’école n’a activé aucun paiement numérique pour cette devise.','Lekòl la poko aktive peman dijital pou lajan sa a.'],
  "USD validation is unavailable until the BRH publishes today's rate.":['La validation en USD est bloquée jusqu’à la publication du taux du jour par la BRH.','Apwobasyon peman USD bloke jiskaske BRH pibliye to jodi a.'],
+ "Unavailable because today's BRH rate is missing":['Indisponible : le taux BRH du jour manque','Pa disponib: to BRH jodi a poko disponib'],
  "Current BRH reference rate":['Taux de référence BRH du jour','To referans BRH jodi a'],
  "Approximate HTG equivalent":['Équivalent HTG estimé','Ekivalan HTG apwoksimatif'],
  "BRH rate snapshot":['Taux BRH enregistré','To BRH ki anrejistre a'],

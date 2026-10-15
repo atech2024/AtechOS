@@ -5,8 +5,9 @@ import {useCallback,useEffect,useState} from 'react'
 import {T,useLocale} from '@/components/translation-provider'
 import {createClient} from '@/lib/supabase/client'
 import {schoolDateTime} from '@/lib/school-date'
+import {familyNotificationDescription,familyNotificationDestination,familyNotificationTitle} from '@/lib/family-notification-display'
 
-type FamilyNotification={id:string;type:string;title:string;description:string;priority:'normal'|'high'|'urgent';href:string;created_at:string;read_at:string|null}
+type FamilyNotification={id:string;type:string;title:string;description:string;priority:'normal'|'high'|'urgent';href:string;event_key:string|null;created_at:string;read_at:string|null}
 
 export default function FamilyNotificationFeed(){
  const locale=useLocale()
@@ -20,7 +21,7 @@ export default function FamilyNotificationFeed(){
   const {data:{user},error:authError}=await db.auth.getUser()
   if(authError||!user){setError('Unable to load family updates.');setLoading(false);return}
   const {data,error:queryError}=await db.from('notifications')
-   .select('id,type,title,description,priority,href,created_at,read_at')
+   .select('id,type,title,description,priority,href,event_key,created_at,read_at')
    .eq('recipient_id',user.id)
    .eq('href','/dashboard/parent-portal')
    .order('created_at',{ascending:false})
@@ -45,10 +46,10 @@ export default function FamilyNotificationFeed(){
   {error&&<p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800"><T text={error}/></p>}
   {loading?<p role="status" className="text-sm text-slate-500"><T text="Loading updates…"/></p>:!items.length?<p className="text-sm text-slate-600"><T text="No recent updates."/></p>:<ul className="space-y-2">{items.map(item=><li key={item.id} className={`rounded-xl border p-4 ${item.read_at?'border-slate-200':'border-blue-200 bg-blue-50/50'}`}>
    <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0 flex-1">
-    <div className="flex flex-wrap items-center gap-2"><span className="font-semibold"><T text={item.title}/></span>{!item.read_at&&<span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800"><T text="New"/></span>}{item.priority!=='normal'&&<span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900"><T text={item.priority}/></span>}</div>
-    {item.description&&<p className="mt-1 whitespace-pre-wrap text-sm text-slate-700"><T text={item.description}/></p>}
+    <div className="flex flex-wrap items-center gap-2"><span className="font-semibold"><T text={familyNotificationTitle(item.type,item.title,locale)}/></span>{!item.read_at&&<span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800"><T text="New"/></span>}{item.priority!=='normal'&&<span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900"><T text={item.priority}/></span>}</div>
+    {item.description&&<p className="mt-1 whitespace-pre-wrap text-sm text-slate-700"><T text={familyNotificationDescription(item.type,item.description,locale)}/></p>}
     <p className="mt-2 text-xs text-slate-500">{schoolDateTime(item.created_at,locale)}</p>
-    <Link href={item.href} className="mt-2 inline-block text-sm font-semibold text-blue-700 underline"><T text="Open family portal"/></Link>
+    <Link href={familyNotificationDestination(item.type,item.href,item.event_key)} className="mt-2 inline-block text-sm font-semibold text-blue-700 underline"><T text={item.type==='guard'?'Open GUARD case':'Open family portal'}/></Link>
    </div>{!item.read_at&&<button type="button" disabled={updating===item.id} onClick={()=>void markRead(item.id)} className="min-h-10 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium disabled:opacity-50"><T text={updating===item.id?'Saving...':'Mark as read'}/></button>}</div>
   </li>)}</ul>}
  </section>

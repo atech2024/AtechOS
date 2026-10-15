@@ -17,6 +17,7 @@ export const translations:Record<string,[string,string]> = {
  "No recent updates.":['Aucune actualité récente.','Pa gen nouvèl resan.'],
  "Mark as read":['Marquer comme lu','Make kòm li'],
  "Open family portal":['Ouvrir le portail familial','Louvri pòtal fanmi an'],
+ "Open GUARD case":['Ouvrir le dossier GUARD','Louvri dosye GUARD la'],
  "New":['Nouveau','Nouvo'],
  "high":['Important','Enpòtan'],
  "urgent":['Urgent','Ijan'],

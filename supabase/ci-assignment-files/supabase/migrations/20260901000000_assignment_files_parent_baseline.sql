@@ -31,4 +31,4 @@ create table public.assignments(
 );
 grant usage on schema public,private to authenticated;
 grant select on storage.objects to anon,authenticated;
-alter table storage.objects enable row level security;
+

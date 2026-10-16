@@ -172,7 +172,7 @@ assert.ok(workflow.includes('< assignment-files-verification.sql'));
 assert.match(assignmentFileMigration,/create policy assignment_files_parent_linked_read[\s\S]*?private\.parent_can_read_assignment_file\(name\)/);
 assert.match(assignmentFileVerification,/set local role authenticated[\s\S]*?linked parent saw unrelated class, old-year, or cross-school assignment files[\s\S]*?disabled parent membership read assignment files[\s\S]*?set local role anon[\s\S]*?anonymous user read private assignment files/);
 assert.ok(assignmentFileBaseline.includes('create table public.assignments'));
-assert.ok(assignmentFileBaseline.includes('alter table storage.objects enable row level security'));
+assert.ok(assignmentFileBaseline.includes('grant select on storage.objects to anon,authenticated'));
 assert.ok(workflow.includes('cp ../migrations/20261008171500_teacher_exam_submissions.sql'));
 assert.ok(examSubmissionBaseline.includes('create table public.class_subjects'));
 assert.ok(examSubmissionBaseline.includes('section text'));
@@ -183,3 +183,4 @@ assert.ok(examSubmissionMigration.includes("create policy teacher_exam_files_ins
 assert.ok(examSubmissionMigration.includes('manager or s.teacher_id=actor'));
 for (const assertion of ['teacher did not receive own scoped submission','teacher submitted an unassigned subject','teacher impersonated another teacher','Direction cannot see the full receipt register']) assert.ok(examSubmissionFixture.includes(assertion), `exam submission SQL fixture must check: ${assertion}`);
 console.log('PASS free, isolated Supabase CI contract: synthetic baseline, only targeted migrations, rollback-only data checks, no production credentials or remote database commands.');
+

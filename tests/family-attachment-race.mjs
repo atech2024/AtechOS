@@ -16,7 +16,8 @@ function visit(node){
  ts.forEachChild(node,visit)
 }
 visit(ast)
-const code=ts.transpileModule(handlers.join('\\n'),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText
+const code=ts.transpileModule(handlers.join('\n'),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText
+const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor
 async function harness(){
  const state={link:null,loading:'',error:'',child:'first'}
  const requests=[]
@@ -26,7 +27,7 @@ async function harness(){
   assert.equal(expires,60)
   return new Promise((resolve,reject)=>requests.push({path,resolve,reject}))
  }})}})
- const api=await new Function('createClient','attachmentRequest','setAttachmentLink','setAttachmentLoadingId','setError','setChildId','privateAssignmentAttachmentError',`return (async()=>{${code}\\nreturn {openAttachment,selectChild};})()`)(
+ const api=await new AsyncFunction('createClient','attachmentRequest','setAttachmentLink','setAttachmentLoadingId','setError','setChildId','privateAssignmentAttachmentError',`${code}\nreturn {openAttachment,selectChild};`)(
   createClient,tracker,value=>{state.link=value},value=>{state.loading=value},value=>{state.error=value},value=>{state.child=value},privateAssignmentAttachmentError)
  return {...api,state,requests}
 }

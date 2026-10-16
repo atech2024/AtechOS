@@ -4,6 +4,11 @@ import ts from 'typescript'
 
 // Execute the actual component handlers with deferred storage responses.
 const source=readFileSync('src/app/dashboard/parent-portal/page.tsx','utf8')
+const helperSource=readFileSync('src/lib/assignment-attachments.ts','utf8')
+const helperCode=ts.transpileModule(helperSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
+const helperModule={exports:{}}
+new Function('module','exports',helperCode)(helperModule,helperModule.exports)
+const {privateAssignmentAttachmentError}=helperModule.exports
 const ast=ts.createSourceFile('page.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX)
 const handlers=[]
 function visit(node){
@@ -11,7 +16,7 @@ function visit(node){
  ts.forEachChild(node,visit)
 }
 visit(ast)
-const code=ts.transpileModule(handlers.join('\n'),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText
+const code=ts.transpileModule(handlers.join('\\n'),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText
 function harness(){
  const state={link:null,loading:'',error:'',child:'first'}
  const requests=[]
@@ -21,8 +26,8 @@ function harness(){
   assert.equal(expires,60)
   return new Promise((resolve,reject)=>requests.push({path,resolve,reject}))
  }})}})
- const api=new Function('createClient','attachmentRequest','setAttachmentLink','setAttachmentLoadingId','setError','setChildId',`${code}\nreturn {openAttachment,selectChild};`)(
-  createClient,tracker,value=>{state.link=value},value=>{state.loading=value},value=>{state.error=value},value=>{state.child=value})
+ const api=new Function('createClient','attachmentRequest','setAttachmentLink','setAttachmentLoadingId','setError','setChildId','privateAssignmentAttachmentError',`${code}\\nreturn {openAttachment,selectChild};`)(
+  createClient,tracker,value=>{state.link=value},value=>{state.loading=value},value=>{state.error=value},value=>{state.child=value},privateAssignmentAttachmentError)
  return {...api,state,requests}
 }
 
@@ -54,7 +59,7 @@ for(const outcome of ['success','error','rejection']){
 {
  const h=harness(),failed=h.openAttachment('a','a.pdf')
  h.requests[0].resolve({data:null,error:{message:'denied'}});await failed
- assert.equal(h.state.error,'Impossible de préparer le lien privé du devoir.')
+ assert.equal(h.state.error,'Unable to prepare the private assignment link. Please try again or contact the school.')
  const retry=h.openAttachment('a','a.pdf')
  h.requests[1].resolve({data:{signedUrl:'signed-retry'},error:null});await retry
  assert.equal(h.state.error,'');assert.equal(h.state.link.url,'signed-retry')

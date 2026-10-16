@@ -48,5 +48,23 @@ assert.match(component,/type="file" disabled=\{busy\}/,'replacement input is dis
 assert.match(component,/file\.size>50\*1024\*1024/,'oversized replacement files get an actionable translated size error before upload')
 assert.match(assignmentPage,/AssignmentAttachmentReplacement schoolId=\{schoolId\} assignmentId=\{r\.id\}/,'replacement is offered on the existing assignment instead of creating a duplicate')
 assert.ok(packageJson.scripts.test.includes('node tests/family-attachment-replacement.mjs'),'npm test includes the attachment replacement regression')
+
+const extraSource=readFileSync('src/lib/translations-extra.ts','utf8')
+const translationSource=readFileSync('src/lib/translations.ts','utf8')
+const extraCompiled=ts.transpileModule(extraSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
+const extraModule={exports:{}}
+new Function('module','exports',extraCompiled)(extraModule,extraModule.exports)
+const translationCompiled=ts.transpileModule(translationSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
+const translationModule={exports:{}}
+new Function('module','exports','require',translationCompiled)(translationModule,translationModule.exports,name=>name==='./translations-extra'?extraModule.exports:require(name))
+const {translate}=translationModule.exports
+assert.equal(translate('Publish work, exams and learning documents for your assigned classes and subjects.','fr'),'Publiez les devoirs, examens et documents pédagogiques destinés aux classes et matières qui vous sont attribuées.')
+assert.equal(translate('PDF, Word, PowerPoint, images or text · max 50 MB','fr'),'PDF, Word, PowerPoint, images ou texte · 50 Mo maximum')
+assert.equal(translate('Homework / Exam / Project','fr'),'Devoir / Examen / Projet')
+assert.equal(translate('Due','fr'),'À remettre')
+assert.equal(translate('No due date','fr'),'Sans date limite')
+assert.equal(translate('Due','ht'),'Pou remèt')
+assert.equal(translate('Due','en'),'Due')
+
 console.log('PASS family attachment recovery: validated upload precedes assignment update, failed/oversized uploads preserve the current attachment, and the existing assignment is reused.')
 

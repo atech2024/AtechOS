@@ -1022,4 +1022,13 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Editing period':['Modification de la période','Peryòd la ap modifye'],
  'Choose a period below to load its saved dates for editing.':['Choisissez une période ci-dessous pour charger ses dates et les modifier.','Chwazi peryòd anba a pou chaje dat li yo pou modifye.'],
  'Period dates updated.':['Dates de la période mises à jour.','Dat peryòd la mete ajou.'],
- 'Period code cannot be changed while editing.':['Le code de la période ne peut pas être modifié pendant sa modification.','Kòd peryòd la pa ka chanje pandan w ap modifye l.'],}
+ 'Period code cannot be changed while editing.':['Le code de la période ne peut pas être modifié pendant sa modification.','Kòd peryòd la pa ka chanje pandan w ap modifye l.'],   'Publish work, exams and learning documents for your assigned classes and subjects.':['Publiez les devoirs, examens et documents pédagogiques destinés aux classes et matières qui vous sont attribuées.','Pibliye devwa, egzamen ak dokiman aprantisaj pou klas ak matyè yo ba ou.'],
+   'PDF, Word, PowerPoint, images or text · max 50 MB':['PDF, Word, PowerPoint, images ou texte · 50 Mo maximum','PDF, Word, PowerPoint, imaj oswa tèks · 50 MB maksimòm'],
+   'Homework / Exam / Project':['Devoir / Examen / Projet','Devwa / Egzamen / Pwojè'],
+   'Due':['À remettre','Pou remèt'],
+   'No due date':['Sans date limite','San dat limit'],
+   'Class, subject and title are required.':['La classe, la matière et le titre sont obligatoires.','Klas la, matyè a ak tit la obligatwa.'],
+   'Assignment published.':['Devoir publié.','Devwa a pibliye.'],
+   'Could not publish assignment.':['Impossible de publier le devoir.','Nou pa t ka pibliye devwa a.'],
+   'Could not load assignments.':['Impossible de charger les devoirs.','Nou pa t ka chaje devwa yo.'],
+}

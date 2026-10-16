@@ -46,6 +46,8 @@ insert into public.attendance(id,school_id,student_id,class_id,attendance_date,c
 do $test$
 declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false; adult_id uuid; pickup_workspace jsonb; pickup_update_id uuid; term_year uuid:='11000000-0000-0000-0000-000000000001'; ps_period uuid; ps_competency uuid; ps_version uuid; ps_workspace jsonb; ps_report jsonb; ps_published integer;
 begin
+ if has_function_privilege('anon','public.family_preschool_bulletins()','EXECUTE') then raise exception 'anonymous users can execute family preschool bulletin RPC'; end if;
+ if not has_function_privilege('authenticated','public.family_preschool_bulletins()','EXECUTE') then raise exception 'authenticated parents cannot execute family preschool bulletin RPC'; end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  if (select term_count from public.academic_years where id=term_year)<>3 then raise exception 'official term default must be three'; end if;
  failed:=false;

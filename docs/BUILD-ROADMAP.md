@@ -1,6 +1,6 @@
 # AtechOS / KIOS build roadmap
 
-Updated: 2026-10-12
+Updated: 2026-10-16
 
 Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION REQUIRED` when a missing business rule changes permissions, audit, or user-visible behavior. A build is not done until its acceptance criteria and relevant tests pass. Existing code is not proof that a build meets the product requirements; unreviewed areas remain explicitly unaudited.
 
@@ -47,7 +47,10 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 | 14 — Premium Polish | NOT STARTED | — | — | BUILDS 01–13 | Full product test suite, localization audit, desktop/tablet/mobile review, production build | Final consistency, loading/error/empty states, responsive behavior, and accessible interaction audit. |
 | 15 — Sanctions & Emergency Student Release | IN PROGRESS | 2026-10-05 | — | BUILDS 06, 10, 11 | `tests/student-followup.mjs`, `supabase/ci/student-followup-verification.sql`, isolated Supabase CI, FR/HT audit | Added the staff-only `/dashboard/sanctions` page, school-specific sanction types and resolution, authorized alternate contacts, reviewable medical/exceptional departure, release/return timestamps, immutable actor/role audit and staff notifications. User confirmed director, school administrator, and secretary manage records/contacts; sanctions are school-defined. Local checks and isolated SQL CI passed; production migration `20261005060121` is applied and security postflight passed. Vercel status passed and authenticated production smoke test loaded the workspace/student list. Keep IN PROGRESS until school staff complete role-by-role creation, approval, departure and return validation. |
 
+
 ### BUILD 13 — Family portal follow-up (updated 2026-10-08)
+
+- 2026-10-16 access audit for Preschool family bulletins: `family_preschool_bulletins()` already enforces an authenticated parent membership and linked-child scope, but its default `PUBLIC` execution also enabled the `anon` role. PR #140 adds a narrow privilege migration and rollback-only CI assertions: anonymous execution must be denied while authenticated execution remains allowed. Production is unchanged; BUILD 13 stays IN PROGRESS pending PR checks, Preview confirmation, and the remaining linked-parent access/responsive review.
 
 - 2026-10-15 student portal localization: student attendance summaries, exam dates, assignment states, attendance history dates, and record-change timestamps now follow the selected French, Haitian Creole, or English locale. A rendered component regression test covers all three locales and retains year/period bulletin filtering. `npm test`, typecheck, production build, translation audit, and targeted ESLint pass locally; authenticated student Preview, private attachment access, and Production checks remain open. No database or permission changes. BUILD 13 remains IN PROGRESS.
 

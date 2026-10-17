@@ -30,7 +30,7 @@ insert into public.student_parents(student_id,parent_id,relationship) values
  ('fa400000-0000-0000-0000-000000000001','fa600000-0000-0000-0000-000000000001','parent');
 
 do $$
-declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; summary jsonb; payment_events jsonb; setup jsonb; ledger jsonb; receipt jsonb; denied boolean; allocated_before numeric; expected_paid numeric; reported_paid numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid; cross_plan_id uuid; cross_charge_id uuid; cross_payment_id uuid;
+declare plan_id uuid; charge_id uuid; future_charge uuid; payment_id uuid; credit_payment_id uuid; second_payment_id uuid; pending_payment_id uuid; refund_id uuid; adjustment_id uuid; generated integer; workspace jsonb; summary jsonb; payment_events jsonb; setup jsonb; ledger jsonb; receipt jsonb; denied boolean; allocated_before numeric; expected_paid numeric; reported_paid numeric; future_installment uuid; class_plan_id uuid; class_charge_id uuid; class_overpayment_id uuid; entry_plan_id uuid; entry_charge_id uuid; entry_installment uuid; second_entry_charge_id uuid; fx_plan_id uuid; fx_charge_id uuid; cross_plan_id uuid; cross_charge_id uuid; cross_payment_id uuid; advance_charge_id uuid; advance_payment_id uuid;
 begin
   if has_table_privilege('authenticated','public.finance_staff_receipt_signatures','SELECT') then raise exception 'authenticated can read private receipt signature settings directly'; end if;
   if has_table_privilege('authenticated','public.finance_payments','INSERT') or has_table_privilege('authenticated','public.finance_payments','UPDATE') or has_table_privilege('authenticated','public.finance_payments','DELETE') then raise exception 'authenticated can directly mutate finance payments'; end if;
@@ -319,7 +319,11 @@ begin
   cross_plan_id:=public.create_finance_fee_plan('fa100000-0000-0000-0000-000000000001','fa200000-0000-0000-0000-000000000001','class_fee','HTG fee paid in USD','[{"amount":2000,"due_date":"2026-09-01"}]'::jsonb);
   if public.issue_finance_fee_plan(cross_plan_id)<>1 then raise exception 'USD-to-HTG test charge was not generated'; end if;
   select id into cross_charge_id from public.finance_charges where fee_plan_id=cross_plan_id;
+  select id into advance_charge_id from public.finance_charges where fee_plan_id=plan_id and due_date='2027-01-15';
+  if advance_charge_id is null then raise exception 'future installment fixture is missing'; end if;
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000005',true);
+  workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
+  if not exists(select 1 from jsonb_array_elements(workspace->'charges') item where item->>'id'=advance_charge_id::text and item->>'due_date'='2027-01-15') then raise exception 'parent workspace hid a future installment'; end if;
   insert into storage.objects(bucket_id,name,owner_id,metadata)
   values('finance-proofs','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf','fa300000-0000-0000-0000-000000000005','{}'::jsonb);
   payment_id:=public.submit_family_finance_payment(entry_charge_id,10,'MonCash','CI-PARENT-MONCASH','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf');
@@ -334,6 +338,13 @@ begin
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000005',true);
   workspace:=public.family_finance_workspace('fa400000-0000-0000-0000-000000000001');
   if not exists(select 1 from jsonb_array_elements(workspace->'payments') p where p->>'id'=payment_id::text and p->>'status'='validated') then raise exception 'parent portal did not show its validated proof payment'; end if;
+  advance_payment_id:=public.submit_family_finance_payment(advance_charge_id,5,'MonCash','CI-PARENT-ADVANCE-PAYMENT','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf');
+  if not exists(select 1 from public.finance_payments p where p.id=advance_payment_id and p.status='pending' and p.charge_id=advance_charge_id) then raise exception 'parent could not submit an early payment for a future installment'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);
+  perform public.review_finance_payment(advance_payment_id,'validated',null);
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000005',true);
+  receipt:=public.finance_payment_receipt(advance_payment_id);
+  if receipt->>'school_year_currency_code'<>'HTG' or receipt->>'school_year_remaining_balance' is null or jsonb_typeof(receipt->'credit_allocations')<>'array' then raise exception 'receipt omitted remaining school-year balance or extra-payment allocations'; end if;
   cross_payment_id:=public.submit_family_finance_payment(cross_charge_id,10,'PayPal','CI-PARENT-USD-TO-HTG','fa000000-0000-0000-0000-000000000001/fa300000-0000-0000-0000-000000000005/fa400000-0000-0000-0000-000000000001/parent-proof.pdf');
   if not exists(select 1 from public.finance_payments p where p.id=cross_payment_id and p.status='pending' and p.amount=10 and p.currency_code='USD' and p.applied_currency_code='HTG' and p.applied_amount=1305.58) then raise exception 'parent USD tender was not reserved against its HTG fee using the BRH rate'; end if;
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000004',true);

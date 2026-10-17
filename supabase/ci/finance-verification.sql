@@ -213,6 +213,7 @@ begin
   if not exists(select 1 from jsonb_array_elements(ledger->'items') item where item->>'id'=credit_payment_id::text and (item->>'refunded_amount')::numeric=45 and item->>'status'='validated') then raise exception 'full refund was missing from payment history'; end if;
   if not exists(select 1 from public.finance_payments p where p.id=credit_payment_id and p.amount=45 and p.applied_amount=0) then raise exception 'full refund erased the source receipt or left applied value'; end if;
   if exists(select 1 from public.finance_student_credits cr where cr.source_payment_id=credit_payment_id) or exists(select 1 from public.finance_credit_allocations a where a.credit_id=(select id from public.finance_student_credits where source_payment_id=credit_payment_id)) then raise exception 'fully refunded credit still has a balance or allocation'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000005',true);
   receipt:=public.finance_payment_receipt(credit_payment_id);
   if jsonb_array_length(receipt->'refunds')<>2
     or coalesce((select sum((item->>'amount')::numeric) from jsonb_array_elements(receipt->'refunds') item),0)<>45
@@ -226,6 +227,7 @@ begin
         or item->>'recorded_by_name' is distinct from nullif(trim(u.full_name),'')
     )
   then raise exception 'refund receipt omitted refund dates or the recorded staff identity'; end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
   denied:=false;
   begin perform public.refund_finance_payment(credit_payment_id,0.01,'Refund beyond the original receipt'); exception when others then denied:=sqlerrm='refund_exceeds_remaining'; end;
   if not denied then raise exception 'refund exceeded the original receipt value'; end if;

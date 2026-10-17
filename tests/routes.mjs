@@ -25,7 +25,7 @@ try {
     assert.equal(response.status,200)
     const html=await response.text();assert.ok(html.includes(label));assert.ok(html.includes('type="password"'));assert.ok(!html.slice(html.indexOf('<form'),html.indexOf('</form>')).includes('<select'));checks++
   }
-  for (const [path, heading, form] of [['/', 'The Operating System', false], ['/signup', 'Create your account', true], ['/login', 'Sign in', true], ['/auth/error', 'Unable to complete email confirmation', false], ['/invitation', 'School invitation', true]]) {
+  for (const [path, heading, form] of [['/', 'Your whole school,', false], ['/fonctionnalites', 'School operations, connected in one view.', false], ['/solutions', 'A workspace for each responsibility.', false], ['/signup', 'Create your account', true], ['/login', 'Sign in', true], ['/auth/error', 'Unable to complete email confirmation', false], ['/invitation', 'School invitation', true]]) {
     const response = await fetch(origin + path, {headers:{cookie:"atechos_locale=en"}})
     assert.equal(response.status, 200, path)
     const html = await response.text()

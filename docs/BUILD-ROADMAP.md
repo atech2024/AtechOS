@@ -1,6 +1,6 @@
 # AtechOS / KIOS build roadmap
 
-Updated: 2026-10-16
+Updated: 2026-10-17
 
 Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION REQUIRED` when a missing business rule changes permissions, audit, or user-visible behavior. A build is not done until its acceptance criteria and relevant tests pass. Existing code is not proof that a build meets the product requirements; unreviewed areas remain explicitly unaudited.
 
@@ -50,7 +50,7 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 
 ### BUILD 13 — Family portal follow-up (updated 2026-10-08)
 
-- 2026-10-16 access audit for Preschool family bulletins: `family_preschool_bulletins()` already enforces an authenticated parent membership and linked-child scope, but its default `PUBLIC` execution also enabled the `anon` role. PR #140 adds a narrow privilege migration and rollback-only CI assertions: anonymous execution must be denied while authenticated execution remains allowed. Production is unchanged; BUILD 13 stays IN PROGRESS pending PR checks, Preview confirmation, and the remaining linked-parent access/responsive review.
+- 2026-10-16 access audit for Preschool family bulletins: `family_preschool_bulletins()` already enforces an authenticated parent membership and linked-child scope, but its default `PUBLIC` execution also enabled the `anon` role. PR #140 adds a narrow privilege migration and rollback-only CI assertions: anonymous execution must be denied while authenticated execution remains allowed. GitHub check-runs passed on commit `b59906812be2133457c2f5bde930fa26023293f0` (application/build, migration, assignment-file access, progression, family attendance, exam submissions, badge lifecycle, and grade deadline). GitHub's latest Vercel status for that commit is `success`, but direct Vercel deployment details were not retrievable, so the deployment's `READY` state is not independently confirmed. The new RPC privilege migration is not applied to Production. BUILD 13 stays IN PROGRESS pending exact-Preview confirmation, remaining linked-parent access review, and authenticated responsive/mobile review.
 
 - 2026-10-15 student portal localization: student attendance summaries, exam dates, assignment states, attendance history dates, and record-change timestamps now follow the selected French, Haitian Creole, or English locale. A rendered component regression test covers all three locales and retains year/period bulletin filtering. `npm test`, typecheck, production build, translation audit, and targeted ESLint pass locally; authenticated student Preview, private attachment access, and Production checks remain open. No database or permission changes. BUILD 13 remains IN PROGRESS.
 

@@ -7,7 +7,7 @@ import React from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 const require=createRequire(import.meta.url),exports={}
 const source=readFileSync('src/components/badge-card.tsx','utf8')
-const mockedRequire=n=>n==='@/lib/supabase/client'?{createClient:()=>{throw Error('render must not access database')}}:n==='@/components/translation-provider'?{T:({text})=>text}:n==='qrcode.react'?{QRCodeSVG:({value})=>React.createElement('span',{'data-qr':value})}:n==='next/link'?{default:({children,...props})=>React.createElement('a',props,children)}:require(n)
+const mockedRequire=n=>n==='@/lib/supabase/client'?{createClient:()=>{throw Error('render must not access database')}}:n==='@/components/translation-provider'?{T:({text})=>text,useLocale:()=> 'fr'}:n==='qrcode.react'?{QRCodeSVG:({value})=>React.createElement('span',{'data-qr':value})}:n==='next/link'?{default:({children,...props})=>React.createElement('a',props,children)}:require(n)
 vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,require:mockedRequire})
 const identity={name:'Fixture Student',code:'AOS-PUBLIC',className:'Petite Section',photo:'',school:'Fixture school',logo:null}
 const props={identity,qr:'AOSQ1.'+'a'.repeat(64)}
@@ -24,10 +24,10 @@ assert.ok(back.includes('Ne le prêtez pas'));assert.ok(back.includes('Pa prete 
 const dateExports={}
 vm.runInNewContext(ts.transpileModule(readFileSync('src/lib/school-date.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{exports:dateExports,Intl,Date})
 const studentExports={}
-const studentMock=n=>n==='@/lib/school-date'?dateExports:n==='@/components/translation-provider'?{T:({text})=>text}:n==='qrcode.react'?{QRCodeSVG:({value})=>React.createElement('span',{'data-qr':value})}:require(n)
+const studentMock=n=>n==='@/lib/school-date'?dateExports:n==='@/components/translation-provider'?{T:({text})=>text,useLocale:()=> 'fr'}:n==='qrcode.react'?{QRCodeSVG:({value})=>React.createElement('span',{'data-qr':value})}:require(n)
 vm.runInNewContext(ts.transpileModule(readFileSync('src/components/student-identity-card.tsx','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports:studentExports,require:studentMock})
 const studentHtml=renderToStaticMarkup(React.createElement(studentExports.default,{student:{first_name:'Fixture',last_name:'Student',atechos_id:'AOS-123',class_name:'PS1',academic_year:'2026–2027',photo_available:true},qr:props.qr,attendance:{check_in_at:'2026-10-02T12:45:00.000Z',check_out_at:'2026-10-02T20:15:00.000Z'}}))
-for(const value of ['Fixture Student','PS1','2026–2027','AOS-123','08:45 AM','04:15 PM','/student/photo'])assert.ok(studentHtml.includes(value),`student identity panel must show ${value}`)
+for(const value of ['Fixture Student','PS1','2026–2027','AOS-123','08:45','16:15','/student/photo'])assert.ok(studentHtml.includes(value),`student identity panel must show ${value}`)
 assert.ok(studentHtml.includes('data-qr="'+props.qr+'"'),'student portal must present the active operational badge QR')
 assert.ok(readFileSync('src/app/student/page.tsx','utf8').includes('<StudentOverview qr={data.badge_qr}'),'portal workspace must pass the server-returned badge QR to the student overview')
 assert.ok(readFileSync('src/app/student/overview.tsx','utf8').includes('<StudentIdentityCard qr={qr}'),'student overview must render the badge QR in the identity panel')

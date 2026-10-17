@@ -4,6 +4,7 @@ import {useEffect,useState,type FormEvent} from 'react'
 import {T,useLocale} from '@/components/translation-provider'
 import {createClient} from '@/lib/supabase/client'
 import {schoolDate,schoolTime} from '@/lib/school-date'
+import {translate} from '@/lib/translations'
 
 type AttendanceRecord={attendance_date:string;status:string;late_minutes:number|null;check_in_at:string|null;check_out_at:string|null}
 type AttendanceHistory={records:AttendanceRecord[];total_count:number;summary:{present:number;late:number;absent:number}}
@@ -60,8 +61,8 @@ export default function FamilyAttendancePanel({studentId}:{studentId:string}){
    {history.records[0]&&<p className="text-sm"><T text="Most recent day"/> · {schoolDate(history.records[0].attendance_date,locale)}</p>}
   </div>
   <form onSubmit={applyRange} className="mt-4 flex flex-wrap items-end gap-3 print:hidden">
-   <label className="text-sm"><T text="Date from"/><input aria-label="Date from" type="date" required value={draft.from} onChange={e=>setDraft(value=>({...value,from:e.target.value}))} className="mt-1 block rounded-lg border px-3 py-2"/></label>
-   <label className="text-sm"><T text="Date to"/><input aria-label="Date to" type="date" required value={draft.to} onChange={e=>setDraft(value=>({...value,to:e.target.value}))} className="mt-1 block rounded-lg border px-3 py-2"/></label>
+   <label className="text-sm"><T text="Date from"/><input aria-label={translate('Date from',locale)} type="date" required value={draft.from} onChange={e=>setDraft(value=>({...value,from:e.target.value}))} className="mt-1 block rounded-lg border px-3 py-2"/></label>
+   <label className="text-sm"><T text="Date to"/><input aria-label={translate('Date to',locale)} type="date" required value={draft.to} onChange={e=>setDraft(value=>({...value,to:e.target.value}))} className="mt-1 block rounded-lg border px-3 py-2"/></label>
    <button type="submit" disabled={loading||!range} className="rounded-lg bg-blue-700 px-4 py-2 font-medium text-white disabled:opacity-60"><T text="Apply dates"/></button>
   </form>
   {error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
@@ -71,7 +72,7 @@ export default function FamilyAttendancePanel({studentId}:{studentId:string}){
     <div className="rounded-xl bg-amber-50 p-3"><p className="text-2xl font-bold">{history.summary.late}</p><p className="text-xs"><T text="Late"/></p></div>
     <div className="rounded-xl bg-rose-50 p-3"><p className="text-2xl font-bold">{history.summary.absent}</p><p className="text-xs"><T text="Absent"/></p></div>
    </div>
-   <div className="mt-5 flex min-h-32 items-end justify-center gap-3 overflow-x-auto" role="img" aria-label="Attendance chart for the latest school days">
+   <div className="mt-5 flex min-h-32 items-end justify-center gap-3 overflow-x-auto" role="img" aria-label={translate('Attendance chart for the latest school days',locale)}>
     {chart.map(record=>{const color=record.status==='present'?'bg-emerald-500':record.status==='late'?'bg-amber-500':record.status==='absent'?'bg-rose-500':'bg-slate-400';const label=record.status==='present'?'P':record.status==='late'?'R':record.status==='absent'?'A':'—';return <div key={record.attendance_date} className="flex w-12 shrink-0 flex-col items-center gap-1"><span className="text-[10px] text-slate-600">{label}</span><div className={`w-full rounded-t ${color}`} style={{height:record.status==='present'||record.status==='late'?'4rem':'2rem'}}/><span className="text-[10px] text-slate-600">{schoolDate(record.attendance_date,locale).split(' ')[0]}</span></div>})}
    </div>
    <ul className="mt-4 divide-y">{history.records.map(record=><li key={record.attendance_date} className="flex flex-wrap justify-between gap-2 py-2 text-sm"><span>{schoolDate(record.attendance_date,locale)} · <T text={record.status==='present'?'Present':record.status==='late'?'Late':record.status==='absent'?'Absent':record.status}/></span><span className="text-slate-600"><T text="Check-in"/> {schoolTime(record.check_in_at)} · <T text="Check-out"/> {schoolTime(record.check_out_at)}</span></li>)}</ul>

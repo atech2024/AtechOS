@@ -13,7 +13,7 @@ assert.match(component,/status==='absent'\?'grayscale opacity-70'/,'only a recor
 assert.match(component,/statuses\.includes\('absent'\)\?'absent':'unknown'/,'no attendance record must not imply absence')
 assert.match(component,/storage\.from\('student-photos'\)\.createSignedUrl/,'private photos must use short-lived signed URLs')
 assert.match(component,/aria-pressed=\{selectedId===child\.id\}/,'child selection is accessible')
-assert.match(portal,/<FamilyChildrenOverview students=\{children\} selectedId=\{childId\} onSelect=\{setChildId\}\/>/)
+assert.match(portal,/<FamilyChildrenOverview students=\{children\} selectedId=\{childId\} onSelect=\{selectChild\}\/>/)
 for(const key of ['My children today','Today\'s recorded school attendance','Color means present; grayscale means recorded absent.','No record today']) assert.ok(translations.includes(`"${key}"`),`missing French/Kreyòl copy: ${key}`)
 assert.ok(packageJson.scripts.test.includes('node tests/family-children-overview.mjs'),'npm test includes the family portrait/status contract')
 

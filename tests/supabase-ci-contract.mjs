@@ -25,6 +25,9 @@ const examSubmissionMigration = readFileSync('supabase/migrations/20261008171500
 const examSubmissionDocumentMigration = readFileSync('supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql', 'utf8');
 const examSubmissionFixture = readFileSync('supabase/ci-exam-submissions/teacher-exam-submissions-verification.sql', 'utf8');
 const examSubmissionBaseline = readFileSync('supabase/ci-exam-submissions/supabase/migrations/20260901000000_teacher_exam_submissions_baseline.sql', 'utf8');
+const assignmentFileMigration = readFileSync('supabase/migrations/20261016154709_parent_assignment_file_access.sql', 'utf8');
+const assignmentFileBaseline = readFileSync('supabase/ci-assignment-files/supabase/migrations/20260901000000_assignment_files_parent_baseline.sql', 'utf8');
+const assignmentFileVerification = readFileSync('supabase/ci-assignment-files/assignment-files-verification.sql', 'utf8');
 const gradeDeadlineMigration = readFileSync('supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql', 'utf8');
 const gradeDeadlineBaseline = readFileSync('supabase/ci-grade-deadline/supabase/migrations/20260901000000_grade_deadline_baseline.sql', 'utf8');
 const gradeDeadlineVerification = readFileSync('supabase/ci-grade-deadline/grade-deadline-verification.sql', 'utf8');
@@ -162,6 +165,14 @@ assert.doesNotMatch(examSubmissionDocumentMigration,/audio\//);
 assert.ok(workflow.includes('teacher-exam-submissions-verification.sql'));
 assert.ok(workflow.includes('teacher-exam-submissions:'));
 assert.ok(workflow.includes('working-directory: supabase/ci-exam-submissions'));
+assert.ok(workflow.includes('family-assignment-files:'));
+assert.ok(workflow.includes('20261016154709_parent_assignment_file_access.sql'));
+assert.ok(workflow.includes('working-directory: supabase/ci-assignment-files'));
+assert.ok(workflow.includes('< assignment-files-verification.sql'));
+assert.match(assignmentFileMigration,/create policy assignment_files_parent_linked_read[\s\S]*?private\.parent_can_read_assignment_file\(name\)/);
+assert.match(assignmentFileVerification,/set local role authenticated[\s\S]*?linked parent saw unrelated class, old-year, or cross-school assignment files[\s\S]*?disabled parent membership read assignment files[\s\S]*?set local role anon[\s\S]*?anonymous user read private assignment files/);
+assert.ok(assignmentFileBaseline.includes('create table public.assignments'));
+assert.ok(assignmentFileBaseline.includes('grant select on storage.objects to anon,authenticated'));
 assert.ok(workflow.includes('cp ../migrations/20261008171500_teacher_exam_submissions.sql'));
 assert.ok(examSubmissionBaseline.includes('create table public.class_subjects'));
 assert.ok(examSubmissionBaseline.includes('section text'));
@@ -172,3 +183,4 @@ assert.ok(examSubmissionMigration.includes("create policy teacher_exam_files_ins
 assert.ok(examSubmissionMigration.includes('manager or s.teacher_id=actor'));
 for (const assertion of ['teacher did not receive own scoped submission','teacher submitted an unassigned subject','teacher impersonated another teacher','Direction cannot see the full receipt register']) assert.ok(examSubmissionFixture.includes(assertion), `exam submission SQL fixture must check: ${assertion}`);
 console.log('PASS free, isolated Supabase CI contract: synthetic baseline, only targeted migrations, rollback-only data checks, no production credentials or remote database commands.');
+

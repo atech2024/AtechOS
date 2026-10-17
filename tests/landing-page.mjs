@@ -52,6 +52,7 @@ assert.equal(motionClasses.has('landing-motion-ready'), true)
 const motionCss = readFileSync('src/app/globals.css', 'utf8')
 assert.ok(motionCss.includes('prefers-reduced-motion: reduce'), 'motion must respect reduced-motion settings')
 assert.ok(motionCss.includes('[data-landing-reveal]:focus-within'), 'keyboard focus must reveal animated content')
+assert.ok(motionCss.includes('@keyframes landing-title-line-in') && motionCss.includes('landing-hero__emphasis-line'), 'hero lines must use the deliberate staggered reveal')
 
 for (const locale of ['fr', 'ht', 'en']) {
   const copy = landingCopyFor(locale)
@@ -70,6 +71,7 @@ for (const locale of ['fr', 'ht', 'en']) {
   assert.ok(homeHtml.includes('href="/signup"') && homeHtml.includes('href="/signin"'), locale + ' existing account routes must remain available')
   assert.ok(homeHtml.includes('href="/fonctionnalites"') && homeHtml.includes('href="/solutions"'), locale + ' navigation must expose public subpages')
   assert.ok(homeHtml.includes('id="landing-hero"') && homeHtml.includes('id="access"'), locale + ' hero and access targets must exist')
+  assert.ok(homeHtml.includes('landing-hero__title-line') && homeHtml.includes('landing-hero__emphasis-line'), locale + ' hero typography must reveal each line in sequence')
   assert.ok(homeHtml.includes('data-landing-reveal'), locale + ' landing page sections must support scroll reveal')
 
   const { default: FeaturesPage } = compile('src/app/fonctionnalites/page.tsx', common)

@@ -68,7 +68,7 @@ export default async function Home() {
       <section id="landing-hero" className="landing-hero" tabIndex={-1}>
         <div className="landing-frame landing-hero__inner">
           <div className="landing-hero__copy">
-            <h1>{copy.hero.title}<span>{copy.hero.emphasis}</span></h1>
+            <h1><span className="landing-hero__title-line">{copy.hero.title}</span><span className="landing-hero__emphasis-line">{copy.hero.emphasis}</span></h1>
             <p>{copy.hero.description}</p>
             <div className="landing-actions">
               <Link href="/signup" className="landing-button landing-button--primary">{copy.hero.primary}<ArrowRight size={18} aria-hidden="true" /></Link>

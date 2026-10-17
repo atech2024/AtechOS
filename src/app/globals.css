@@ -77,8 +77,10 @@ button, input { font: inherit; }
 .landing-hero__inner { display: grid; grid-template-columns: minmax(0, .95fr) minmax(440px, 1.05fr); align-items: center; gap: clamp(36px, 5vw, 74px); min-height: 570px; padding-top: 74px; padding-bottom: 74px; }
 .landing-hero__copy { min-width: 0; }
 .landing-hero h1, .landing-introduction h2, .landing-modules__heading h2, .landing-role-row h3, .landing-access h2, .landing-closing h2 { margin: 0; }
-.landing-hero h1 { max-width: 660px; font-family: "Iowan Old Style", "Baskerville", Georgia, serif; font-size: clamp(54px, 6vw, 82px); font-weight: 500; line-height: .99; letter-spacing: -.045em; animation: landing-arrive .72s cubic-bezier(.16, 1, .3, 1) both; }
-.landing-hero h1 span { display: block; margin-top: 7px; color: #a9c8ff; }
+.landing-hero h1 { max-width: 660px; font-family: "Iowan Old Style", "Baskerville", Georgia, serif; font-size: clamp(54px, 6vw, 82px); font-weight: 500; line-height: .99; letter-spacing: -.045em; }
+.landing-hero__title-line { display: block; animation: landing-title-line-in .65s cubic-bezier(.16, 1, .3, 1) both; }
+.landing-hero__emphasis-line { display: block; margin-top: 7px; color: #a9c8ff; animation: landing-title-line-in .65s cubic-bezier(.16, 1, .3, 1) .12s both; }
+@keyframes landing-title-line-in { from { opacity: 0; transform: translateY(.24em); } to { opacity: 1; transform: translateY(0); } }
 .landing-hero__copy > p { max-width: 570px; margin: 25px 0 0; color: #c8d4e7; font-size: clamp(16px, 1.5vw, 18px); line-height: 1.68; animation: landing-arrive .7s cubic-bezier(.16, 1, .3, 1) .1s both; }
 .landing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 30px; }
 .landing-button--primary { color: #fff; background: var(--landing-blue); }

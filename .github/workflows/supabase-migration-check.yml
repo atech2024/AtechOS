@@ -252,6 +252,7 @@ jobs:
           cp supabase/migrations/20261009133000_editable_receipt_signature_name.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261014151237_lock_legacy_finance_receipt_signature.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261017174604_finance_receipt_refund_audit.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

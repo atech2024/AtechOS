@@ -1,5 +1,5 @@
 export type FinanceBankCountry='HT'|'US'
-export type FinanceBank={name:string;country:FinanceBankCountry;mark:string;color:string}
+export type FinanceBank={name:string;country:FinanceBankCountry;mark:string;color:string;accountNumberGuidance?:{format:string;appliesTo:string;sourceUrl:string}}
 
 // Haitian institutions listed by the BRH: https://www.brh.ht/supervision-bancaire/liste-des-banques/
 export const HAITIAN_BANKS:FinanceBank[]=[
@@ -10,7 +10,7 @@ export const HAITIAN_BANKS:FinanceBank[]=[
  {name:'Citibank N.A. (Haïti)',country:'HT',mark:'CITI',color:'#056dae'},
  {name:'Société Générale Haïtienne de Banque (SOGEBANK)',country:'HT',mark:'SG',color:'#e31b23'},
  {name:'Société Générale Haïtienne de Banque d’Épargne et de Logement (SOGEBEL)',country:'HT',mark:'SGB',color:'#e31b23'},
- {name:'Unibank S.A.',country:'HT',mark:'UNI',color:'#f05a28'},
+ {name:'Unibank S.A.',country:'HT',mark:'UNI',color:'#f05a28',accountNumberGuidance:{format:'xxx - xxxx - xxxxxx',appliesTo:'current account only',sourceUrl:'https://www.unibankhaiti.com/contact2/lst_documents_souscription.php/bootstrap3/js/jqueryfileupload/phpjs/jquery/colorbox/phpimages/index.php'}},
  {name:'Banque Nationale de Développement Agricole (BNDA)',country:'HT',mark:'BNDA',color:'#387c2b'},
 ]
 

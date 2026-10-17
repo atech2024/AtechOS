@@ -71,6 +71,8 @@ export const translations:Record<string,[string,string]> = {
  "Bank name":['Nom de la banque','Non bank lan'],
  "Choose a bank":['Choisir une banque','Chwazi yon bank'],
  "Other bank":['Autre banque','Lòt bank'],
+ "UNIBANK current-account guide: xxx - xxxx - xxxxxx. This is only a reference for current accounts; no format is enforced, and other account types may differ.":['UNIBANK : format de référence du compte courant : xxx - xxxx - xxxxxx. Cette indication est informative; aucun format n’est imposé et les autres types de comptes peuvent différer.','UNIBANK: fòma referans pou kont kouran: xxx - xxxx - xxxxxx. Se yon endikasyon sèlman; pa gen fòma ki enpoze epi lòt kalite kont ka diferan.'],
+ "Official format reference":['Référence officielle du format','Sous ofisyèl pou fòma a'],
  "Account number":['Numéro de compte','Nimewo kont lan'],
  "Branch / agency":['Agence bancaire','Branch bank lan'],
  "Maximum amount per payment (HTG)":['Montant maximal par paiement (HTG)','Montan maksimòm pa peman (HTG)'],

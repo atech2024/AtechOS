@@ -69,6 +69,8 @@ export const translations:Record<string,[string,string]> = {
  "Phone number":['Numéro de téléphone','Nimewo telefòn'],
  "Receiving email":['Adresse e-mail de réception','Imel pou resevwa peman'],
  "Bank name":['Nom de la banque','Non bank lan'],
+ "Choose a bank":['Choisir une banque','Chwazi yon bank'],
+ "Other bank":['Autre banque','Lòt bank'],
  "Account number":['Numéro de compte','Nimewo kont lan'],
  "Branch / agency":['Agence bancaire','Branch bank lan'],
  "Maximum amount per payment (HTG)":['Montant maximal par paiement (HTG)','Montan maksimòm pa peman (HTG)'],

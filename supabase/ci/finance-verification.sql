@@ -147,10 +147,7 @@ begin
         or nullif(trim(item->>'recorded_by_name'),'') is null
         or item->>'recorded_by_name' is distinct from nullif(trim(u.full_name),'')
     )
-  then raise exception 'parent refund receipt omitted refund dates or the recorded staff identity: %', jsonb_build_object(
-    'receipt_refunds',receipt->'refunds',
-    'ledger_rows',(select jsonb_agg(jsonb_build_object('id',r.id,'recorded_by',r.recorded_by,'recorded_at',r.recorded_at,'full_name',u.full_name)) from public.finance_payment_refunds r left join public.users u on u.id=r.recorded_by where r.payment_id=credit_payment_id)
-  ); end if;
+  then raise exception 'parent refund receipt omitted refund dates or the recorded staff identity'; end if;
   receipt:=public.finance_payment_receipt(class_overpayment_id);
   if receipt->'reviewer'->>'name'<>'Finance Accountant' or receipt->'reviewer'->>'role'<>'accountant' or (receipt->'reviewer'->>'signature_style')::integer<>2 then raise exception 'receipt did not preserve the approving accountant and approved signature'; end if;
   if receipt->'payment'->>'payment_method'<>'Cash' or receipt->'payment'->>'currency_code'<>'HTG' or receipt->'current_installment'->>'remaining' is null then raise exception 'receipt omitted payment details or current installment balance'; end if;

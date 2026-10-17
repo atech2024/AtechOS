@@ -126,7 +126,7 @@ export default async function Home() {
       </div>
 
       <section id="roles" className="landing-section landing-introduction">
-        <div className="landing-frame landing-introduction__grid">
+        <div className="landing-frame landing-introduction__grid" data-landing-reveal>
           <h2>{copy.introduction.title}</h2>
           <p>{copy.introduction.description}</p>
         </div>
@@ -136,7 +136,7 @@ export default async function Home() {
         <div className="landing-frame">
           {copy.roles.map(item => {
             const Icon = iconByName[item.icon]
-            return <article className="landing-role-row" key={item.audience}>
+            return <article className="landing-role-row" key={item.audience} data-landing-reveal>
               <span className="landing-role-row__audience">{item.audience}</span>
               <div className="landing-role-row__text"><h3>{item.title}</h3><p>{item.description}</p></div>
               <span className="landing-role-row__icon"><Icon size={24} strokeWidth={1.7} aria-hidden="true" /></span>
@@ -147,14 +147,14 @@ export default async function Home() {
 
       <section id="fonctionnalites" className="landing-section landing-modules">
         <div className="landing-frame">
-          <div className="landing-modules__heading">
+          <div className="landing-modules__heading" data-landing-reveal>
             <h2>{copy.modules.title}</h2>
             <p>{copy.modules.description}</p>
           </div>
           <ul className="landing-module-list">
             {copy.modules.items.map(item => {
               const Icon = iconByName[item.icon]
-              return <li key={item.title}>
+              return <li key={item.title} data-landing-reveal>
                 <span className="landing-module-list__icon"><Icon size={20} aria-hidden="true" /></span>
                 <div><h3>{item.title}</h3><p>{item.description}</p></div>
                 <ArrowRight size={18} className="landing-module-list__arrow" aria-hidden="true" />
@@ -165,14 +165,14 @@ export default async function Home() {
       </section>
 
       <section id="access" className="landing-access">
-        <div className="landing-frame landing-access__inner">
+        <div className="landing-frame landing-access__inner" data-landing-reveal>
           <span className="landing-access__icon"><ShieldCheck size={28} strokeWidth={1.7} aria-hidden="true" /></span>
           <div><h2>{copy.access.title}</h2><p>{copy.access.description}</p></div>
         </div>
       </section>
 
       <section className="landing-closing">
-        <div className="landing-frame landing-closing__inner">
+        <div className="landing-frame landing-closing__inner" data-landing-reveal>
           <div><h2>{copy.closing.title}</h2><p>{copy.closing.description}</p></div>
           <div className="landing-actions">
             <Link href="/signup" className="landing-button landing-button--light">{copy.closing.primary}<ArrowRight size={18} aria-hidden="true" /></Link>

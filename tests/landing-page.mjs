@@ -16,10 +16,11 @@ function compile(path, imports = {}) {
 }
 
 const { landingCopyFor } = compile('src/lib/landing-content.ts')
+const { prepareLandingReveals } = compile('src/components/landing-scroll-reveal.tsx', { react: { useEffect: () => {} } })
 const iconNames = ['ArrowRight', 'BookOpenCheck', 'CalendarDays', 'CircleDollarSign', 'GraduationCap', 'MessageSquareText', 'School', 'ShieldCheck', 'UsersRound', 'UserRoundCheck', 'ClipboardList', 'Check']
 const iconMock = Object.fromEntries(iconNames.map(name => [name, props => React.createElement('svg', props)]))
 const linkMock = { default: ({ href, children, ...props }) => React.createElement('a', { href, ...props }, children) }
-const marketingChrome = compile('src/components/marketing-chrome.tsx', { 'next/link': linkMock, 'lucide-react': iconMock })
+const marketingChrome = compile('src/components/marketing-chrome.tsx', { 'next/link': linkMock, 'lucide-react': iconMock, '@/components/landing-scroll-reveal': { default: () => null } })
 const common = {
   'next/link': linkMock,
   'next/headers': { cookies: async () => ({ get: () => ({ value: 'fr' }) }) },
@@ -28,6 +29,29 @@ const common = {
   '@/lib/i18n': { localeFrom: value => value === 'ht' || value === 'en' ? value : 'fr' },
   '@/components/marketing-chrome': marketingChrome,
 }
+
+const motionClasses = new Set()
+const motionRoot = { classList: { add: value => motionClasses.add(value) } }
+function revealTarget(top) {
+  const classes = new Set()
+  const properties = new Map()
+  return { classes, properties, classList: { add: value => classes.add(value) }, style: { setProperty: (key, value) => properties.set(key, value) }, getBoundingClientRect: () => ({ top }) }
+}
+const reducedTarget = revealTarget(900)
+assert.equal(prepareLandingReveals([reducedTarget], motionRoot, true, 800, () => assert.fail('reduced motion must not observe targets')), false)
+assert.equal(motionClasses.has('landing-motion-ready'), false)
+const visibleTarget = revealTarget(100)
+const deferredTarget = revealTarget(900)
+const observedTargets = []
+assert.equal(prepareLandingReveals([visibleTarget, deferredTarget], motionRoot, false, 800, target => observedTargets.push(target)), true)
+assert.equal(visibleTarget.classes.has('is-visible'), true)
+assert.equal(deferredTarget.classes.has('is-visible'), false)
+assert.deepEqual(observedTargets, [deferredTarget])
+assert.equal(deferredTarget.properties.get('--landing-motion-delay'), '55ms')
+assert.equal(motionClasses.has('landing-motion-ready'), true)
+const motionCss = readFileSync('src/app/globals.css', 'utf8')
+assert.ok(motionCss.includes('prefers-reduced-motion: reduce'), 'motion must respect reduced-motion settings')
+assert.ok(motionCss.includes('[data-landing-reveal]:focus-within'), 'keyboard focus must reveal animated content')
 
 for (const locale of ['fr', 'ht', 'en']) {
   const copy = landingCopyFor(locale)
@@ -46,6 +70,7 @@ for (const locale of ['fr', 'ht', 'en']) {
   assert.ok(homeHtml.includes('href="/signup"') && homeHtml.includes('href="/signin"'), locale + ' existing account routes must remain available')
   assert.ok(homeHtml.includes('href="/fonctionnalites"') && homeHtml.includes('href="/solutions"'), locale + ' navigation must expose public subpages')
   assert.ok(homeHtml.includes('id="landing-hero"') && homeHtml.includes('id="access"'), locale + ' hero and access targets must exist')
+  assert.ok(homeHtml.includes('data-landing-reveal'), locale + ' landing page sections must support scroll reveal')
 
   const { default: FeaturesPage } = compile('src/app/fonctionnalites/page.tsx', common)
   const featuresHtml = renderToStaticMarkup(await FeaturesPage())
@@ -58,4 +83,4 @@ for (const locale of ['fr', 'ht', 'en']) {
   assert.ok(solutionsHtml.includes('id="solutions-content"') && solutionsHtml.includes('href="/signup"') && solutionsHtml.includes('href="/signin"'), locale + ' solutions page must provide skip target and preserve account routes')
 }
 
-console.log('PASS marketing pages: localized French, Haitian Creole and English content; functional navigation; account routes; feature and role pages.')
+console.log('PASS marketing pages and motion: localized content, routes, staged scroll reveals, reduced-motion and keyboard-focus behavior.')

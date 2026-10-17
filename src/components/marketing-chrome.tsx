@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { ArrowRight, GraduationCap } from 'lucide-react'
 import type { LandingCopy } from '@/lib/landing-content'
+import LandingScrollReveal from '@/components/landing-scroll-reveal'
 
 export function MarketingHeader({ copy, home = false }: { copy: LandingCopy; home?: boolean }) {
   return <header className="landing-header">
+    <LandingScrollReveal />
     <div className="landing-frame landing-header__inner">
       <Link href="/" className="landing-brand" aria-label="AtechOS">
         <span className="landing-brand__mark"><GraduationCap size={25} strokeWidth={2.2} aria-hidden="true" /></span>

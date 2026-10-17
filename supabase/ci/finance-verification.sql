@@ -138,7 +138,7 @@ begin
   receipt:=public.finance_payment_receipt(credit_payment_id);
   if jsonb_array_length(receipt->'refunds')<>2
     or coalesce((select sum((item->>'amount')::numeric) from jsonb_array_elements(receipt->'refunds') item),0)<>45
-    or exists(select 1 from jsonb_array_elements(receipt->'refunds') item where item->>'recorded_at' is null or item->>'recorded_by_name'<>'Finance Accountant')
+    or exists(select 1 from jsonb_array_elements(receipt->'refunds') item where item->>'recorded_at' is null or item->>'recorded_by_name'<>'Finance Director')
   then raise exception 'parent refund receipt omitted refund dates or the staff member who recorded them'; end if;
   receipt:=public.finance_payment_receipt(class_overpayment_id);
   if receipt->'reviewer'->>'name'<>'Finance Accountant' or receipt->'reviewer'->>'role'<>'accountant' or (receipt->'reviewer'->>'signature_style')::integer<>2 then raise exception 'receipt did not preserve the approving accountant and approved signature'; end if;

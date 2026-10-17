@@ -49,22 +49,6 @@ export default async function Home() {
     <main id="main-content" className="landing" tabIndex={-1}>
       <a className="landing-skip-link" href="#landing-hero">{copy.navigation.skipToContent}</a>
       <MarketingHeader copy={copy} home />
-        <div className="landing-frame landing-header__inner">
-          <Link href="/" className="landing-brand" aria-label="AtechOS">
-            <span className="landing-brand__mark"><GraduationCap size={25} strokeWidth={2.2} aria-hidden="true" /></span>
-            <span className="landing-brand__copy"><strong>AtechOS</strong><small>{copy.brand.subtitle}</small></span>
-          </Link>
-          <nav className="landing-nav" aria-label={copy.navigation.aria}>
-            <a href="#fonctionnalites">{copy.navigation.features}</a>
-            <a href="#roles">{copy.navigation.roles}</a>
-          </nav>
-          <div className="landing-header__actions">
-            <Link href="/signin" className="landing-signin">{copy.navigation.signIn}</Link>
-            <Link href="/signup" className="landing-button landing-button--nav">{copy.navigation.createSchool}<ArrowRight size={16} aria-hidden="true" /></Link>
-          </div>
-        </div>
-      
-
       <section id="landing-hero" className="landing-hero" tabIndex={-1}>
         <div className="landing-frame landing-hero__inner">
           <div className="landing-hero__copy">

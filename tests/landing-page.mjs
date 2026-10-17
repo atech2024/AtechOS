@@ -72,17 +72,20 @@ for (const locale of ['fr', 'ht', 'en']) {
   assert.ok(homeHtml.includes('href="/fonctionnalites"') && homeHtml.includes('href="/solutions"'), locale + ' navigation must expose public subpages')
   assert.ok(homeHtml.includes('id="landing-hero"') && homeHtml.includes('id="access"'), locale + ' hero and access targets must exist')
   assert.ok(homeHtml.includes('landing-hero__title-line') && homeHtml.includes('landing-hero__emphasis-line'), locale + ' hero typography must reveal each line in sequence')
+  assert.equal((homeHtml.match(/landing-header__inner/g) || []).length, 1, locale + ' homepage must render one shared header')
   assert.ok(homeHtml.includes('data-landing-reveal'), locale + ' landing page sections must support scroll reveal')
 
   const { default: FeaturesPage } = compile('src/app/fonctionnalites/page.tsx', common)
   const featuresHtml = renderToStaticMarkup(await FeaturesPage())
   assert.ok(featuresHtml.includes(copy.pages.featuresTitle) && featuresHtml.includes(copy.modules.items[0].title), locale + ' features page must render localized module content')
   assert.ok(featuresHtml.includes('id="features-content"') && featuresHtml.includes('href="/signup"') && featuresHtml.includes('href="/signin"'), locale + ' features page must provide skip target and preserve account routes')
+  assert.equal((featuresHtml.match(/landing-header__inner/g) || []).length, 1, locale + ' features page must render one shared header')
 
   const { default: SolutionsPage } = compile('src/app/solutions/page.tsx', common)
   const solutionsHtml = renderToStaticMarkup(await SolutionsPage())
   assert.ok(solutionsHtml.includes(copy.pages.solutionsTitle) && solutionsHtml.includes(copy.roles[0].title), locale + ' solutions page must render localized role content')
   assert.ok(solutionsHtml.includes('id="solutions-content"') && solutionsHtml.includes('href="/signup"') && solutionsHtml.includes('href="/signin"'), locale + ' solutions page must provide skip target and preserve account routes')
+  assert.equal((solutionsHtml.match(/landing-header__inner/g) || []).length, 1, locale + ' solutions page must render one shared header')
 }
 
 console.log('PASS marketing pages and motion: localized content, routes, staged scroll reveals, reduced-motion and keyboard-focus behavior.')

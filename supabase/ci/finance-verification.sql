@@ -138,8 +138,16 @@ begin
   receipt:=public.finance_payment_receipt(credit_payment_id);
   if jsonb_array_length(receipt->'refunds')<>2
     or coalesce((select sum((item->>'amount')::numeric) from jsonb_array_elements(receipt->'refunds') item),0)<>45
-    or exists(select 1 from jsonb_array_elements(receipt->'refunds') item where item->>'recorded_at' is null or item->>'recorded_by_name'<>'Finance Director')
-  then raise exception 'parent refund receipt omitted refund dates or the staff member who recorded them'; end if;
+    or exists(
+      select 1
+      from jsonb_array_elements(receipt->'refunds') item
+      join public.finance_payment_refunds r on r.id=(item->>'id')::uuid
+      left join public.users u on u.id=r.recorded_by
+      where item->>'recorded_at' is null
+        or nullif(trim(item->>'recorded_by_name'),'') is null
+        or item->>'recorded_by_name' is distinct from nullif(trim(u.full_name),'')
+    )
+  then raise exception 'parent refund receipt omitted refund dates or the recorded staff identity'; end if;
   receipt:=public.finance_payment_receipt(class_overpayment_id);
   if receipt->'reviewer'->>'name'<>'Finance Accountant' or receipt->'reviewer'->>'role'<>'accountant' or (receipt->'reviewer'->>'signature_style')::integer<>2 then raise exception 'receipt did not preserve the approving accountant and approved signature'; end if;
   if receipt->'payment'->>'payment_method'<>'Cash' or receipt->'payment'->>'currency_code'<>'HTG' or receipt->'current_installment'->>'remaining' is null then raise exception 'receipt omitted payment details or current installment balance'; end if;

@@ -36,6 +36,17 @@ button, input { font: inherit; }
 .footer { padding:24px 0; border-top:1px solid #e2e8f0; color:#475569; }
 @media(max-width:600px) { .nav-links { gap:14px; font-size:14px; } }
 
+/* Student portal: the same ink, blue and paper tones as the public AtechOS pages. */
+.student-dashboard { position:relative; isolation:isolate; overflow:hidden; background:radial-gradient(ellipse at 4% 0%,rgba(5,108,211,.09),transparent 28rem),radial-gradient(ellipse at 100% 18%,rgba(247,169,21,.055),transparent 23rem),#f5f7fb; font-family:"Avenir Next",Avenir,"Segoe UI",sans-serif; }
+.student-dashboard__content { position:relative; animation:student-dashboard-enter .48s cubic-bezier(.16,1,.3,1) both; }
+.student-dashboard__welcome { position:relative; isolation:isolate; box-shadow:0 14px 34px rgba(8,26,53,.12); }
+.student-dashboard__welcome-art { position:absolute; z-index:0; top:-155px; right:-86px; width:340px; height:340px; border:1px solid rgba(174,203,255,.17); border-radius:50%; box-shadow:0 0 0 24px rgba(255,255,255,.025),0 0 0 54px rgba(255,255,255,.02); }
+.student-identity-card { box-shadow:0 10px 28px rgba(8,26,53,.055); }
+.student-shortcut { min-width:0; }
+.student-attendance-entry,.student-attendance-exit { transition:transform .18s ease,border-color .18s ease,background-color .18s ease; }
+@keyframes student-dashboard-enter { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion:reduce) { .student-dashboard__content { animation:none; } .student-shortcut,.student-attendance-entry,.student-attendance-exit { transition:none; } }
+
 *:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
 ::selection { background: #cfe0ff; color: #071a35; }
 

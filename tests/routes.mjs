@@ -33,15 +33,66 @@ try {
     assert.equal(html.includes('<form'), form, path)
     checks++
   }
-  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/onboarding/create-school', '/login'], ['/dashboard', '/login'], ['/dashboard/publication', '/login'], ['/dashboard/approvals', '/login'], ['/dashboard/calendar', '/login'], ['/dashboard/classes', '/login'], ['/dashboard/subjects', '/login'], ['/dashboard/grades', '/login'], ['/dashboard/guard', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/dashboard/finance', '/login'], ['/dashboard/family-bulletins','/login'], ['/dashboard/preschool','/login'], ['/dashboard/progression','/login'], ['/dashboard/teacher-requests','/login'], ['/student','/student/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error']]) {
+  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/onboarding/create-school', '/login'], ['/dashboard', '/login'], ['/dashboard/publication', '/login'], ['/dashboard/approvals', '/login'], ['/dashboard/calendar', '/login'], ['/dashboard/classes', '/login'], ['/dashboard/subjects', '/login'], ['/dashboard/grades', '/login'], ['/dashboard/guard', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/dashboard/finance', '/login'], ['/dashboard/family-bulletins','/login'], ['/dashboard/preschool','/login'], ['/dashboard/progression','/login'], ['/dashboard/teacher-requests','/login'], ['/student','/student/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error'], ['/auth/callback?code=invalid&next=/reset-password', '/auth/error']]) {
     const response = await fetch(origin + path, { redirect: 'manual' })
     assert.equal(response.status, 307, path)
     assert.equal(new URL(response.headers.get('location'), origin).pathname, destination, path)
     assert.equal(new URL(response.headers.get('location'), origin).origin, origin, path)
     checks++
   }
-  for (const [locale,label] of [['fr','Se connecter'],['ht','Konekte']]) {
-    const html=await (await fetch(origin+'/login',{headers:{cookie:`atechos_locale=${locale}`}})).text();assert.ok(html.includes(label),locale);checks++
+  for (const [path, heading, form] of [
+    ['/forgot-password', 'Password recovery', true],
+    ['/reset-password', 'Choose a new password', true],
+    ['/terms', 'Terms of use', false],
+    ['/privacy', 'Privacy notice', false],
+  ]) {
+    const response = await fetch(origin + path, { headers: { cookie: 'atechos_locale=en' } })
+    assert.equal(response.status, 200, path)
+    const html = await response.text()
+    assert.ok(html.includes(heading), path)
+    assert.equal(html.includes('<form'), form, path)
+    if (path === '/terms' || path === '/privacy') {
+      assert.ok(html.includes('Draft for review'), path + ' must be clearly marked as a draft')
+      assert.ok(html.includes('href="/terms"') && html.includes('href="/privacy"'), path + ' must retain navigation to both legal drafts')
+    }
+    checks++
+  }
+  for (const [locale, recoveryTitle, resetTitle, termsTitle, privacyTitle] of [
+    ['fr', 'Récupérer votre mot de passe', 'Choisir un nouveau mot de passe', 'Conditions d’utilisation', 'Avis de confidentialité'],
+    ['ht', 'Rekipere modpas ou', 'Chwazi yon nouvo modpas', 'Kondisyon itilizasyon', 'Avi sou vi prive'],
+  ]) {
+    const paths = [
+      ['/forgot-password', recoveryTitle],
+      ['/reset-password', resetTitle],
+      ['/terms', termsTitle],
+      ['/privacy', privacyTitle],
+    ]
+    for (const [path, heading] of paths) {
+      const response = await fetch(origin + path, { headers: { cookie: `atechos_locale=${locale}` } })
+      assert.equal(response.status, 200, path + ':' + locale)
+      assert.ok((await response.text()).includes(heading), path + ' translation: ' + locale)
+      checks++
+    }
+  }
+  for (const [locale,loginLabel,signupLabel,createLabel] of [
+    ['fr','Se connecter','Créer votre compte','Créer un compte'],
+    ['ht','Konekte','Kreye kont ou','Kreye kont'],
+  ]) {
+    const loginHtml=await (await fetch(origin+'/login',{headers:{cookie:`atechos_locale=${locale}`}})).text()
+    assert.ok(loginHtml.includes(loginLabel),`login translation: ${locale}`)
+    assert.ok(loginHtml.includes(createLabel),`signup link translation: ${locale}`)
+    assert.ok(loginHtml.includes('atechos-logo-mark.webp'),`brand mark: ${locale}`)
+    assert.ok(loginHtml.includes('href="/forgot-password"'),`password recovery link: ${locale}`)
+    assert.ok(loginHtml.includes('href="/terms"') && loginHtml.includes('href="/privacy"'),`legal links: ${locale}`)
+    const signupHtml=await (await fetch(origin+'/signup',{headers:{cookie:`atechos_locale=${locale}`}})).text()
+    assert.ok(signupHtml.includes(signupLabel),`signup heading translation: ${locale}`)
+    assert.ok(signupHtml.includes('type="password"'),`signup password input: ${locale}`)
+    assert.ok(signupHtml.includes('href="/terms"') && signupHtml.includes('href="/privacy"'),`signup legal links: ${locale}`)
+    const expectedNameHint=locale==='fr'?'Votre nom complet':'Non konplè ou'
+    const expectedPasswordHint=locale==='fr'?'8 caractères minimum':'Omwen 8 karaktè'
+    assert.ok(signupHtml.includes(`placeholder="${expectedNameHint}"`),`localized name hint: ${locale}`)
+    assert.ok(signupHtml.includes(`placeholder="${expectedPasswordHint}"`),`localized password hint: ${locale}`)
+    checks += 2
   }
   const student=await fetch(origin+'/student/login',{headers:{cookie:'atechos_locale=ht'}})
   assert.equal(student.status,200);assert.ok((await student.text()).includes('Pòtal elèv'));checks++

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import {
@@ -13,11 +14,11 @@ import {
   UsersRound,
   UserRoundCheck,
   ClipboardList,
-  Check,
 } from 'lucide-react'
 import { landingCopyFor } from '@/lib/landing-content'
 import { MarketingFooter, MarketingHeader } from '@/components/marketing-chrome'
 import { localeFrom } from '@/lib/i18n'
+import { LandingHeroMedia } from '@/components/landing-hero-media'
 
 const iconByName = {
   school: School,
@@ -43,7 +44,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Home() {
   const copy = landingCopyFor(await currentLocale())
-  const DashboardIcon = iconByName.school
 
   return (
     <main id="main-content" className="landing" tabIndex={-1}>
@@ -65,41 +65,7 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="landing-visual">
-            <div className="landing-visual__label">{copy.hero.previewTitle}</div>
-            <div className="landing-mockup" role="img" aria-label={copy.hero.previewAlt}>
-              <div className="landing-mockup__topbar">
-                <div className="landing-window-dots" aria-hidden="true"><i /><i /><i /></div>
-                <span>AtechOS</span>
-                <span className="landing-mockup__context">{copy.hero.previewContext}</span>
-              </div>
-              <div className="landing-mockup__body">
-                <aside className="landing-mockup__side">
-                  <span className="landing-mockup__brand"><DashboardIcon size={16} aria-hidden="true" /> AtechOS</span>
-                  {copy.hero.previewNav.map((label, index) => (
-                    <span key={label} className={index === 0 ? 'is-active' : ''}>{label}</span>
-                  ))}
-                </aside>
-                <div className="landing-mockup__main">
-                  <div className="landing-mockup__heading">
-                    <div><span>{copy.brand.subtitle}</span><h2>{copy.hero.previewTitle}</h2></div>
-                    <span className="landing-mockup__school-mark" aria-hidden="true"><Check size={15} /></span>
-                  </div>
-                  <div className="landing-mockup__rows">
-                    {copy.hero.previewItems.map(item => {
-                      const Icon = iconByName[item.icon]
-                      return <div className="landing-mockup__row" key={item.title}>
-                        <span className="landing-mockup__icon"><Icon size={18} aria-hidden="true" /></span>
-                        <span className="landing-mockup__row-copy"><strong>{item.title}</strong><small>{item.detail}</small></span>
-                        <ArrowRight size={15} className="landing-mockup__arrow" aria-hidden="true" />
-                      </div>
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <p className="landing-visual__caption">{copy.hero.previewCaption}</p>
-          </div>
+          <LandingHeroMedia imageAlt={copy.visuals.heroAlt} caption={copy.visuals.heroCaption} label={copy.visuals.conceptLabel} />
         </div>
       </section>
 
@@ -118,10 +84,12 @@ export default async function Home() {
 
       <section className="landing-roles" aria-label={copy.navigation.roles}>
         <div className="landing-frame">
-          {copy.roles.map(item => {
+          {copy.roles.map((item, index) => {
             const Icon = iconByName[item.icon]
+            const roleImages = ['/landing/atechos-direction.webp', '/landing/atechos-enseignants.webp', '/landing/atechos-familles.webp']
             return <article className="landing-role-row" key={item.audience} data-landing-reveal>
               <span className="landing-role-row__audience">{item.audience}</span>
+              <Image className="landing-role-row__image" src={roleImages[index] ?? roleImages[0]} alt={copy.visuals.roleAlts[index] ?? copy.visuals.conceptLabel} width={1448} height={1086} sizes="(max-width: 700px) 100vw, (max-width: 960px) 34vw, 24vw" loading="lazy" />
               <div className="landing-role-row__text"><h3>{item.title}</h3><p>{item.description}</p></div>
               <span className="landing-role-row__icon"><Icon size={24} strokeWidth={1.7} aria-hidden="true" /></span>
             </article>
@@ -135,6 +103,10 @@ export default async function Home() {
             <h2>{copy.modules.title}</h2>
             <p>{copy.modules.description}</p>
           </div>
+          <figure className="landing-workflow-visual" data-landing-reveal>
+            <Image src="/landing/atechos-workflow.webp" alt={copy.visuals.workflowAlt} width={1586} height={992} sizes="(max-width: 700px) 100vw, 1100px" loading="lazy" />
+            <figcaption><span>{copy.visuals.conceptLabel}</span>{copy.visuals.workflowCaption}</figcaption>
+          </figure>
           <ul className="landing-module-list">
             {copy.modules.items.map(item => {
               const Icon = iconByName[item.icon]

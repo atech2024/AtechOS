@@ -1,10 +1,11 @@
 'use client'
-import { T } from '@/components/translation-provider'
 
+import { T } from '@/components/translation-provider'
 import Link from 'next/link'
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { AuthPageShell } from '@/components/auth-page-shell'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -19,49 +20,81 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-    const supabase = createClient()
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      const supabase = createClient()
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (signInError) {
-      setError(signInError.message)
-      setLoading(false)
-      return
-    }
+      if (signInError) {
+        setError('We couldn’t sign you in. Check your email and password, then try again.')
+        return
+      }
 
-    router.replace('/auth/continue')
-    router.refresh()
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to complete the request. Please try again.')
+      router.replace('/auth/continue')
+      router.refresh()
+    } catch {
+      setError('Unable to complete the request. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
-      <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm border border-slate-200">
-        <div className="mb-8">
-          <Link href="/onboarding" className="text-sm font-semibold text-blue-600">AtechOS</Link>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900"><T text="Sign in"/></h1>
-          <p className="mt-2 text-slate-500"><T text="Access your school workspace securely."/></p>
+    <AuthPageShell kind="login">
+      <div className="auth-heading">
+        <span className="auth-heading__eyebrow"><T text="Secure access for your school" /></span>
+        <h1><T text="Sign in" /></h1>
+        <p><T text="Access your school workspace securely." /></p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="auth-form">
+        <label className="auth-field">
+          <span><T text="Email" /></span>
+          <input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="you@school.com"
+          />
+        </label>
+        <label className="auth-field">
+          <span><T text="Password" /></span>
+          <input
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            placeholder="••••••••"
+          />
+        </label>
+        <div className="auth-recovery-row">
+          <Link href="/forgot-password"><T text="Forgot password?" /></Link>
         </div>
-        <Link href="/student/login" className="my-4 block text-blue-700"><T text="Student login with AtechOS ID"/></Link><form onSubmit={handleSubmit} className="space-y-5">
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700"><T text="Email"/></span>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} name="email" type="email" autoComplete="email" required className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500" placeholder="you@school.com" />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700"><T text="Password"/></span>
-            <input value={password} onChange={(e) => setPassword(e.target.value)} name="password" type="password" autoComplete="current-password" required className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500" placeholder="••••••••" />
-          </label>
-          {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-          <button disabled={loading} type="submit" className="w-full rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
-            <T text={loading ? 'Signing in…' : 'Continue'}/>
-          </button>
-        </form>
-        <p className="mt-6 text-center text-sm text-slate-500"><Link href="/" className="text-blue-600 hover:underline"><T text="Back to AtechOS"/></Link></p>
+        {error && <p className="auth-message auth-message--error" role="alert"><T text={error} /></p>}
+        <button disabled={loading} type="submit" className="auth-submit">
+          <T text={loading ? 'Signing in…' : 'Continue'} />
+          <span aria-hidden="true">→</span>
+        </button>
+      </form>
+
+      <section className="mt-7 border-t border-slate-200 pt-6" aria-labelledby="student-login-heading">
+        <h2 id="student-login-heading" className="mb-3 text-center text-sm font-semibold text-slate-700">
+          <T text="Student portal" />
+        </h2>
+        <Link href="/student/login" className="auth-student-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">
+          <span className="auth-student-link__icon" aria-hidden="true">ID</span>
+          <span><T text="Student login with AtechOS ID" /></span>
+          <span className="auth-student-link__arrow" aria-hidden="true">↗</span>
+        </Link>
       </section>
-    </main>
+
+      <p className="auth-switch">
+        <T text="Need an account?" />{' '}
+        <Link href="/signup"><T text="Create account" /></Link>
+      </p>
+    </AuthPageShell>
   )
 }
-

@@ -103,7 +103,8 @@ for (const locale of ['fr', 'ht', 'en']) {
   common['next/headers'] = { cookies: async () => ({ get: () => ({ value: locale }) }) }
   common['@/lib/i18n'] = { localeFrom: value => value === 'ht' || value === 'en' ? value : 'fr' }
 
-  const { default: Home } = compile('src/app/page.tsx', common)  const homeHtml = renderToStaticMarkup(await Home())
+  const { default: Home } = compile('src/app/page.tsx', common)
+  const homeHtml = renderToStaticMarkup(await Home())
   assert.ok(homeHtml.includes(copy.hero.title) && homeHtml.includes(copy.hero.emphasis), locale + ' landing headline must be localized')
   assert.ok(homeHtml.includes(copy.closing.title), locale + ' landing closing copy must be localized')
   assert.ok(homeHtml.includes('href="/signup"') && homeHtml.includes('href="/signin"'), locale + ' existing account routes must remain available')

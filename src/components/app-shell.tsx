@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
 import {
@@ -167,9 +168,12 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
   return <div className="atechos-shell min-h-screen bg-slate-50 text-slate-900">
     {menu && <button className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden print:hidden" aria-label={t('Close navigation')} onClick={() => setMenu(false)}/>}
     <aside className={`${menu ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col bg-[#101e38] text-slate-200 transition-transform lg:translate-x-0 print:hidden`}>
-      <Link href="/onboarding" className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
-        <span className="rounded-xl bg-blue-600 p-2 text-white"><GraduationCap/></span>
-        <span><strong className="block text-xl tracking-tight text-white">AtechOS</strong><span className="text-xs text-slate-400"><T text="School system"/></span></span>
+      <Link href="/dashboard" aria-label="AtechOS" className="border-b border-white/10 px-5 py-4">
+        <span className="flex min-h-14 items-center gap-2 rounded-xl bg-white px-2 py-1.5 shadow-sm">
+          <Image src="/landing/atechos-logo-mark.webp" alt="" width={48} height={48} priority className="h-11 w-11 shrink-0 object-contain mix-blend-multiply"/>
+          <Image src="/landing/atechos-logo-wordmark.webp" alt="AtechOS" width={140} height={42} priority className="h-9 w-[140px] min-w-0 object-contain object-left mix-blend-multiply"/>
+        </span>
+        <span className="block pl-1 pt-2 text-xs text-slate-400"><T text="School system"/></span>
       </Link>
       <button className="absolute right-2 top-2 p-2 lg:hidden" aria-label={t('Close navigation')} onClick={() => setMenu(false)}><X size={18}/></button>
       <p className="truncate px-5 pb-2 pt-4 text-xs font-medium text-slate-400" title={school}>{school}</p>
@@ -194,6 +198,9 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
     <div className="min-w-0 lg:pl-72 print:pl-0">
       <header className="relative z-20 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm md:px-6 print:hidden">
         <button className="rounded-lg border p-2 lg:hidden" aria-label={t('Open navigation')} aria-expanded={menu} onClick={() => setMenu(!menu)}><Menu size={20}/></button>
+        <Link href="/dashboard" aria-label="AtechOS" className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white lg:hidden">
+          <Image src="/landing/atechos-logo-mark.webp" alt="" width={36} height={36} priority className="h-8 w-8 object-contain mix-blend-multiply"/>
+        </Link>
         {canSelectYear&&years.length>0?<label className="order-last flex w-full items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 sm:order-none sm:w-auto"><CalendarDays size={17} className="shrink-0 text-blue-700"/><span className="sr-only"><T text="Academic year"/></span><select aria-label={t('Academic year')} value={year?.id||''} onChange={event=>setYearId(event.target.value)} className="min-w-0 flex-1 bg-transparent font-semibold outline-none sm:max-w-40">{years.map(item=><option key={item.id} value={item.id}>{item.name}{item.is_current?` · ${t('Current')}`:''}</option>)}</select></label>:academicYear&&<div className="hidden shrink-0 items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 sm:flex"><CalendarDays size={17} className="text-blue-700"/><span><T text="Academic year"/> <strong>{academicYear}</strong></span></div>}
         <div className="relative order-last w-full min-w-0 md:order-none md:w-auto md:flex-1">
           <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"><Search size={18} className="shrink-0 text-slate-400"/><span className="sr-only"><T text="Search students, parents, teachers…"/></span><input value={query} maxLength={100} onChange={event => { setResults([]); setQuery(event.target.value) }} className="w-full min-w-0 bg-transparent text-sm outline-none" placeholder={t('Search students, parents, teachers…')}/></label>

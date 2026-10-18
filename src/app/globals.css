@@ -492,3 +492,90 @@ html.landing-motion-ready [data-landing-reveal]:focus-within {
   .auth-footer__legal { gap:10px; }
   .auth-footer__legal a { min-height:44px; }
 }
+
+/* Shared authenticated dashboard polish, aligned with the AtechOS public design. */
+.atechos-shell {
+  --dashboard-ink: #081a35;
+  --dashboard-blue: #056cd3;
+  --dashboard-paper: #f5f7fb;
+  --dashboard-line: #dce4ee;
+  --dashboard-muted: #52637a;
+  color: var(--dashboard-ink);
+  background: radial-gradient(ellipse at 5% 0%, rgba(5,108,211,.075), transparent 34rem),
+    radial-gradient(ellipse at 98% 14%, rgba(247,169,21,.045), transparent 28rem), var(--dashboard-paper);
+  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+}
+.atechos-shell main {
+  animation: dashboard-content-enter .38s cubic-bezier(.16,1,.3,1) both;
+}
+.atechos-shell main > header {
+  position: relative;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--dashboard-line);
+}
+.atechos-shell main > header::after {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 68px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--dashboard-blue), rgba(5,108,211,.18));
+  content: "";
+}
+.atechos-shell main h1 {
+  color: var(--dashboard-ink);
+  font-family: "Iowan Old Style", "Baskerville", Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+.atechos-shell main h2 {
+  color: var(--dashboard-ink);
+  letter-spacing: -.02em;
+}
+.atechos-shell main section.grid > article.rounded-2xl {
+  position: relative;
+  overflow: hidden;
+}
+.atechos-shell main section.grid > article.rounded-2xl::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(5,108,211,.55), rgba(5,108,211,.08) 72%, transparent);
+  content: "";
+  pointer-events: none;
+}
+.atechos-shell main button:not(:disabled),
+.atechos-shell main a[role="button"] {
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background-color .16s ease;
+}
+.atechos-shell main button:not(:disabled):hover,
+.atechos-shell main a[role="button"]:hover {
+  transform: translateY(-1px);
+}
+.atechos-shell main button:not(:disabled):hover svg,
+.atechos-shell main a[role="button"]:hover svg {
+  transform: scale(1.04);
+}
+.atechos-shell main button svg,
+.atechos-shell main a[role="button"] svg {
+  transition: transform .16s ease;
+}
+.atechos-shell main table tbody tr {
+  transition: background-color .14s ease;
+}
+.atechos-shell main table tbody tr:hover {
+  background-color: rgba(5,108,211,.035);
+}
+@keyframes dashboard-content-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atechos-shell main { animation: none; }
+  .atechos-shell main button:not(:disabled),
+  .atechos-shell main a[role="button"],
+  .atechos-shell main button svg,
+  .atechos-shell main a[role="button"] svg,
+  .atechos-shell main table tbody tr { transition: none; }
+}

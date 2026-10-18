@@ -105,6 +105,7 @@ for (const locale of ['fr', 'ht', 'en']) {
   assert.ok(featuresHtml.includes('id="features-content"') && featuresHtml.includes('href="/signup"') && featuresHtml.includes('href="/signin"'), locale + ' features page must provide skip target and preserve account routes')
   assert.equal((featuresHtml.match(/landing-header__inner/g) || []).length, 1, locale + ' features page must render one shared header')
   assert.equal((featuresHtml.match(/class="landing-role-row landing-role-row--solution"/g) || []).length, 3, locale + ' features page must explain each core audience')
+  assert.equal((featuresHtml.match(new RegExp(copy.visuals.conceptLabel, 'g')) || []).length, 4, locale + ' features page must visibly label every role and workflow visual as conceptual')
   assert.ok(featuresHtml.includes('/landing/atechos-workflow.webp') && featuresHtml.includes(copy.visuals.workflowCaption), locale + ' features workflow art must be identified as conceptual')
   assert.ok(copy.modules.items.every(item => featuresHtml.includes(item.title) && featuresHtml.includes(item.description)), locale + ' features page must include every localized module')
   assert.equal((featuresHtml.match(/landing-module-list__icon/g) || []).length, 6, locale + ' feature modules must include an icon for each entry')

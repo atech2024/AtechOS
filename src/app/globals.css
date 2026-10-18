@@ -327,3 +327,10 @@ html.landing-motion-ready [data-landing-reveal]:focus-within {
   .landing-hero-media__poster,
   .landing-hero-media__motion { transition: none; }
 }
+
+/* Keep illustrative audience images clearly identified for sighted visitors. */
+.landing-role-row__figure { min-width: 0; margin: 0; }
+.landing-role-row__figure figcaption { margin: 7px 0 0; color: #62738b; font-size: 10px; line-height: 1.4; }
+@media (max-width: 700px) {
+  .landing-role-row__figure { grid-column: 1 / -1; grid-row: 3; }
+}

@@ -48,15 +48,18 @@ export default async function FeaturesPage() {
         {copy.roles.map((item, index) => (
           <article className="landing-role-row landing-role-row--solution" key={item.audience} data-landing-reveal>
             <span className="landing-role-row__audience">{item.audience}</span>
-            <Image
-              className="landing-role-row__image"
-              src={roleImages[index] ?? roleImages[0]}
-              alt={copy.visuals.roleAlts[index] ?? copy.visuals.conceptLabel}
-              width={1448}
-              height={1086}
-              sizes="(max-width: 700px) 100vw, (max-width: 960px) 34vw, 24vw"
-              loading="lazy"
-            />
+            <figure className="landing-role-row__figure">
+              <Image
+                className="landing-role-row__image"
+                src={roleImages[index] ?? roleImages[0]}
+                alt={copy.visuals.roleAlts[index] ?? copy.visuals.conceptLabel}
+                width={1448}
+                height={1086}
+                sizes="(max-width: 700px) 100vw, (max-width: 960px) 34vw, 24vw"
+                loading="lazy"
+              />
+              <figcaption>{copy.visuals.conceptLabel}</figcaption>
+            </figure>
             <div className="landing-role-row__text"><h2>{item.title}</h2><p>{item.description}</p></div>
           </article>
         ))}

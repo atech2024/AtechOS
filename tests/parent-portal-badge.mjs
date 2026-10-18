@@ -18,6 +18,7 @@ assert.match(translations,/'Exam schedule published':\['Calendrier des examens p
 assert.match(translations,/'A new official exam schedule version is available\.':\['Une nouvelle version officielle du calendrier des examens est disponible\.'/,'official exam notification body has a French translation')
 assert.match(translations,/'early_departure':\['Départ anticipé'/,'early departure attendance status has a French translation')
 assert.match(portal,/<FamilyAttendancePanel key=\{childId\+'attendance'\} studentId=\{childId\}\/>/,'attendance history resets pagination and filters when the parent selects another child')
+assert.match(portal,/<FamilyFinancePanel key=\{childId\+"finance"\} studentId=\{childId\}\/>/,'finance panel resets cached balances and payment state when the parent selects another child')
 assert.match(portal,/from\('students'\)\.select\('photo_url'\)\.eq\('id',childId\)/,'parent photo lookup is scoped to the selected child row under RLS')
 assert.match(portal,/from\('student-photos'\)\.createSignedUrl\(path,3600\)/,'private student photos are displayed using a short-lived signed URL')
 assert.match(portal,/<T text="Student profile"\/>/,'family profile heading is translated')

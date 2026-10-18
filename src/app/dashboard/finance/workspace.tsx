@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { T, useLocale } from '@/components/translation-provider'
+import { useAcademicYear } from '@/components/academic-year-context'
 import SchoolDateInput from '@/components/school-date-input'
 import { createClient } from '@/lib/supabase/client'
 import { schoolDateTimeToISO } from '@/lib/school-date'
@@ -89,6 +90,7 @@ function adjustmentLabel(type: string) {
 
 export default function FinanceWorkspace({ schoolId, initialTab = 'overview', canRefreshBrhRate = false }: { schoolId: string; initialTab?: 'overview' | 'plans' | 'payments' | 'adjustments' | 'history' | 'settings'; canRefreshBrhRate?: boolean }) {
   const locale = useLocale()
+  const { canSelect: canSelectAcademicYear, yearId: globalYearId, setYearId: setGlobalYearId } = useAcademicYear()
   const db = useMemo(() => createClient(), [])
   const [data, setData] = useState(blank)
   const [loading, setLoading] = useState(true)
@@ -106,7 +108,9 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview', ca
   const [refundPaymentId, setRefundPaymentId] = useState('')
   const [refundAmount, setRefundAmount] = useState('')
   const [refundReason, setRefundReason] = useState('')
-  const [yearId, setYearId] = useState('')
+  const [localYearId, setLocalYearId] = useState('')
+  const yearId = canSelectAcademicYear ? globalYearId : localYearId
+  const previousYearId = useRef(yearId)
   const [classId, setClassId] = useState('')
   const [feeType, setFeeType] = useState<(typeof feeTypes)[number]>('inscription')
   const [planLabel, setPlanLabel] = useState('')
@@ -169,7 +173,11 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview', ca
       setData(current => ({ ...blank, ...next, payments: initialTab === 'payments' ? current.payments : next.payments }))
       const options = optionsResult.data as { items?: Charge[] } | null
       setPaymentOptions(options?.items || [])
-      if (!yearId && next.years?.length) setYearId(next.years.find(year => year.is_current)?.id || next.years[0].id)
+      if (!yearId && next.years?.length) {
+        const defaultYearId = next.years.find(year => year.is_current)?.id || next.years[0].id
+        if (canSelectAcademicYear) setGlobalYearId(defaultYearId)
+        else setLocalYearId(defaultYearId)
+      }
       if (next.settings) {
         setCurrencyCode(next.settings.currency_code)
         setDirectorCanValidate(next.settings.director_can_validate)
@@ -180,8 +188,14 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview', ca
       }
     } catch (cause) { if (sequence === loadSequence.current) setError(financeErrorMessage(cause, locale)) }
     finally { if (sequence === loadSequence.current) setLoading(false) }
-  }, [db, yearId, classId, locale, initialTab])
+  }, [db, yearId, classId, locale, initialTab, canSelectAcademicYear, setGlobalYearId])
 
+  useEffect(() => {
+    if (previousYearId.current !== yearId) {
+      previousYearId.current = yearId
+      setClassId('')
+    }
+  }, [yearId])
   useEffect(() => { void load() }, [load])
   useEffect(() => {
     if (tab !== 'payments') return
@@ -346,7 +360,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview', ca
   return <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700"><T text="School management"/></p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950"><T text="Finance & Accounting"/></h1><p className="mt-2 max-w-3xl text-sm text-slate-600"><T text="Overview of school finances, installments and payments."/></p></div>
-      <label className="min-w-52 text-sm font-medium text-slate-700"><T text="Academic year"/><select value={yearId} onChange={event => { setYearId(event.target.value); setClassId('') }} className={`${fieldClass} mt-1`}><option value=""><T text="Choose"/></option>{data.years.map(year => <option key={year.id} value={year.id}>{year.name}</option>)}</select></label>
+      {!canSelectAcademicYear && <label className="min-w-52 text-sm font-medium text-slate-700"><T text="Academic year"/><select value={yearId} onChange={event => { setLocalYearId(event.target.value); setClassId('') }} className={`${fieldClass} mt-1`}><option value=""><T text="Choose"/></option>{data.years.map(year => <option key={year.id} value={year.id}>{year.name}</option>)}</select></label>}
     </header>
 
     {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}

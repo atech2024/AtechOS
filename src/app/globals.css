@@ -2,7 +2,7 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
-body { background: #f7f8fc; color: #111827; font-family: Arial, Helvetica, sans-serif; }
+body { background: #f7f8fc; color: #111827; font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif; }
 a { color: inherit; text-decoration: none; }
 button, input { font: inherit; }
 
@@ -491,4 +491,133 @@ html.landing-motion-ready [data-landing-reveal]:focus-within {
 @media(max-width:480px) {
   .auth-footer__legal { gap:10px; }
   .auth-footer__legal a { min-height:44px; }
+}
+
+/* Shared authenticated workspace styling: measured hierarchy, clear controls, and purposeful feedback. */
+.atechos-shell {
+  --dashboard-ink: #081a35;
+  --dashboard-blue: #056cd3;
+  --dashboard-paper: #f5f7fb;
+  --dashboard-line: #dce4ee;
+  --dashboard-muted: #52637a;
+  color: var(--dashboard-ink);
+  background:
+    radial-gradient(ellipse at 5% 0%, rgba(5,108,211,.075), transparent 34rem),
+    radial-gradient(ellipse at 98% 14%, rgba(247,169,21,.045), transparent 28rem),
+    var(--dashboard-paper);
+  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+}
+.atechos-skip-link {
+  position: fixed;
+  top: .75rem;
+  left: .75rem;
+  z-index: 60;
+  padding: .75rem 1rem;
+  border: 1px solid #bfd8fb;
+  border-radius: .75rem;
+  background: white;
+  color: #081a35;
+  font-size: .875rem;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(8,26,53,.18);
+  transform: translateY(calc(-100% - 1rem));
+  transition: transform .18s cubic-bezier(.16,1,.3,1);
+}
+.atechos-skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid #056cd3;
+  outline-offset: 3px;
+}
+.atechos-shell main > header {
+  position: relative;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--dashboard-line);
+}
+.atechos-shell main > header::after {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 68px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--dashboard-blue), rgba(5,108,211,.18));
+  content: "";
+}
+.atechos-shell main h1 {
+  color: var(--dashboard-ink);
+  font-family: "Iowan Old Style", "Baskerville", Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+.atechos-shell main h2 {
+  color: var(--dashboard-ink);
+  letter-spacing: -.02em;
+}
+.atechos-shell :where(a, button, select):focus-visible {
+  outline: 2px solid var(--dashboard-blue);
+  outline-offset: 3px;
+}
+.atechos-shell aside :where(a, button):focus-visible {
+  outline-color: #93c5fd;
+  outline-offset: 2px;
+}
+.atechos-shell button:disabled {
+  cursor: not-allowed;
+}
+.atechos-shell header button,
+.atechos-shell aside a,
+.atechos-shell aside button,
+.atechos-shell main button:not(:disabled),
+.atechos-shell main a[href] {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: .16s;
+  transition-timing-function: ease-out;
+}
+.atechos-shell aside nav a:hover {
+  transform: translateX(2px);
+}
+.atechos-shell main section.grid > article.rounded-2xl {
+  position: relative;
+  overflow: hidden;
+}
+.atechos-shell main section.grid > article.rounded-2xl::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(5,108,211,.55), rgba(5,108,211,.08) 72%, transparent);
+  content: "";
+  pointer-events: none;
+}
+.atechos-shell main section.grid > article.rounded-2xl p:last-child {
+  font-variant-numeric: tabular-nums;
+}
+.atechos-shell main a[href]:active,
+.atechos-shell main button:not(:disabled):active,
+.atechos-shell header button:active,
+.atechos-shell aside button:active {
+  transform: scale(.99);
+}
+.atechos-shell main table tbody tr {
+  transition: background-color .14s ease-out;
+}
+.atechos-shell main table tbody tr:hover {
+  background-color: rgba(5,108,211,.035);
+}
+@media (prefers-reduced-motion: reduce) {
+  .atechos-skip-link,
+  .atechos-shell header button,
+  .atechos-shell aside a,
+  .atechos-shell aside button,
+  .atechos-shell main button:not(:disabled),
+  .atechos-shell main a[href],
+  .atechos-shell main table tbody tr {
+    transition-duration: 0ms;
+  }
+  .atechos-shell aside nav a:hover,
+  .atechos-shell main a[href]:active,
+  .atechos-shell main button:not(:disabled):active,
+  .atechos-shell header button:active,
+  .atechos-shell aside button:active {
+    transform: none;
+  }
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
 import {
@@ -24,6 +25,7 @@ import {
   ChevronDown,
   Home,
   CircleDollarSign,
+  UserRound,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { permittedNavigation, type NavigationGroup, type NavigationItem } from '@/lib/navigation'
@@ -32,6 +34,7 @@ import { translate } from '@/lib/translations'
 import { T, useLocale } from '@/components/translation-provider'
 import LanguageSelector from '@/components/language-selector'
 import {useAcademicYear} from '@/components/academic-year-context'
+import { canAccessStaffProfile, type StaffGreetingKey } from '@/lib/staff-profile'
 
 type Notice = { id: string; title: string; description: string; created_at: string; read_at: string | null; priority: string; href: string; type: string }
 type SearchResult = { kind: string; label: string; href: string }
@@ -53,8 +56,8 @@ const groupLabels: Record<NavigationGroup, string> = {
 }
 const groupOrder: NavigationGroup[] = ['people', 'preschool', 'school_life', 'teaching', 'results', 'finance', 'followup', 'administration', 'family_portals']
 
-export default function AppShell({ children, school, name, avatar, roles, owner, academicYear }: {
-  children: ReactNode; school: string; name: string; avatar: string | null; roles: string[]; owner: boolean; academicYear: string | null
+export default function AppShell({ children, school, name, avatar, roles, owner, academicYear, greeting }: {
+  children: ReactNode; school: string; name: string; avatar: string | null; roles: string[]; owner: boolean; academicYear: string | null; greeting: StaffGreetingKey
 }) {
   const locale = useLocale()
   const {years,year,yearId,canSelect:canSelectYear,setYearId}=useAcademicYear()
@@ -138,6 +141,13 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
     setUnread(value => value === null ? null : Math.max(0, value - 1))
   }
 
+  const showStaffProfile = canAccessStaffProfile(roles)
+  const roleDescription = roles.map(role => t(roleLabels[role] || role)).join(' · ')
+  const accountIdentity = <div title={[name, roleDescription].filter(Boolean).join(' · ')} className="flex min-w-0 max-w-[min(58vw,24rem)] items-center gap-2 border-l border-slate-200 pl-2 sm:gap-3 sm:pl-3">
+    {avatar ? <img src={avatar} alt="" width={40} height={40} className="h-9 w-9 shrink-0 rounded-full object-cover sm:h-10 sm:w-10"/> : <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 sm:h-10 sm:w-10">{name.trim().slice(0, 1).toUpperCase() || 'A'}</span>}
+    <div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold leading-5 text-slate-900">{name}</p><p className="break-words text-xs leading-4 text-slate-600">{roles.map((role, index) => <span key={role}>{index > 0 ? ' · ' : ''}<T text={roleLabels[role] || role}/></span>)}</p></div>
+  </div>
+
   async function logout() {
     setBusy(true); setLogoutError(false)
     try {
@@ -159,26 +169,32 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
     const Icon = icons[item.icon] || FileText
     const active = path === item.href || (item.href !== '/dashboard' && path.startsWith(item.href + '/'))
     return <Link key={item.href} href={withYear(item.href)} onClick={() => { setMenu(false); setQuery('') }} aria-current={active ? 'page' : undefined}
-      className={`flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${active ? 'bg-blue-600 font-semibold text-white shadow-sm' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+      className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300 ${active ? 'bg-blue-600 font-semibold text-white shadow-sm' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
       <Icon size={18} aria-hidden="true"/><T text={item.label}/>{active && <ChevronRight size={15} className="ml-auto" aria-hidden="true"/>}
     </Link>
   }
 
   return <div className="atechos-shell min-h-screen bg-slate-50 text-slate-900">
+    <a className="atechos-skip-link" href="#main-content"><T text="Skip to content"/></a>
     {menu && <button className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden print:hidden" aria-label={t('Close navigation')} onClick={() => setMenu(false)}/>}
     <aside className={`${menu ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col bg-[#101e38] text-slate-200 transition-transform lg:translate-x-0 print:hidden`}>
-      <Link href="/onboarding" className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
-        <span className="rounded-xl bg-blue-600 p-2 text-white"><GraduationCap/></span>
-        <span><strong className="block text-xl tracking-tight text-white">AtechOS</strong><span className="text-xs text-slate-400"><T text="School system"/></span></span>
+      <Link href="/dashboard" aria-label="AtechOS" className="flex items-center gap-3 border-b border-white/10 px-5 py-4 transition-colors hover:bg-white/[0.035] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-300">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-white/15">
+          <Image src="/landing/atechos-logo-mark.webp" alt="" width={40} height={40} priority className="h-10 w-10 rounded-full object-cover"/>
+        </span>
+        <span className="min-w-0">
+          <span className="block whitespace-nowrap text-[19px] font-extrabold leading-none tracking-tight text-white"><span className="text-[#5aa8ff]">A</span>tech<span className="text-[#ff716b]">OS</span></span>
+          <span className="mt-1 block text-[11px] font-medium leading-none tracking-[.02em] text-slate-300"><T text="School system"/></span>
+        </span>
       </Link>
-      <button className="absolute right-2 top-2 p-2 lg:hidden" aria-label={t('Close navigation')} onClick={() => setMenu(false)}><X size={18}/></button>
+      <button className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300 lg:hidden" aria-label={t('Close navigation')} onClick={() => setMenu(false)}><X size={18} aria-hidden="true"/></button>
       <p className="truncate px-5 pb-2 pt-4 text-xs font-medium text-slate-400" title={school}>{school}</p>
       <nav aria-label={t('School modules')} className="flex-1 space-y-4 overflow-y-auto px-3 py-3">
         {dashboard && <section aria-label={t('Dashboard')}>{navLink(dashboard)}</section>}
         {groups.map(({ group, items: sectionItems }) => {
           const collapsed = collapsedGroups.includes(group)
           return <section key={group}>
-            <button type="button" aria-expanded={!collapsed} onClick={() => toggleGroup(group)} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400 hover:bg-white/5 hover:text-slate-200">
+            <button type="button" aria-expanded={!collapsed} onClick={() => toggleGroup(group)} className="flex min-h-11 w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold uppercase tracking-[.08em] text-slate-300 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300">
               <T text={groupLabels[group]}/><ChevronDown size={15} className={`transition-transform ${collapsed ? '-rotate-90' : ''}`} aria-hidden="true"/>
             </button>
             {!collapsed && <div className="mt-1 space-y-1">{sectionItems.map(navLink)}</div>}
@@ -186,30 +202,44 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
         })}
       </nav>
       <div className="border-t border-white/10 p-3">
-        <button disabled={busy} onClick={logout} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-60"><LogOut size={18}/><T text={busy ? 'Signing out…' : 'Logout'}/></button>
+        <button disabled={busy} onClick={logout} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300 disabled:cursor-not-allowed disabled:opacity-60"><LogOut size={18} aria-hidden="true"/><T text={busy ? 'Signing out…' : 'Logout'}/></button>
         {logoutError && <p role="alert" className="px-3 text-sm text-red-300"><T text="Unable to sign out. Please try again."/></p>}
       </div>
     </aside>
 
     <div className="min-w-0 lg:pl-72 print:pl-0">
       <header className="relative z-20 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm md:px-6 print:hidden">
-        <button className="rounded-lg border p-2 lg:hidden" aria-label={t('Open navigation')} aria-expanded={menu} onClick={() => setMenu(!menu)}><Menu size={20}/></button>
-        {canSelectYear&&years.length>0?<label className="order-last flex w-full items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 sm:order-none sm:w-auto"><CalendarDays size={17} className="shrink-0 text-blue-700"/><span className="sr-only"><T text="Academic year"/></span><select aria-label={t('Academic year')} value={year?.id||''} onChange={event=>setYearId(event.target.value)} className="min-w-0 flex-1 bg-transparent font-semibold outline-none sm:max-w-40">{years.map(item=><option key={item.id} value={item.id}>{item.name}{item.is_current?` · ${t('Current')}`:''}</option>)}</select></label>:academicYear&&<div className="hidden shrink-0 items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 sm:flex"><CalendarDays size={17} className="text-blue-700"/><span><T text="Academic year"/> <strong>{academicYear}</strong></span></div>}
+        <button className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 lg:hidden" aria-label={t('Open navigation')} aria-expanded={menu} onClick={() => setMenu(!menu)}><Menu size={20} aria-hidden="true"/></button>
+        <Link href="/dashboard" aria-label="AtechOS" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-blue-100 bg-white shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 lg:hidden">
+          <Image src="/landing/atechos-logo-mark.webp" alt="" width={36} height={36} priority className="h-9 w-9 rounded-full object-cover"/>
+        </Link>
+        {canSelectYear&&years.length>0?<label className="order-last flex min-h-11 w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 sm:order-none sm:w-auto"><CalendarDays size={17} className="shrink-0 text-blue-700" aria-hidden="true"/><span className="sr-only"><T text="Academic year"/></span><select aria-label={t('Academic year')} value={year?.id||''} onChange={event=>setYearId(event.target.value)} className="min-w-0 flex-1 bg-transparent font-semibold focus-visible:outline-none sm:max-w-40">{years.map(item=><option key={item.id} value={item.id}>{item.name}{item.is_current?` · ${t('Current')}`:''}</option>)}</select></label>:academicYear&&<div className="hidden shrink-0 items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 sm:flex"><CalendarDays size={17} className="text-blue-700"/><span><T text="Academic year"/> <strong>{academicYear}</strong></span></div>}
         <div className="relative order-last w-full min-w-0 md:order-none md:w-auto md:flex-1">
-          <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"><Search size={18} className="shrink-0 text-slate-400"/><span className="sr-only"><T text="Search students, parents, teachers…"/></span><input value={query} maxLength={100} onChange={event => { setResults([]); setQuery(event.target.value) }} className="w-full min-w-0 bg-transparent text-sm outline-none" placeholder={t('Search students, parents, teachers…')}/></label>
+          <label className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 transition-colors focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"><Search size={18} className="shrink-0 text-slate-500" aria-hidden="true"/><span className="sr-only"><T text="Search students, parents, teachers…"/></span><input type="search" name="school-search" autoComplete="off" value={query} maxLength={100} onChange={event => { setResults([]); setQuery(event.target.value) }} className="w-full min-w-0 bg-transparent text-sm text-slate-800 placeholder:text-slate-600 focus:outline-none" placeholder={t('Search students, parents, teachers…')}/></label>
           {query.trim().length >= 2 && <div className="absolute left-0 right-0 top-full mt-2 max-h-80 overflow-auto rounded-xl border bg-white p-2 shadow-xl" role="region" aria-label={t('Search results')}>
             {searching ? <p className="p-3"><T text="Loading..."/></p> : searchError ? <p role="alert" className="p-3"><T text="Search unavailable. Please try again."/></p> : results.length ? results.map((result, index) => <Link key={result.href + index} href={withYear(result.href)} onClick={() => setQuery('')} className="block rounded-lg p-3 hover:bg-blue-50"><span className="block text-sm font-semibold">{result.label}</span><span className="text-xs text-slate-500"><T text={result.kind === 'student' ? 'Student' : result.kind === 'teacher' ? 'Teacher' : result.kind === 'parent' ? 'Parent' : 'Class'}/></span></Link>) : <p className="p-3"><T text="No permitted results."/></p>}
           </div>}
         </div>
         <div className="relative">
-          <button onClick={() => setOpen(!open)} aria-label={t('Notifications')} aria-expanded={open} className="relative rounded-xl border border-slate-200 p-2.5 hover:bg-slate-50"><Bell size={20}/>{unread !== null && unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-blue-600 px-1.5 text-xs font-bold text-white">{unread}</span>}</button>
-          {open && <section className="absolute right-0 top-full mt-3 w-80 max-w-[85vw] rounded-2xl border bg-white p-4 shadow-xl"><h2 className="mb-3 font-semibold"><T text="Notifications"/></h2>{noticeError && <p role="alert"><T text="Unable to load notifications."/></p>}<div className="max-h-96 overflow-auto">{notices.map(notice => {const actionable=notice.href.startsWith('/dashboard/')&&!notice.href.includes('\\');const content=<><p className="flex items-center gap-2 text-sm font-semibold"><Bell size={15}/>{notice.title}</p><p className="my-1 text-sm text-slate-600">{notice.description}</p><p className="text-xs text-slate-500">{schoolDateTime(notice.created_at, locale)} · {notice.priority}</p></>;return <article key={notice.id} className={`mb-2 rounded-xl border p-3 transition-colors ${notice.read_at ? 'bg-white' : 'border-blue-200 bg-blue-50'}`}>{actionable?<Link href={withYear(notificationHref(notice))} onClick={()=>{void read(notice);setOpen(false)}} className="block rounded-lg outline-offset-2 hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700">{content}<span className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-blue-700"><T text="Open"/> <ArrowUpRight size={15}/></span></Link>:content}{!notice.read_at&&<button className="mt-2 text-sm text-blue-700 underline" onClick={()=>void read(notice)}><T text="Mark as read"/></button>}</article>})}{!noticeError && !notices.length && <p className="text-sm text-slate-500"><T text="No notifications yet."/></p>}</div></section>}
+          <button onClick={() => setOpen(!open)} aria-label={t('Notifications')} aria-expanded={open} className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><Bell size={20} aria-hidden="true"/>{unread !== null && unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-blue-600 px-1.5 text-xs font-bold text-white">{unread}</span>}</button>
+          {open && <section className="absolute right-0 top-full mt-3 w-80 max-w-[85vw] rounded-2xl border bg-white p-4 shadow-xl"><h2 className="mb-3 font-semibold"><T text="Notifications"/></h2>{noticeError && <p role="alert"><T text="Unable to load notifications."/></p>}<div className="max-h-96 overflow-auto">{notices.map(notice => {const actionable=notice.href.startsWith('/dashboard/')&&!notice.href.includes('\\');const content=<><p className="flex items-center gap-2 text-sm font-semibold"><Bell size={15} aria-hidden="true"/>{notice.title}</p><p className="my-1 text-sm text-slate-600">{notice.description}</p><p className="text-xs text-slate-500">{schoolDateTime(notice.created_at, locale)} · {notice.priority}</p></>;return <article key={notice.id} className={`mb-2 rounded-xl border p-3 transition-colors ${notice.read_at ? 'bg-white' : 'border-blue-200 bg-blue-50'}`}>{actionable?<Link href={withYear(notificationHref(notice))} onClick={()=>{void read(notice);setOpen(false)}} className="block rounded-lg outline-offset-2 hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700">{content}<span className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-blue-700"><T text="Open"/> <ArrowUpRight size={15} aria-hidden="true"/></span></Link>:content}{!notice.read_at&&<button className="mt-2 text-sm text-blue-700 underline" onClick={()=>void read(notice)}><T text="Mark as read"/></button>}</article>})}{!noticeError && !notices.length && <p className="text-sm text-slate-500"><T text="No notifications yet."/></p>}</div></section>}
         </div>
-        <div className="flex min-w-0 items-center gap-2 border-l border-slate-200 pl-2 sm:gap-3 sm:pl-3">{avatar ? <img src={avatar} alt="" className="h-9 w-9 rounded-full object-cover sm:h-10 sm:w-10"/> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 sm:h-10 sm:w-10">{name.trim().slice(0, 1).toUpperCase() || 'A'}</span>}<div className="w-24 min-w-0 shrink-0"><p className="truncate text-sm font-semibold">{name}</p><p className="hidden truncate text-xs text-slate-500 2xl:block">{roles.map((role, index) => <span key={role}>{index > 0 ? ' · ' : ''}<T text={roleLabels[role] || role}/></span>)}</p></div></div>
+        {showStaffProfile ? <Link href="/dashboard/my-profile" aria-label={`${t('View and update my profile')}: ${name}`} className="rounded-xl outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700">{accountIdentity}</Link> : accountIdentity}
         <div className="ml-auto shrink-0 text-xs"><LanguageSelector locale={locale} compact/></div>
       </header>
-      {path !== '/dashboard' && <nav aria-label={t('Breadcrumb')} className="flex min-w-0 items-center gap-2 px-5 pt-4 text-sm text-slate-500 md:px-8"><Link href={withYear('/dashboard')} className="inline-flex shrink-0 items-center gap-1.5 hover:text-blue-700"><Home size={15}/><T text="Dashboard"/></Link><ChevronRight size={14} aria-hidden="true"/><span aria-current="page" className="truncate font-medium text-slate-800"><T text={activeItem?.label || 'School modules'}/></span></nav>}
-      <div className="min-w-0">{children}</div>
+      {path === '/dashboard' && showStaffProfile && <section aria-label={t('Welcome')} className="mx-4 mt-4 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between md:mx-8">
+        <div className="flex min-w-0 items-center gap-4">
+          {avatar ? <img src={avatar} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-full object-cover"/> : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700">{name.trim().slice(0, 1).toUpperCase() || 'A'}</span>}
+          <div className="min-w-0">
+            <p className="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl"><T text={greeting}/>, {name}</p>
+            <p className="mt-1 text-sm text-slate-600"><T text="Welcome to your school dashboard"/></p>
+            <p className="mt-1 truncate text-sm font-medium text-blue-800">{roles.map((role, index) => <span key={role}>{index > 0 ? ' · ' : ''}<T text={roleLabels[role] || role}/></span>)}</p>
+          </div>
+        </div>
+        <Link href="/dashboard/my-profile" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><UserRound size={17} aria-hidden="true"/><T text="Update my profile"/></Link>
+      </section>}
+      {path !== '/dashboard' && <nav aria-label={t('Breadcrumb')} className="flex min-w-0 items-center gap-2 px-5 pt-4 text-sm text-slate-500 md:px-8"><Link href={withYear('/dashboard')} className="inline-flex shrink-0 items-center gap-1.5 hover:text-blue-700"><Home size={15} aria-hidden="true"/><T text="Dashboard"/></Link><ChevronRight size={14} aria-hidden="true"/><span aria-current="page" className="truncate font-medium text-slate-800"><T text={path === '/dashboard/my-profile' ? 'My profile' : activeItem?.label || 'School modules'}/></span></nav>}
+      <div id="main-content" tabIndex={-1} className="min-w-0 focus:outline-none">{children}</div>
     </div>
   </div>
 }

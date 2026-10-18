@@ -8,7 +8,7 @@ const rpc=readFileSync('supabase/migrations/20260922211252_fix_student_rpcs_rls.
 
 assert.match(page,/supabase\.rpc\('school_context'\)/,'the page reads the server-authorized school role context')
 assert.match(page,/context\.data\?\.owner\s*\|\|\s*context\.data\?\.roles\?\.some\(\(role: string\) => \['school_admin', 'director'\]\.includes\(role\)\)/,'only school admins, directors, and the school owner get management actions')
-assert.match(page,/\{canManage && <div className="flex gap-2">/,'create and assignment actions are hidden without write permission')
+assert.match(page,/\{canManage && <div className="flex flex-wrap gap-2">[\s\S]*?setSubjectOpen\(true\)[\s\S]*?setAssignmentOpen\(true\)/,'create and assignment actions remain gated by write permission')
 assert.match(page,/\{canManage \? <select[\s\S]*?: teachers\.find\(t => t\.id === a\.teacher_id\)\?\.full_name/,'non-managers see the assigned teacher as read-only text')
 assert.match(page,/\.eq\('role', 'teacher'\)\.eq\('enabled', true\)/,'inactive teachers cannot be selected for a new or changed assignment')
 assert.ok(translations.includes("'You can view assigned subjects and teachers here. Only a school administrator or director can change assignments.':['"),'read-only guidance is available in French and Haitian Creole')

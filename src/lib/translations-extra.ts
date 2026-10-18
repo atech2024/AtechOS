@@ -1,4 +1,5 @@
 export const extraTranslations:Record<string,[string,string]> = {
+  "Not assigned": ["Aucune classe attribuée", "Pa gen klas ki afekte"],
   "Publish work, exams and learning documents for your assigned classes and subjects.": ["Publiez des devoirs, examens et ressources pédagogiques pour les classes et matières qui vous sont attribuées.", "Pibliye devwa, egzamen ak dokiman aprantisaj pou klas ak matyè yo ba ou yo."],
   "Homework / Exam / Project": ["Devoir / Examen / Projet", "Devwa / Egzamen / Pwojè"],
   "PDF, Word, PowerPoint, images or text · max 50 MB": ["PDF, Word, PowerPoint, images ou texte · 50 Mo maximum", "PDF, Word, PowerPoint, imaj oswa tèks · 50 MB maksimòm"],

@@ -11,5 +11,5 @@ export default async function CalendarPage(){
  const roles:string[]=context?.roles||[]
  const canManageClosures=roles.some(role=>['school_admin','director','secretary','surveillant','censeur'].includes(role))
  const canManageYears=roles.some(role=>['school_admin','director'].includes(role))
- return <main className="mx-auto max-w-6xl p-6"><header className="mb-5"><h1 className="text-3xl font-bold"><T text="School Calendar"/></h1><p className="mt-1 text-slate-600"><T text="Academic years, confirmed closures, holidays and published exam dates in one place."/></p></header><AcademicYearCalendar canManage={canManageYears}/><AttendanceCalendar canManage={canManageClosures}/><HaitiHolidaySuggestions/><ExamCalendar/></main>
+ return <main className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6 lg:p-8"><header className="mb-6"><h1 className="text-3xl font-bold tracking-tight text-slate-950"><T text="School Calendar"/></h1><p className="mt-1 text-slate-600"><T text="Academic years, confirmed closures, holidays and published exam dates in one place."/></p></header><AcademicYearCalendar canManage={canManageYears}/><AttendanceCalendar canManage={canManageClosures}/><HaitiHolidaySuggestions/><ExamCalendar/></main>
 }

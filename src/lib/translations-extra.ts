@@ -1,4 +1,5 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Skip to content':['Aller au contenu principal','Ale nan kontni an'],
  'Haiti time':['Heure d’Haïti','Lè Ayiti'],
  'Attendance today':['Présence du jour','Prezans jodi a'],
  'Student badge QR code':['Code QR du badge élève','Kòd QR badj elèv la'],

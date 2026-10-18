@@ -143,7 +143,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     <Icon size={19} aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1 text-sm font-semibold leading-snug text-slate-800"><T text={item.label} /></span>
-                  <ArrowUpRight size={16} className="shrink-0 text-slate-400 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-blue-700" aria-hidden="true" />
+                  <span className="shrink-0 text-slate-400 transition-colors group-hover:text-blue-700">
+                    <span className="block transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none"><ArrowUpRight size={16} aria-hidden="true" /></span>
+                  </span>
                 </Link>
               )
             })}

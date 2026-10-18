@@ -52,14 +52,25 @@ console.log('PASS Censeur supervision menus without administrator access.')
 
 const dashboard=readFileSync('src/app/dashboard/page.tsx','utf8')
 assert.ok(!dashboard.includes('Your modules'),'Dashboard should not repeat the entire navigation as a link-card catalog.')
+assert.ok(dashboard.includes('motion-reduce:transition-none'),'Directional quick-link motion must have a reduced-motion variant.')
+assert.ok(dashboard.includes('<span className="block transition-transform'),'The quick-link arrow motion must use a wrapper instead of animating the SVG itself.')
+const dashboardStyles=readFileSync('src/app/globals.css','utf8')
+assert.ok(dashboardStyles.includes('.atechos-skip-link:focus-visible'),'Keyboard users must be able to reveal the skip link.')
+assert.ok(dashboardStyles.includes('@media (prefers-reduced-motion: reduce)'),'The dashboard shell must respect reduced-motion preferences.')
+assert.ok(!dashboardStyles.includes('transition: all'),'Dashboard motion must list its properties explicitly.')
 console.log('PASS dashboard avoids duplicate module catalog.')
 assert.ok(dashboard.includes("roles.includes('accountant')"),'Accountants must be routed to the finance overview instead of an empty general dashboard.')
 assert.ok(dashboard.includes("redirect('/dashboard/finance')"),'The accountant landing page must open the existing finance workspace.')
 console.log('PASS accountant dashboard entry opens the finance overview.')
 
 
-assert.ok(html.includes('/landing/atechos-logo-mark.webp'),'The shared staff/parent shell must show the official AtechOS mark.')
-assert.ok(html.includes('/landing/atechos-logo-wordmark.webp'),'The shared shell must show the official AtechOS wordmark.')
+assert.ok(html.includes('/landing/atechos-logo-mark.webp'),'The shared staff/parent shell must show the official AtechOS symbol.')
+assert.ok(!html.includes('/landing/atechos-logo-wordmark.webp'),'The dark sidebar must not display the white-backed wordmark slab.')
+assert.ok(html.includes('text-[#5aa8ff]">A</span>tech<span className="text-[#ff716b]">OS'),'The menu wordmark must be live, legible text in the logo colors.')
+assert.ok(html.includes('rounded-full bg-white ring-1'),'The mark must sit in a compact circular badge instead of a wide white panel.')
+assert.ok(html.includes('atechos-skip-link'),'The shell must provide keyboard access to page content.')
+assert.ok(html.includes('id="main-content" tabindex="-1"'),'The skip link must focus the main content wrapper.')
+assert.ok(html.includes('min-h-11'),'Sidebar and header controls must meet a consistent 44px target.')
 assert.ok(html.includes('lg:hidden'),'The shared shell must keep a brand mark visible in the mobile header.')
 
 let activeRole = 'teacher'

@@ -1138,7 +1138,7 @@ export const extraTranslations:Record<string,[string,string]> = {
   "Bulletins scolaires": ["Bulletins scolaires","Kanè lekòl"],
   "No student available.": ["Aucun élève accessible.","Pa gen elèv ki aksesib."],
   "Could not load teacher requests. Refresh the page.": ["Impossible de charger les demandes de professeur. Actualisez la page.","Nou pa ka chaje demann pwofesè yo. Rafrechi paj la."],
-  "Teacher request": undefined,
+  "Teacher request": ["Demande de professeur", "Demann pwofesè"],
   "Default: 4. A school can choose 3, 4, or another value.": ["Par défaut : 4. L’établissement peut choisir 3, 4 ou une autre valeur.","Pa defo: 4. Lekòl la ka chwazi 3, 4 oswa yon lòt valè."],
   "Default: 5. A school can choose 6, for example.": ["Par défaut : 5. L’établissement peut choisir 6, par exemple.","Pa defo: 5. Lekòl la ka chwazi 6, pa egzanp."],
   "Grade privacy:": ["Confidentialité des notes :","Konfidansyalite nòt yo:"],
@@ -1149,7 +1149,6 @@ export const extraTranslations:Record<string,[string,string]> = {
   "Number of controls must be a whole number between 1 and 20.": ["Le nombre de contrôles doit être un entier compris entre 1 et 20.","Kantite kontwòl yo dwe yon nonb antye ant 1 ak 20."],
   "Passing average must be between 0 and 10.": ["La moyenne de passage doit être comprise entre 0 et 10.","Mwayèn pou pase a dwe ant 0 ak 10."],
   "Assign subject": ["Affecter une matière", "Afekte yon matyè"],
-  "Scan the student's active badge, verify the adult in person, and record pickup once for today.": ["Scannez le badge actif de l’élève, vérifiez l’adulte en personne et enregistrez le départ une seule fois pour aujourd’hui.","Eskane badj aktif elèv la, verifye granmoun nan an pèsòn epi anrejistre sòti a yon sèl fwa pou jodi a."],
   "View badge status for your linked children.": ["Consultez le statut des badges de vos enfants associés.","Gade estati badj timoun ki lye ak kont ou yo."],
   "Parent portal": ["Portail parent","Pòtal paran"],
   "View published report cards, exams, and attendance for your children.": ["Consultez les bulletins publiés, les examens et les présences de vos enfants.","Konsilte kanè ki pibliye, egzamen ak prezans timoun ou yo."],
@@ -1170,5 +1169,4 @@ export const extraTranslations:Record<string,[string,string]> = {
   "Not added": ["Non ajoutée","Pa ajoute"],
   "Uploading…": ["Envoi en cours…","Ap telechaje…"],
   "Family portal quick navigation": ["Navigation rapide du portail parent", "Navigasyon rapid nan pòtal paran an"],
-  "Let the school know when you are on the way or delayed. Staff records the final pickup after scanning the child's badge.": ["Informez l’établissement de votre arrivée prochaine ou d’un retard. Le personnel confirme la sortie après avoir scanné le badge de l’enfant.","Fè lekòl la konnen lè w sou wout oswa si w anreta. Pèsonèl la anrejistre depa a apre li fin eskane badj timoun nan."],
 }

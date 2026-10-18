@@ -31,7 +31,7 @@ const { prepareLandingReveals } = compile('src/components/landing-scroll-reveal.
 const iconNames = ['ArrowRight', 'BookOpenCheck', 'CalendarDays', 'CircleDollarSign', 'GraduationCap', 'MessageSquareText', 'School', 'ShieldCheck', 'UsersRound', 'UserRoundCheck', 'ClipboardList', 'Check']
 const iconMock = Object.fromEntries(iconNames.map(name => [name, props => React.createElement('svg', props)]))
 const linkMock = { default: ({ href, children, ...props }) => React.createElement('a', { href, ...props }, children) }
-const marketingChrome = compile('src/components/marketing-chrome.tsx', { 'next/link': linkMock, 'next/image': imageMock, 'lucide-react': iconMock, '@/components/landing-scroll-reveal': { default: () => null } })
+const marketingChrome = compile('src/components/marketing-chrome.tsx', { 'next/link': linkMock, 'next/image': imageMock, 'lucide-react': iconMock, '@/components/landing-scroll-reveal': { default: () => null }, '@/components/translation-provider': { T: ({ text }) => text } })
 let activePath = '/'
 const globalLanguageModule = compile('src/components/global-language.tsx', {
   'next/navigation': { usePathname: () => activePath },
@@ -113,6 +113,9 @@ assert.ok(motionCss.includes('.auth-brand { display:flex; width:fit-content; ali
 assert.ok(motionCss.includes('mix-blend-mode:multiply'), 'authentication logo assets must blend away their white backplates')
 assert.ok(motionCss.includes('.auth-frame { position:relative; width:min(1120px,100%); margin:auto; }'), 'authentication content must not isolate the logo from the page backdrop')
 assert.ok(motionCss.includes('.auth-page__glow { position:absolute; z-index:0;'), 'decorative glows must stay behind the authentication content')
+assert.ok(motionCss.includes('overflow-x:hidden; overflow-y:auto; padding:76px'), 'authentication pages must remain vertically scrollable on short screens')
+assert.ok(motionCss.includes('background:#fff; font-size:16px; font-weight:450;'), 'form inputs must avoid mobile browser auto-zoom')
+assert.ok(motionCss.includes('.auth-footer__legal { width:100%; gap:18px; }'), 'legal links must wrap on mobile authentication pages')
 assert.ok(motionCss.includes('.auth-card__mobile-brand { display:flex; }'), 'mobile authentication pages must show the centered logo inside the form card')
 assert.ok(motionCss.includes('prefers-reduced-motion: reduce'), 'motion must respect reduced-motion settings')
 assert.ok(motionCss.includes('[data-landing-reveal]:focus-within'), 'keyboard focus must reveal animated content')
@@ -137,6 +140,7 @@ for (const locale of ['fr', 'ht', 'en']) {
   assert.ok(homeHtml.includes('id="landing-hero"') && homeHtml.includes('id="access"'), locale + ' hero and access targets must exist')
   assert.ok(homeHtml.includes('landing-hero__title-line') && homeHtml.includes('landing-hero__emphasis-line'), locale + ' hero typography must reveal each line in sequence')
   assert.equal((homeHtml.match(/landing-header__inner/g) || []).length, 1, locale + ' homepage must render one shared header')
+  assert.ok(homeHtml.includes('href="/terms"') && homeHtml.includes('href="/privacy"'), locale + ' homepage footer must link to both legal drafts')
   assert.ok(homeHtml.includes('data-landing-reveal'), locale + ' landing page sections must support scroll reveal')
   assert.ok(homeHtml.includes('/landing/atechos-hero.webp') && homeHtml.includes('/landing/atechos-workflow.webp'), locale + ' homepage must show its supplied hero and workflow artwork')
   assert.ok(homeHtml.includes('/landing/atechos-direction.webp') && homeHtml.includes('/landing/atechos-enseignants.webp') && homeHtml.includes('/landing/atechos-familles.webp'), locale + ' homepage must illustrate each school audience')

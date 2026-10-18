@@ -74,6 +74,13 @@ export default function SignupPage() {
         </button>
       </form>
 
+      <p className="auth-legal-note">
+        <T text="Before creating an account, review" />{' '}
+        <Link href="/terms"><T text="Terms of use" /></Link>{' '}
+        <T text="and" />{' '}
+        <Link href="/privacy"><T text="Privacy notice" /></Link>.
+      </p>
+
       <p className="auth-switch">
         <T text="Already have an account?" />{' '}
         <Link href="/login"><T text="Sign in" /></Link>

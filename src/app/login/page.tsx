@@ -76,7 +76,10 @@ export default function LoginPage() {
             placeholder="••••••••"
           />
         </label>
-        {error && <p className="auth-message auth-message--error" role="alert">{<T text={error} />}</p>}
+        <div className="auth-recovery-row">
+          <Link href="/forgot-password"><T text="Forgot password?" /></Link>
+        </div>
+        {error && <p className="auth-message auth-message--error" role="alert"><T text={error} /></p>}
         <button disabled={loading} type="submit" className="auth-submit">
           <T text={loading ? 'Signing in…' : 'Continue'} />
           <span aria-hidden="true">→</span>

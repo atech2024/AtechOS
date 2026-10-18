@@ -66,7 +66,7 @@ console.log('PASS accountant dashboard entry opens the finance overview.')
 
 assert.ok(html.includes('/landing/atechos-logo-mark.webp'),'The shared staff/parent shell must show the official AtechOS symbol.')
 assert.ok(!html.includes('/landing/atechos-logo-wordmark.webp'),'The dark sidebar must not display the white-backed wordmark slab.')
-assert.match(html, /class="[^"]*text-\\[\\#5aa8ff\\][^"]*">A<\\/span>tech<span class="[^"]*text-\\[\\#ff716b\\][^"]*">OS<\\/span>/, 'The menu wordmark must be live, legible text in the logo colors.')
+assert.match(html, /class="[^"]*text-\[#5aa8ff\][^"]*">A<\/span>tech<span class="[^"]*text-\[#ff716b\][^"]*">OS<\/span>/, 'The menu wordmark must be live, legible text in the logo colors.')
 assert.ok(html.includes('rounded-full bg-white ring-1'),'The mark must sit in a compact circular badge instead of a wide white panel.')
 assert.ok(html.includes('atechos-skip-link'),'The shell must provide keyboard access to page content.')
 assert.ok(html.includes('id="main-content" tabindex="-1"'),'The skip link must focus the main content wrapper.')

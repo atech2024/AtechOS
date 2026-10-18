@@ -1,50 +1,80 @@
 'use client'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
-import {schoolTime,schoolDateTime} from '@/lib/school-date'
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Camera, CheckCircle2, Clock3, ScanLine, ShieldCheck } from 'lucide-react'
+import { schoolTime,schoolDateTime } from '@/lib/school-date'
 import QRScanner from '@/components/qr-scanner'
 import { T } from '@/components/translation-provider'
 import { createClient } from '@/lib/supabase/client'
 
 type Result = { action:string; first_name:string; last_name:string; class_name:string; check_in_at:string|null; check_out_at:string|null; guard_meeting_required?:boolean; school_release_protocol_active?:boolean; direction_only?:boolean; sanction_action?:string|null; sanction_return_at?:string|null }
+type ScanLog = { id:number; result:Result; at:string }
+type Notice = { tone:'success'|'warning'|'error'; message:string; firstName?:string; lastName?:string; className?:string; at:string; result?:Result }
 const messages:Record<string,string> = { check_in:'Check-in recorded.',check_out:'Check-out recorded.',duplicate_scan:'Already checked in. Check-out opens at 13:00.',already_complete:'Attendance already complete for today.',already_picked_up_by_parent:'This student has already been collected by a parent or authorized adult today.' }
 const scanErrors:Record<string,string> = {
- invalid_badge:'Badge not accepted. Ask the school to replace it.',
- kiosk_closed:'Kiosk closed from 08:01 to 12:59. Contact school staff.',
- check_in_required:'No check-in today. Contact school staff.',
- current_class_required:'Ask the school to verify your current class.',
- guard_account_suspended:"Student access is temporarily inactive. Go to the Director's office with your parent or guardian.",
- guard_three_unexcused_absences:'Access refused: three school-day absences have no accepted reason. Go to the Director with your parent or guardian.',
- financial_restriction:'Access refused: an overdue school fee still has a balance. Contact the school administration.',
- sanction_kiosk_suspended:'Accès refusé : la sanction enregistrée suspend temporairement l’accès au KIOS. Adressez-vous à la Direction.',
- sanction_student_suspended:'Accès suspendu par une sanction active. Adressez-vous à la Direction.',
- sanction_school_departure_pending:'Accès refusé : une décision de la Direction est en attente après une réunion avec la famille.',
- sanction_parent_meeting:'Accès refusé : la famille doit choisir une date de rendez-vous avec la Direction.',
- sanction_meeting_required:'Accès refusé : aucun rendez-vous familial n’a été choisi. Contactez la Direction.',
- sanction_meeting_overdue:'Accès refusé : le rendez-vous familial est passé. Adressez-vous à la Direction.',
- sanction_meeting_not_today:'Accès refusé : l’élève pourra se présenter à la Direction le jour du rendez-vous choisi.',
- sanction_meeting_window:'Accès refusé : présentez-vous au KIOS dans les 30 minutes avant ou après l’heure du rendez-vous.',
- sanction_checkout_not_open:'Sortie non disponible à cette heure. Présentez le badge pendant la plage de sortie indiquée par l’école.',
-}
-export default function StudentKiosk() {
- const [code,setCode]=useState(''),[pin,setPin]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[result,setResult]=useState<Result|null>(null)
- const lock=useRef(false),codeInput=useRef<HTMLInputElement>(null),pinInput=useRef<HTMLInputElement>(null)
- useEffect(()=>{if(!result)return;const timer=setTimeout(()=>setResult(null),10000);return()=>clearTimeout(timer)},[result])
- async function submit(event:FormEvent){event.preventDefault();await record(code.trim(),pin)}
- async function record(scanned:string,secret=''){if(lock.current)return;lock.current=true;setBusy(true);setError('');setResult(null)
-  try {const {data,error:failure}=await (scanned.startsWith('AOSQ1.')?createClient().rpc('student_kiosk_badge',{p_qr:scanned}):createClient().rpc('student_kiosk_scan',{p_code:scanned,p_pin:secret}));
-   if(failure) setError('Unable to record attendance. Please try again.')
-   else if(data?.error) {const reason=scanErrors[data.error] || 'ID or PIN not accepted. After five failed attempts, wait 15 minutes.';const returnAt=data?.return_at;setError(reason+(returnAt?` Retour ou réactivation prévu(e) le : ${schoolDateTime(returnAt)}.`:''))}
-   else if(data?.action) {setResult(data as Result);setCode('')}
-  } catch {setError('Unable to record attendance. Please try again.')}
-  finally {setPin('');setBusy(false);lock.current=false;codeInput.current?.focus()}
+ invalid_badge:'Badge not accepted. Ask the school to replace it.', kiosk_closed:'Kiosk closed from 08:01 to 12:59. Contact school staff.', check_in_required:'No check-in today. Contact school staff.', current_class_required:'Ask the school to verify your current class.',
+ guard_account_suspended:"Student access is temporarily inactive. Go to the Director's office with your parent or guardian.", guard_three_unexcused_absences:'Access refused: three school-day absences have no accepted reason. Go to the Director with your parent or guardian.', financial_restriction:'Access refused: an overdue school fee still has a balance. Contact the school administration.',
+ sanction_kiosk_suspended:'Accès refusé : la sanction enregistrée suspend temporairement l’accès au KIOS. Adressez-vous à la Direction.', sanction_student_suspended:'Accès suspendu par une sanction active. Adressez-vous à la Direction.', sanction_school_departure_pending:'Accès refusé : une décision de la Direction est en attente après une réunion avec la famille.', sanction_parent_meeting:'Accès refusé : la famille doit choisir une date de rendez-vous avec la Direction.', sanction_meeting_required:'Accès refusé : aucun rendez-vous familial n’a été choisi. Contactez la Direction.', sanction_meeting_overdue:'Accès refusé : le rendez-vous familial est passé. Adressez-vous à la Direction.', sanction_meeting_not_today:'Accès refusé : l’élève pourra se présenter à la Direction le jour du rendez-vous choisi.', sanction_meeting_window:'Accès refusé : présentez-vous au KIOS dans les 30 minutes avant ou après l’heure du rendez-vous.', sanction_checkout_not_open:'Sortie non disponible à cette heure. Présentez le badge pendant la plage de sortie indiquée par l’école.',
  }
- return <main className="min-h-screen bg-slate-950 p-6 text-white"><div className="mx-auto max-w-xl space-y-6"><header className="text-center"><Link href="/onboarding" className="text-blue-300">AtechOS</Link><h1 className="mt-3 text-3xl font-bold"><T text="Attendance Kiosk"/></h1><p className="mt-3"><T text="Scan your private badge QR without a PIN, or enter your AtechOS ID and PIN."/></p></header>
- <section className="rounded-3xl bg-white p-6 text-slate-900"><QRScanner onRead={value=>{if(lock.current)return;if(value.trim().startsWith('AOSQ1.')){void record(value.trim());return}setCode(value.trim());setPin('');setResult(null);setError('');pinInput.current?.focus()}}/>
- <form onSubmit={submit} autoComplete="off" className="mt-4 space-y-4"><label className="block font-semibold">AtechOS ID<input ref={codeInput} autoFocus required maxLength={80} disabled={busy} value={code} onChange={e=>{setCode(e.target.value);setPin('');setResult(null)}} className="mt-2 w-full rounded border p-4 font-mono"/></label>
- {!code.startsWith('AOSQ1.')&&<label className="block font-semibold">PIN<input ref={pinInput} required type="password" inputMode="numeric" pattern="[0-9]{6,12}" minLength={6} maxLength={12} autoComplete="off" disabled={busy} value={pin} onChange={e=>setPin(e.target.value)} className="mt-2 w-full rounded border p-4"/></label>}
- <button disabled={busy} className="w-full rounded-xl bg-blue-600 p-4 font-bold text-white disabled:opacity-50"><T text={busy?'Checking…':'Confirm check-in / check-out'}/></button></form>
- {error&&<p role="alert" className="mt-4 text-red-700"><T text={error}/></p>}
- {result&&<div role="status" className={`mt-5 rounded-xl p-4 ${result.direction_only?'bg-amber-50':'bg-green-50'}`}><p className="font-bold"><T text={result.action==='check_out'&&result.sanction_action?'Sortie enregistrée. La sanction reste active jusqu’à sa date de fin.':result.direction_only?'Présence enregistrée à la Direction uniquement. L’élève ne peut pas rejoindre sa classe.':result.action==='duplicate_scan'&&result.sanction_action?'Présence déjà enregistrée. La sortie est disponible pendant la plage de sortie de l’école.':messages[result.action]||'Attendance already complete for today.'}/></p>{result.sanction_return_at&&<p className="mt-2"><T text={result.sanction_action==='student_suspension'||result.sanction_action==='kiosk_suspension'?'Accès suspendu jusqu’au':'Rendez-vous avec la Direction'}/> {schoolDateTime(result.sanction_return_at)}.</p>}{result.school_release_protocol_active&&result.action==='check_out'&&<p className="mt-2 font-semibold text-amber-900"><T text="School release protocol active. Check-out recorded."/></p>}<p>{result.first_name} {result.last_name}</p><p>{result.class_name}</p>{result.check_in_at&&<p><T text="Check-in"/>: {schoolTime(result.check_in_at)}</p>}{result.check_out_at&&<p><T text="Check-out"/>: {schoolTime(result.check_out_at)}</p>}{result.guard_meeting_required&&<p className="mt-3 rounded bg-amber-100 p-3 font-semibold text-amber-950"><T text="Please go to the Director's office with your parent or guardian for the required meeting."/></p>}</div>}
- </section><p className="text-sm text-slate-300"><T text="No PIN yet? Ask the school for a private activation code, then create a PIN in the student portal."/> <Link href="/student/login" className="underline"><T text="Student portal"/></Link></p><p className="text-sm text-slate-400"><T text="Haiti time: 00:00–07:45 check-in; 07:46–08:00 late; 08:01–12:59 closed; 13:00–23:59 check-out."/></p></div></main>
+export default function StudentKiosk() {
+ const [code,setCode]=useState(''),[pin,setPin]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState<Notice|null>(null),[log,setLog]=useState<ScanLog[]>([])
+ const lock=useRef(false),nextId=useRef(0),codeInput=useRef<HTMLInputElement>(null),pinInput=useRef<HTMLInputElement>(null)
+ useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(null),10000);return()=>clearTimeout(timer)},[notice])
+ async function submit(event:FormEvent){event.preventDefault();await record(code.trim(),pin)}
+ function announceError(message:string,details?:{first_name?:string;last_name?:string;class_name?:string},tone:'warning'|'error'='warning') {setNotice({tone,message,firstName:details?.first_name,lastName:details?.last_name,className:details?.class_name,at:new Date().toISOString()})}
+ async function record(scanned:string,secret='',fromCamera=false){if(lock.current)return;lock.current=true;setBusy(true);setNotice(null)
+  try {const {data,error:failure}=await (scanned.startsWith('AOSQ1.')?createClient().rpc('student_kiosk_badge',{p_qr:scanned}):createClient().rpc('student_kiosk_scan',{p_code:scanned,p_pin:secret}));
+   if(failure) announceError('Unable to record attendance. Please try again.',undefined,'error')
+   else if(data?.error) {const reason=scanErrors[data.error] || 'ID or PIN not accepted. After five failed attempts, wait 15 minutes.';const returnAt=data?.return_at;announceError(reason+(returnAt?` Retour ou réactivation prévu(e) le : ${schoolDateTime(returnAt)}.`:''),data)}
+   else if(data?.action) {const result=data as Result,at=new Date().toISOString(),entry={id:++nextId.current,result,at};setLog(current=>[entry,...current].slice(0,50));setNotice({tone:result.direction_only?'warning':'success',message:messages[result.action]||'Attendance already complete for today.',firstName:result.first_name,lastName:result.last_name,className:result.class_name,at,result});setCode('')}
+  } catch {announceError('Unable to record attendance. Please try again.',undefined,'error')}
+  finally {setPin('');setBusy(false);lock.current=false;if(!fromCamera)codeInput.current?.focus()}
+ }
+ const noticeTone=notice?.tone==='success'?'border-emerald-200 bg-emerald-50 text-emerald-950':notice?.tone==='warning'?'border-amber-200 bg-amber-50 text-amber-950':'border-rose-200 bg-rose-50 text-rose-950'
+ return <main className="kiosk-page min-h-screen px-4 py-5 text-[#081a35] sm:px-6 sm:py-8">
+  <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8">
+   <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[#dce4ee] pb-4">
+    <Link href="/onboarding" aria-label="AtechOS" className="inline-flex min-h-11 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#056cd3] focus-visible:ring-offset-2">
+     <Image src="/landing/atechos-logo-mark.webp" alt="" width={420} height={372} priority className="h-11 w-12 object-contain"/>
+     <Image src="/landing/atechos-logo-wordmark.webp" alt="AtechOS" width={760} height={157} priority className="h-auto w-32 sm:w-36"/>
+    </Link>
+    <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 shadow-sm sm:text-sm"><span className="size-2 rounded-full bg-emerald-500" aria-hidden="true"/><T text="School attendance station"/></div>
+   </header>
+
+   <section className="kiosk-intro grid gap-5 border-b border-[#dce4ee] pb-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+    <div><h1 className="max-w-3xl font-serif text-4xl font-medium leading-tight tracking-[-.035em] sm:text-5xl"><T text="Attendance Kiosk"/></h1><p className="mt-3 max-w-2xl text-sm leading-6 text-[#52637a] sm:text-base"><T text="Scan your private badge QR without a PIN, or enter your AtechOS ID and PIN."/></p></div>
+    <div className="inline-flex items-start gap-2 rounded-xl border border-[#dce4ee] bg-white px-4 py-3 text-sm text-[#35445a]"><Clock3 size={18} className="mt-0.5 shrink-0 text-[#056cd3]" aria-hidden="true"/><span><strong className="block text-[#081a35]"><T text="Haiti time"/></strong><T text="Check-in 00:00–07:45 · Late 07:46–08:00 · Closed 08:01–12:59 · Check-out 13:00–23:59."/></span></div>
+   </section>
+
+   <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,.95fr)]">
+    <section aria-labelledby="scanner-title" className="rounded-2xl border border-[#dce4ee] bg-white p-4 shadow-[0_8px_28px_rgba(8,26,53,.06)] sm:p-6">
+     <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e9f3ff] text-[#056cd3]"><ScanLine size={20} aria-hidden="true"/></span><div><h2 id="scanner-title" className="text-lg font-bold tracking-[-.02em] sm:text-xl"><T text="Scan a student badge"/></h2><p className="mt-1 text-sm leading-5 text-[#52637a]"><T text="The camera stays on until you stop it. Each result appears here and in the scan history."/></p></div></div>
+     <div className="mt-5 rounded-xl bg-[#f5f7fb] p-3 sm:p-4"><QRScanner keepActive onRead={value=>{if(lock.current||value===code)return;if(value.startsWith('AOSQ1.')){void record(value,'',true);return}setCode(value);setPin('');setNotice(null);pinInput.current?.focus()}}/></div>
+     <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[.1em] text-[#64748b]"><span className="h-px flex-1 bg-[#dce4ee]"/><T text="Or enter manually"/><span className="h-px flex-1 bg-[#dce4ee]"/></div>
+     <form onSubmit={submit} autoComplete="off" className="grid gap-4 sm:grid-cols-2">
+      <label className="block text-sm font-semibold text-[#253b56]"><T text="AtechOS ID"/><input ref={codeInput} required maxLength={80} disabled={busy} value={code} onChange={e=>setCode(e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#cbd6e3] bg-white px-3 py-2 font-mono text-base outline-none transition focus-visible:border-[#056cd3] focus-visible:ring-2 focus-visible:ring-[#056cd3]/20 disabled:bg-slate-100"/></label>
+      <label className="block text-sm font-semibold text-[#253b56]"><T text="Personal identification number (PIN)"/><input ref={pinInput} required type="password" inputMode="numeric" pattern="[0-9]{6,12}" minLength={6} maxLength={12} autoComplete="off" disabled={busy||code.startsWith('AOSQ1.')} value={pin} onChange={e=>setPin(e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#cbd6e3] bg-white px-3 py-2 text-base outline-none transition focus-visible:border-[#056cd3] focus-visible:ring-2 focus-visible:ring-[#056cd3]/20 disabled:bg-slate-100"/></label>
+      <button disabled={busy} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#056cd3] px-4 py-3 font-bold text-white shadow-sm transition hover:bg-[#0757a8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#056cd3] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 sm:col-span-2">{busy?<span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"/>:<ShieldCheck size={18} aria-hidden="true"/>}<T text={busy?'Checking…':'Confirm check-in / check-out'}/></button>
+     </form>
+     <p className="mt-4 text-xs leading-5 text-[#52637a]"><T text="No PIN yet? Ask the school for a private activation code, then create a PIN in the student portal."/> <Link href="/student/login" className="font-semibold text-[#0757a8] underline decoration-[#8bbcf0] underline-offset-4 hover:text-[#056cd3]"><T text="Student portal"/></Link></p>
+    </section>
+
+    <div className="space-y-5">
+     <section aria-labelledby="notice-title" className="min-h-40 rounded-2xl border border-[#dce4ee] bg-white p-4 shadow-[0_8px_28px_rgba(8,26,53,.06)] sm:p-5">
+      <div className="flex items-center justify-between gap-3"><h2 id="notice-title" className="text-lg font-bold tracking-[-.02em]"><T text="Latest scan notification"/></h2><span className="text-xs text-[#64748b]"><T text="Visible for 10 seconds"/></span></div>
+      {notice?<div key={notice.at} role={notice.tone==='error'?'alert':'status'} aria-live={notice.tone==='error'?'assertive':'polite'} className={`kiosk-notice mt-4 rounded-xl border p-4 ${noticeTone}`}>
+       <div className="flex items-start gap-3">{notice.tone==='success'?<CheckCircle2 size={21} className="mt-0.5 shrink-0 text-emerald-700" aria-hidden="true"/>:<AlertTriangle size={21} className="mt-0.5 shrink-0" aria-hidden="true"/>}<div className="min-w-0 flex-1"><p className="font-bold">{notice.firstName?`${notice.firstName} ${notice.lastName||''}`:<T text="Scan not completed"/>}</p>{notice.className&&<p className="mt-0.5 text-sm"><T text="Class"/>: {notice.className}</p>}<p className="mt-2 text-sm font-medium"><T text={notice.message}/></p>{notice.result&&<><p className="mt-1 text-xs"><T text={notice.result.action==='check_out'?'Check-out':'Check-in'}/> · {schoolTime(notice.result.action==='check_out'?notice.result.check_out_at:notice.result.check_in_at)}</p>{notice.result.direction_only&&<p className="mt-2 text-sm font-semibold"><T text="Presence recorded at the Director’s office only. The student may not join class."/></p>}{notice.result.school_release_protocol_active&&notice.result.action==='check_out'&&<p className="mt-2 text-sm font-semibold"><T text="School release protocol active. Check-out recorded."/></p>}{notice.result.sanction_return_at&&<p className="mt-2 text-sm"><T text={notice.result.sanction_action==='student_suspension'||notice.result.sanction_action==='kiosk_suspension'?'Access suspended until':'Director meeting'}/> · {schoolDateTime(notice.result.sanction_return_at)}</p>}{notice.result.guard_meeting_required&&<p className="mt-2 text-sm font-semibold"><T text="Please go to the Director’s office with your parent or guardian for the required meeting."/></p>}</>}</div></div>
+      </div>:<div className="mt-4 flex min-h-24 items-center gap-3 rounded-xl bg-[#f5f7fb] px-4 py-3 text-sm text-[#52637a]"><Camera size={19} className="shrink-0 text-[#056cd3]" aria-hidden="true"/><p><T text="Scan a badge to see the student’s name, class and attendance status here."/></p></div>}
+     </section>
+
+     <section aria-labelledby="history-title" className="overflow-hidden rounded-2xl border border-[#dce4ee] bg-white shadow-[0_8px_28px_rgba(8,26,53,.06)]">
+      <div className="flex items-center justify-between gap-3 border-b border-[#e7edf4] px-4 py-4 sm:px-5"><div><h2 id="history-title" className="text-lg font-bold tracking-[-.02em]"><T text="Scanned students"/></h2><p className="mt-1 text-sm text-[#52637a]"><strong className="tabular-nums">{log.length}</strong> <T text={log.length===1?'scan in this session':'scans in this session'}/></p></div><span className="grid size-10 place-items-center rounded-xl bg-[#e9f3ff] text-[#056cd3]"><ScanLine size={19} aria-hidden="true"/></span></div>
+      {log.length===0?<div className="flex min-h-36 flex-col items-center justify-center px-5 py-8 text-center text-[#64748b]"><ScanLine size={25} className="mb-2 text-[#8ba5c2]" aria-hidden="true"/><p className="text-sm font-medium"><T text="No scans yet"/></p><p className="mt-1 text-xs"><T text="Completed scans stay in this list during the session."/></p></div>:<div className="max-h-[420px] overflow-auto"><table className="w-full min-w-[440px] text-left text-sm"><thead className="sticky top-0 bg-[#f5f7fb] text-xs uppercase tracking-wide text-[#52637a]"><tr><th scope="col" className="px-4 py-3 font-semibold"><T text="Student"/></th><th scope="col" className="px-3 py-3 font-semibold"><T text="Class"/></th><th scope="col" className="px-3 py-3 font-semibold"><T text="Attendance"/></th><th scope="col" className="px-4 py-3 text-right font-semibold"><T text="Time"/></th></tr></thead><tbody className="divide-y divide-[#edf1f6]">{log.map(({id,result,at})=><tr key={id} className="transition-colors hover:bg-[#f8faff]"><td className="px-4 py-3 font-semibold text-[#081a35]">{result.first_name} {result.last_name}</td><td className="px-3 py-3 text-[#52637a]">{result.class_name||'—'}</td><td className="px-3 py-3"><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${result.direction_only?'bg-amber-100 text-amber-900':'bg-emerald-100 text-emerald-900'}`}>{result.action==='check_out'?<ArrowUpFromLine size={13} aria-hidden="true"/>:<ArrowDownToLine size={13} aria-hidden="true"/>}<T text={result.direction_only?'Direction only':result.action==='check_out'?'Check-out':'Check-in'}/></span></td><td className="px-4 py-3 text-right tabular-nums text-[#52637a]">{schoolTime(at)}</td></tr>)}</tbody></table></div>}
+     </section>
+    </div>
+   </div>
+   <footer className="border-t border-[#dce4ee] pt-4 text-xs leading-5 text-[#52637a]"><p><T text="Attendance is recorded securely by the school. Only a student’s name, class and scan status are shown here."/></p></footer>
+  </div>
+ </main>
 }

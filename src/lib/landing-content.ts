@@ -2,6 +2,7 @@ export type LandingLocale = 'fr' | 'ht' | 'en'
 export type LandingIcon = 'school' | 'teaching' | 'family' | 'students' | 'attendance' | 'results' | 'finance' | 'calendar' | 'communication'
 
 export type LandingCopy = {
+  visuals: { conceptLabel: string; heroAlt: string; heroCaption: string; roleAlts: string[]; workflowAlt: string; workflowCaption: string }
   metadata: { title: string; description: string }
   brand: { subtitle: string }
   navigation: { features: string; roles: string; signIn: string; createSchool: string; skipToContent: string; security: string; aria: string }
@@ -34,6 +35,14 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       description: 'AtechOS réunit les équipes, les familles et les élèves autour des opérations quotidiennes de l’établissement.',
     },
     brand: { subtitle: 'Gestion scolaire intégrée' },
+    visuals: {
+      conceptLabel: 'Illustration conceptuelle',
+      heroAlt: 'Illustration conceptuelle d’une interface de gestion scolaire sur un ordinateur portable et un téléphone.',
+      heroCaption: 'Visuel conceptuel généré. Les écrans illustrés ne sont pas des captures du produit AtechOS.',
+      roleAlts: ['Illustration conceptuelle d’un espace numérique de gestion pour la direction scolaire.', 'Illustration conceptuelle d’un espace de travail pour les enseignants.', 'Illustration conceptuelle d’un espace numérique destiné aux familles.'],
+      workflowAlt: 'Illustration conceptuelle de plusieurs écrans numériques reliés dans un parcours de gestion scolaire.',
+      workflowCaption: 'Cette représentation est illustrative et ne décrit pas un parcours produit exact.',
+    },
     navigation: { features: 'Fonctionnalités', roles: 'Solutions par rôle', signIn: 'Se connecter', createSchool: 'Créer votre école', skipToContent: 'Aller au contenu', security: 'Accès', aria: 'Navigation principale' },
     hero: {
       title: 'Toute votre école,',
@@ -92,6 +101,14 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       description: 'AtechOS mete ekip lekòl la, fanmi yo ak elèv yo ansanm pou jere aktivite lekòl chak jou.',
     },
     brand: { subtitle: 'Jesyon lekòl konplè' },
+    visuals: {
+      conceptLabel: 'Imaj konsèp',
+      heroAlt: 'Imaj konsèp sou jesyon lekòl sou yon òdinatè pòtab ak yon telefòn.',
+      heroCaption: 'Se yon imaj konsèp ki fèt ak zouti kreyatif. Ekran yo pa kaptire nan vrè pwodwi AtechOS la.',
+      roleAlts: ['Imaj konsèp yon espas dijital pou direksyon lekòl la jere aktivite li yo.', 'Imaj konsèp yon espas travay pou pwofesè yo.', 'Imaj konsèp yon espas dijital pou fanmi yo.'],
+      workflowAlt: 'Imaj konsèp ki montre plizyè ekran dijital ki konekte pou jesyon lekòl.',
+      workflowCaption: 'Imaj sa a bay yon lide jeneral; li pa montre yon etap pwodwi egzak.',
+    },
     navigation: { features: 'Fonksyonalite', roles: 'Solisyon pa wòl', signIn: 'Konekte', createSchool: 'Kreye lekòl ou', skipToContent: 'Ale nan kontni an', security: 'Aksè', aria: 'Navigasyon prensipal' },
     hero: {
       title: 'Tout lekòl ou a,',
@@ -150,6 +167,14 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       description: 'AtechOS brings school teams, families, and students together around everyday school operations.',
     },
     brand: { subtitle: 'Connected school management' },
+    visuals: {
+      conceptLabel: 'Concept illustration',
+      heroAlt: 'Concept illustration of school management interfaces on a laptop and phone.',
+      heroCaption: 'Generated concept art. The illustrated screens are not screenshots of the AtechOS product.',
+      roleAlts: ['Concept illustration of a digital workspace for school leadership.', 'Concept illustration of a digital workspace for teachers.', 'Concept illustration of a digital space for families.'],
+      workflowAlt: 'Concept illustration showing connected digital screens for school management.',
+      workflowCaption: 'This is an illustrative representation, not an exact product workflow.',
+    },
     navigation: { features: 'Features', roles: 'By role', signIn: 'Sign in', createSchool: 'Create your school', skipToContent: 'Skip to content', security: 'Access', aria: 'Main navigation' },
     hero: {
       title: 'Your whole school,',

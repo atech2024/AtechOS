@@ -45,12 +45,6 @@ export default function LoginPage() {
         <p><T text="Access your school workspace securely." /></p>
       </div>
 
-      <Link href="/student/login" className="auth-student-link">
-        <span className="auth-student-link__icon" aria-hidden="true">ID</span>
-        <span><T text="Student login with AtechOS ID" /></span>
-        <span className="auth-student-link__arrow" aria-hidden="true">↗</span>
-      </Link>
-
       <form onSubmit={handleSubmit} className="auth-form">
         <label className="auth-field">
           <span><T text="Email" /></span>
@@ -85,6 +79,17 @@ export default function LoginPage() {
           <span aria-hidden="true">→</span>
         </button>
       </form>
+
+      <section className="mt-7 border-t border-slate-200 pt-6" aria-labelledby="student-login-heading">
+        <h2 id="student-login-heading" className="mb-3 text-center text-sm font-semibold text-slate-700">
+          <T text="Student portal" />
+        </h2>
+        <Link href="/student/login" className="auth-student-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">
+          <span className="auth-student-link__icon" aria-hidden="true">ID</span>
+          <span><T text="Student login with AtechOS ID" /></span>
+          <span className="auth-student-link__arrow" aria-hidden="true">↗</span>
+        </Link>
+      </section>
 
       <p className="auth-switch">
         <T text="Need an account?" />{' '}

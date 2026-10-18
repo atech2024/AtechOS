@@ -48,7 +48,7 @@ export default async function MyProfilePage() {
     <header className="space-y-2">
       <h1 className="text-3xl font-bold tracking-tight text-slate-950"><T text="My profile"/></h1>
       <p className="max-w-2xl text-slate-600"><T text="Manage the personal information associated with your school account."/></p>
-      <p className="text-sm text-slate-600"><T text="The role shown in the account header comes from your school access and cannot be changed from this form."/></p>
+      <p className="text-sm text-slate-600"><T text="The role shown here comes from your school access and cannot be changed from this form."/></p>
     </header>
     {loadError ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800"><T text={profileSetupUnavailable ? 'Staff profile setup is not available yet. Please contact school administration.' : 'Unable to load your private staff profile. Please refresh or contact the school administrator.'}/></p> : <StaffSelfProfileForm
       schoolId={context.school_id}

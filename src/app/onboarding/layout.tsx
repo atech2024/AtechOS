@@ -12,7 +12,6 @@ export default async function OnboardingLayout({ children }: { children: React.R
   if (!user) redirect('/login')
   const { data, error } = await supabase.rpc('get_my_school_id')
   if (error) throw new Error('Unable to verify school membership. Please try again.')
-  // Existing members may return here to choose or join a school.
-  void data
+  if (data) redirect('/dashboard')
   return <><AccountNavigation />{children}</>
 }

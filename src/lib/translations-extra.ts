@@ -1,4 +1,8 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Daily roster':['Liste du jour','Lis prezans jodi a'],
+ 'student':['élève','elèv'], 'students':['élèves','elèv'],
+ 'Date':['Date','Dat'], 'No check-in':['Aucune entrée','Pa gen antre'],
+ 'No active students are enrolled in this class yet.':['Aucun élève actif n’est encore inscrit dans cette classe.','Pa gen elèv aktif ki enskri nan klas sa a pou kounye a.'],
  'Skip to content':['Aller au contenu principal','Ale nan kontni an'],
  'Haiti time':['Heure d’Haïti','Lè Ayiti'],
  'Attendance today':['Présence du jour','Prezans jodi a'],

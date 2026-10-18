@@ -179,8 +179,10 @@ button, input { font: inherit; }
 }
 @media (max-width: 700px) {
   .landing-frame { width: min(100% - 36px, 560px); }
-  .landing-header { padding-top: 62px; }
+  .landing-header { padding-top: 18px; }
   .landing-header__inner { grid-template-columns: 1fr; gap: 16px; }
+  .landing-language-floating { position: absolute; top: 18px; right: 18px; }
+  .landing-header__actions { display: none; }
   .landing-brand { min-width: 0; }
   .landing-nav { justify-content: flex-start; gap: 24px; }
   .landing-header__actions { grid-column: auto; justify-content: flex-start; gap: 17px; }

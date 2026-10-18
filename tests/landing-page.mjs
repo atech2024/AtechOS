@@ -32,6 +32,11 @@ const iconNames = ['ArrowRight', 'BookOpenCheck', 'CalendarDays', 'CircleDollarS
 const iconMock = Object.fromEntries(iconNames.map(name => [name, props => React.createElement('svg', props)]))
 const linkMock = { default: ({ href, children, ...props }) => React.createElement('a', { href, ...props }, children) }
 const marketingChrome = compile('src/components/marketing-chrome.tsx', { 'next/link': linkMock, 'lucide-react': iconMock, '@/components/landing-scroll-reveal': { default: () => null } })
+let activePath = '/'
+const globalLanguageModule = compile('src/components/global-language.tsx', {
+  'next/navigation': { usePathname: () => activePath },
+  '@/components/language-selector': { default: () => React.createElement('select', { 'data-global-language': 'true' }) },
+})
 const common = {
   'next/link': linkMock,
   'next/image': imageMock,
@@ -70,6 +75,14 @@ assert.deepEqual(observedTargets, [deferredTarget])
 assert.equal(deferredTarget.properties.get('--landing-motion-delay'), '55ms')
 assert.equal(motionClasses.has('landing-motion-ready'), true)
 const motionCss = readFileSync('src/app/globals.css', 'utf8')
+assert.ok(motionCss.includes('.landing-language-floating { position: absolute; top: 18px; right: 18px; }'), 'mobile language control must align with the compact header')
+assert.ok(motionCss.includes('.landing-header__actions { display: none; }'), 'mobile header must avoid repeating hero actions')
+for (const path of ['/', '/solutions', '/fonctionnalites']) {
+  activePath = path
+  assert.equal(renderToStaticMarkup(React.createElement(globalLanguageModule.default, { locale: 'fr' })), '', path + ' must not render a duplicate floating language selector')
+}
+activePath = '/signin'
+assert.ok(renderToStaticMarkup(React.createElement(globalLanguageModule.default, { locale: 'fr' })).includes('data-global-language="true"'), 'authentication pages must retain the global language selector')
 assert.ok(motionCss.includes('prefers-reduced-motion: reduce'), 'motion must respect reduced-motion settings')
 assert.ok(motionCss.includes('[data-landing-reveal]:focus-within'), 'keyboard focus must reveal animated content')
 assert.ok(motionCss.includes('@keyframes landing-title-line-in') && motionCss.includes('landing-hero__emphasis-line'), 'hero lines must use the deliberate staggered reveal')

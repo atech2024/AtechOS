@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 import { cookies } from 'next/headers'
 import { landingCopyFor } from '@/lib/landing-content'
@@ -30,10 +31,14 @@ export default async function SolutionsPage() {
     </section>
     <section className="landing-section landing-subpage-content">
       <div className="landing-frame landing-subpage-roles">
-        {copy.roles.map(item => <article className="landing-role-row" key={item.audience} data-landing-reveal>
-          <span className="landing-role-row__audience">{item.audience}</span>
-          <div className="landing-role-row__text"><h2>{item.title}</h2><p>{item.description}</p></div>
-        </article>)}
+        {copy.roles.map((item, index) => {
+          const roleImages = ['/landing/atechos-direction.webp', '/landing/atechos-enseignants.webp', '/landing/atechos-familles.webp']
+          return <article className="landing-role-row landing-role-row--solution" key={item.audience} data-landing-reveal>
+            <span className="landing-role-row__audience">{item.audience}</span>
+            <Image className="landing-role-row__image" src={roleImages[index] ?? roleImages[0]} alt={copy.visuals.roleAlts[index] ?? copy.visuals.conceptLabel} width={1448} height={1086} sizes="(max-width: 700px) 100vw, (max-width: 960px) 34vw, 24vw" loading="lazy" />
+            <div className="landing-role-row__text"><h2>{item.title}</h2><p>{item.description}</p></div>
+          </article>
+        })}
       </div>
     </section>
     <section className="landing-closing"><div className="landing-frame landing-closing__inner" data-landing-reveal>

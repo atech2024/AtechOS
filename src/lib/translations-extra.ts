@@ -1,4 +1,9 @@
 export const extraTranslations:Record<string,[string,string]> = {
+  "Publish work, exams and learning documents for your assigned classes and subjects.": ["Publiez des devoirs, examens et ressources pédagogiques pour les classes et matières qui vous sont attribuées.", "Pibliye devwa, egzamen ak dokiman aprantisaj pou klas ak matyè yo ba ou yo."],
+  "Homework / Exam / Project": ["Devoir / Examen / Projet", "Devwa / Egzamen / Pwojè"],
+  "PDF, Word, PowerPoint, images or text · max 50 MB": ["PDF, Word, PowerPoint, images ou texte · 50 Mo maximum", "PDF, Word, PowerPoint, imaj oswa tèks · 50 MB maksimòm"],
+  "Due": ["À remettre le", "Pou remèt anvan"],
+  "No due date": ["Aucune date limite", "Pa gen dat limit"],
   "Student records are separate from badges. A photo can be added later.": ["Les dossiers des élèves sont distincts des badges. Une photo peut être ajoutée ultérieurement.", "Dosye elèv yo apa ak badj yo. Yo ka ajoute foto pita."],
   "Manage family relationships. Only authorized school administration can create or change links.": ["Gérez les liens familiaux. Seule l’administration scolaire autorisée peut les créer ou les modifier.", "Jere lyen fanmi yo. Se administrasyon lekòl ki gen otorizasyon ki ka kreye oswa chanje lyen sa yo."],
   "Select student to invite a parent": ["Choisir un élève pour inviter un parent", "Chwazi yon elèv pou envite yon paran"],

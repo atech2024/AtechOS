@@ -79,10 +79,16 @@ assert.ok(motionCss.includes('.landing-language-floating { position: absolute; t
 assert.ok(motionCss.includes('.landing-header__actions { display: none; }'), 'mobile header must avoid repeating hero actions')
 for (const path of ['/', '/solutions', '/fonctionnalites']) {
   activePath = path
-  assert.equal(renderToStaticMarkup(React.createElement(globalLanguageModule.default, { locale: 'fr' })), '', path + ' must not render a duplicate floating language selector')
+  const markup = renderToStaticMarkup(React.createElement(globalLanguageModule.default, { locale: 'fr' }))
+  assert.ok(markup.includes('data-global-language="true"'), path + ' must keep the language selector available')
+  assert.ok(markup.includes('landing-language-floating'), path + ' must align the selector with the compact mobile header')
 }
+activePath = '/dashboard'
+assert.equal(renderToStaticMarkup(React.createElement(globalLanguageModule.default, { locale: 'fr' })), '', 'dashboard must not render the global selector')
 activePath = '/signin'
-assert.ok(renderToStaticMarkup(React.createElement(globalLanguageModule.default, { locale: 'fr' })).includes('data-global-language="true"'), 'authentication pages must retain the global language selector')
+const authLanguage = renderToStaticMarkup(React.createElement(globalLanguageModule.default, { locale: 'fr' }))
+assert.ok(authLanguage.includes('data-global-language="true"'), 'authentication pages must retain the global language selector')
+assert.ok(!authLanguage.includes('landing-language-floating'), 'authentication pages must keep the standard selector position')
 assert.ok(motionCss.includes('prefers-reduced-motion: reduce'), 'motion must respect reduced-motion settings')
 assert.ok(motionCss.includes('[data-landing-reveal]:focus-within'), 'keyboard focus must reveal animated content')
 assert.ok(motionCss.includes('@keyframes landing-title-line-in') && motionCss.includes('landing-hero__emphasis-line'), 'hero lines must use the deliberate staggered reveal')
@@ -97,8 +103,7 @@ for (const locale of ['fr', 'ht', 'en']) {
   common['next/headers'] = { cookies: async () => ({ get: () => ({ value: locale }) }) }
   common['@/lib/i18n'] = { localeFrom: value => value === 'ht' || value === 'en' ? value : 'fr' }
 
-  const { default: Home } = compile('src/app/page.tsx', common)
-  const homeHtml = renderToStaticMarkup(await Home())
+  const { default: Home } = compile('src/app/page.tsx', common)  const homeHtml = renderToStaticMarkup(await Home())
   assert.ok(homeHtml.includes(copy.hero.title) && homeHtml.includes(copy.hero.emphasis), locale + ' landing headline must be localized')
   assert.ok(homeHtml.includes(copy.closing.title), locale + ' landing closing copy must be localized')
   assert.ok(homeHtml.includes('href="/signup"') && homeHtml.includes('href="/signin"'), locale + ' existing account routes must remain available')

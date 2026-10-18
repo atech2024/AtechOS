@@ -1,6 +1,7 @@
 'use client'
 
-import { T } from '@/components/translation-provider'
+import { T, useLocale } from '@/components/translation-provider'
+import { translate } from '@/lib/translations'
 import { FormEvent, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -92,6 +93,7 @@ function Field({
   required?: boolean
   minLength?: number
 }) {
+  const locale = useLocale()
   return (
     <label className="auth-field">
       <span><T text={label} /></span>
@@ -101,7 +103,7 @@ function Field({
         required={required}
         minLength={minLength}
         autoComplete={autoComplete}
-        placeholder={placeholder}
+        placeholder={translate(placeholder, locale)}
       />
     </label>
   )

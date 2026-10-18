@@ -51,6 +51,10 @@ try {
     const signupHtml=await (await fetch(origin+'/signup',{headers:{cookie:`atechos_locale=${locale}`}})).text()
     assert.ok(signupHtml.includes(signupLabel),`signup heading translation: ${locale}`)
     assert.ok(signupHtml.includes('type="password"'),`signup password input: ${locale}`)
+    const expectedNameHint=locale==='fr'?'Votre nom complet':'Non konplè ou'
+    const expectedPasswordHint=locale==='fr'?'8 caractères minimum':'Omwen 8 karaktè'
+    assert.ok(signupHtml.includes(`placeholder="${expectedNameHint}"`),`localized name hint: ${locale}`)
+    assert.ok(signupHtml.includes(`placeholder="${expectedPasswordHint}"`),`localized password hint: ${locale}`)
     checks += 2
   }
   const student=await fetch(origin+'/student/login',{headers:{cookie:'atechos_locale=ht'}})

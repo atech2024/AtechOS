@@ -40,8 +40,18 @@ try {
     assert.equal(new URL(response.headers.get('location'), origin).origin, origin, path)
     checks++
   }
-  for (const [locale,label] of [['fr','Se connecter'],['ht','Konekte']]) {
-    const html=await (await fetch(origin+'/login',{headers:{cookie:`atechos_locale=${locale}`}})).text();assert.ok(html.includes(label),locale);checks++
+  for (const [locale,loginLabel,signupLabel,createLabel] of [
+    ['fr','Se connecter','Créer votre compte','Créer un compte'],
+    ['ht','Konekte','Kreye kont ou','Kreye kont'],
+  ]) {
+    const loginHtml=await (await fetch(origin+'/login',{headers:{cookie:`atechos_locale=${locale}`}})).text()
+    assert.ok(loginHtml.includes(loginLabel),`login translation: ${locale}`)
+    assert.ok(loginHtml.includes(createLabel),`signup link translation: ${locale}`)
+    assert.ok(loginHtml.includes('atechos-logo-mark.webp'),`brand mark: ${locale}`)
+    const signupHtml=await (await fetch(origin+'/signup',{headers:{cookie:`atechos_locale=${locale}`}})).text()
+    assert.ok(signupHtml.includes(signupLabel),`signup heading translation: ${locale}`)
+    assert.ok(signupHtml.includes('type="password"'),`signup password input: ${locale}`)
+    checks += 2
   }
   const student=await fetch(origin+'/student/login',{headers:{cookie:'atechos_locale=ht'}})
   assert.equal(student.status,200);assert.ok((await student.text()).includes('Pòtal elèv'));checks++

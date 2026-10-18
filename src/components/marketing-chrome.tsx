@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { ArrowRight, GraduationCap } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowRight } from 'lucide-react'
 import type { LandingCopy } from '@/lib/landing-content'
 import LandingScrollReveal from '@/components/landing-scroll-reveal'
 
@@ -8,8 +9,8 @@ export function MarketingHeader({ copy, home = false }: { copy: LandingCopy; hom
     <LandingScrollReveal />
     <div className="landing-frame landing-header__inner">
       <Link href="/" className="landing-brand" aria-label="AtechOS">
-        <span className="landing-brand__mark"><GraduationCap size={25} strokeWidth={2.2} aria-hidden="true" /></span>
-        <span className="landing-brand__copy"><strong>AtechOS</strong><small>{copy.brand.subtitle}</small></span>
+        <span className="landing-brand__mark"><Image src="/landing/atechos-logo-mark.webp" alt="" width={420} height={372} priority /></span>
+        <span className="landing-brand__copy"><Image src="/landing/atechos-logo-wordmark.webp" alt="" width={760} height={157} className="landing-brand__wordmark" priority /><small>{copy.brand.subtitle}</small></span>
       </Link>
       <nav className="landing-nav" aria-label={copy.navigation.aria}>
         <Link href="/fonctionnalites">{copy.navigation.features}</Link>

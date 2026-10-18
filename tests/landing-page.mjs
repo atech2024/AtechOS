@@ -31,7 +31,7 @@ const { prepareLandingReveals } = compile('src/components/landing-scroll-reveal.
 const iconNames = ['ArrowRight', 'BookOpenCheck', 'CalendarDays', 'CircleDollarSign', 'GraduationCap', 'MessageSquareText', 'School', 'ShieldCheck', 'UsersRound', 'UserRoundCheck', 'ClipboardList', 'Check']
 const iconMock = Object.fromEntries(iconNames.map(name => [name, props => React.createElement('svg', props)]))
 const linkMock = { default: ({ href, children, ...props }) => React.createElement('a', { href, ...props }, children) }
-const marketingChrome = compile('src/components/marketing-chrome.tsx', { 'next/link': linkMock, 'lucide-react': iconMock, '@/components/landing-scroll-reveal': { default: () => null } })
+const marketingChrome = compile('src/components/marketing-chrome.tsx', { 'next/link': linkMock, 'next/image': imageMock, 'lucide-react': iconMock, '@/components/landing-scroll-reveal': { default: () => null } })
 let activePath = '/'
 const globalLanguageModule = compile('src/components/global-language.tsx', {
   'next/navigation': { usePathname: () => activePath },
@@ -49,7 +49,7 @@ const common = {
 }
 
 const motionClasses = new Set()
-for (const name of ['atechos-hero.webp', 'atechos-direction.webp', 'atechos-enseignants.webp', 'atechos-familles.webp', 'atechos-workflow.webp']) {
+for (const name of ['atechos-hero.webp', 'atechos-direction.webp', 'atechos-enseignants.webp', 'atechos-familles.webp', 'atechos-workflow.webp', 'atechos-logo-mark.webp', 'atechos-logo-wordmark.webp']) {
   const asset = readFileSync('public/landing/' + name)
   assert.equal(asset.subarray(0, 4).toString(), 'RIFF', name + ' must be a valid WebP container')
   assert.equal(asset.subarray(8, 12).toString(), 'WEBP', name + ' must use the optimized WebP format')
@@ -119,6 +119,7 @@ for (const locale of ['fr', 'ht', 'en']) {
   assert.ok(homeHtml.includes('data-landing-reveal'), locale + ' landing page sections must support scroll reveal')
   assert.ok(homeHtml.includes('/landing/atechos-hero.webp') && homeHtml.includes('/landing/atechos-workflow.webp'), locale + ' homepage must show its supplied hero and workflow artwork')
   assert.ok(homeHtml.includes('/landing/atechos-direction.webp') && homeHtml.includes('/landing/atechos-enseignants.webp') && homeHtml.includes('/landing/atechos-familles.webp'), locale + ' homepage must illustrate each school audience')
+  assert.ok(homeHtml.includes('/landing/atechos-logo-mark.webp') && homeHtml.includes('/landing/atechos-logo-wordmark.webp'), locale + ' homepage header must use the official AtechOS logo assets')
   assert.ok(homeHtml.includes(copy.visuals.heroCaption) && homeHtml.includes(copy.visuals.workflowCaption), locale + ' conceptual artwork must not be confused with real product screens')
   assert.ok(homeHtml.includes('preload="none"') && !/<video[^>]*src=/.test(homeHtml), locale + ' hero motion must be deferred until the client opts in')
 

@@ -57,9 +57,10 @@ button, input { font: inherit; }
 .landing-header { position: relative; z-index: 2; padding: 64px 0 18px; background: #fff; }
 .landing-header__inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 32px; min-height: 56px; }
 .landing-brand { display: inline-flex; align-items: center; gap: 12px; min-width: 240px; }
-.landing-brand__mark { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; color: #fff; background: #1766ed; }
+.landing-brand__mark { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 46px; }
+.landing-brand__mark img { display: block; width: 46px; height: auto; }
+.landing-brand__wordmark { display: block; width: 145px; height: auto; }
 .landing-brand__copy { display: grid; gap: 2px; }
-.landing-brand__copy strong { color: var(--landing-ink); font-size: 19px; line-height: 1; letter-spacing: -.025em; }
 .landing-brand__copy small { color: #586a81; font-size: 11px; }
 .landing-nav, .landing-header__actions { display: flex; align-items: center; }
 .landing-nav { justify-content: center; gap: clamp(20px, 3.2vw, 42px); color: #35445a; font-size: 14px; font-weight: 600; }

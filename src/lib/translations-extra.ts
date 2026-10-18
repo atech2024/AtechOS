@@ -29,6 +29,7 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Profile saved.':['Profil enregistré.','Pwofil la anrejistre.'],
  'Unable to save your profile. Please try again.':['Impossible d’enregistrer votre profil. Réessayez.','Pwofil la pa anrejistre. Tanpri eseye ankò.'],
  'Unable to load your private staff profile. Please refresh or contact the school administrator.':['Impossible de charger votre profil confidentiel. Actualisez la page ou contactez l’administration de l’école.','Nou pa ka chaje pwofil prive ou. Rafrechi paj la oswa kontakte administrasyon lekòl la.'],
+ 'Staff profile setup is not available yet. Please contact school administration.':['La configuration du profil du personnel n’est pas encore activée. Contactez l’administration de l’école.','Konfigirasyon pwofil pèsonèl la poko aktive. Kontakte administrasyon lekòl la.'],
  'Select an ID type and enter its number, or leave both blank.':['Choisissez un type de pièce et saisissez son numéro, ou laissez les deux champs vides.','Chwazi kalite pyès la epi antre nimewo li, oswa kite de chan yo vid.'],
  'The date of birth cannot be in the future.':['La date de naissance ne peut pas être dans le futur.','Dat nesans lan pa ka nan lavni.'],
  'Choose a JPG, PNG, or WebP image no larger than 5 MB.':['Choisissez une image JPG, PNG ou WebP de 5 Mo maximum.','Chwazi yon foto JPG, PNG oswa WebP ki pa depase 5 Mo.'],

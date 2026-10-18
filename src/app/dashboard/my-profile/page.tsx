@@ -1,20 +1,11 @@
 import { redirect } from 'next/navigation'
 import { T } from '@/components/translation-provider'
 import { createClient } from '@/lib/supabase/server'
-import { canAccessStaffProfile } from '@/lib/staff-profile'
+import { canAccessStaffProfile, isStaffProfileSchemaUnavailable } from '@/lib/staff-profile'
 import { StaffSelfProfileForm } from '@/components/staff-self-profile-form'
 
 export const dynamic = 'force-dynamic'
 
-const roleLabels: Record<string, string> = {
-  school_admin: 'Administrator',
-  director: 'Director',
-  secretary: 'Secretary',
-  censeur: 'Academic reviewer',
-  teacher: 'Teacher',
-  accountant: 'Accountant',
-  surveillant: 'Attendance supervisor',
-}
 
 export default async function MyProfilePage() {
   const db = await createClient()
@@ -35,6 +26,7 @@ export default async function MyProfilePage() {
       .maybeSingle(),
   ])
   const loadError = Boolean(personResult.error || profileResult.error)
+  const profileSetupUnavailable = isStaffProfileSchemaUnavailable(profileResult.error?.code)
 
   let photoUrl: string | null = null
   if (!loadError && profileResult.data?.profile_photo_path) {
@@ -56,10 +48,9 @@ export default async function MyProfilePage() {
     <header className="space-y-2">
       <h1 className="text-3xl font-bold tracking-tight text-slate-950"><T text="My profile"/></h1>
       <p className="max-w-2xl text-slate-600"><T text="Manage the personal information associated with your school account."/></p>
-      <p className="text-sm font-semibold text-blue-800">{personResult.data?.full_name || user.email} · {roles.map((role, index) => <span key={role}>{index > 0 ? ' · ' : ''}<T text={roleLabels[role] || role}/></span>)}</p>
-      <p className="text-sm text-slate-600"><T text="The role shown here comes from your school access and cannot be changed from this form."/></p>
+      <p className="text-sm text-slate-600"><T text="The role shown in the account header comes from your school access and cannot be changed from this form."/></p>
     </header>
-    {loadError ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><T text="Unable to load your private staff profile. Please refresh or contact the school administrator."/></p> : <StaffSelfProfileForm
+    {loadError ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800"><T text={profileSetupUnavailable ? 'Staff profile setup is not available yet. Please contact school administration.' : 'Unable to load your private staff profile. Please refresh or contact the school administrator.'}/></p> : <StaffSelfProfileForm
       schoolId={context.school_id}
       userId={user.id}
       initialProfile={profile}

@@ -33,3 +33,7 @@ export function staffGreetingAt(date = new Date()) {
   )
   return hour < 18 ? 'Good morning' : 'Good evening'
 }
+
+export function isStaffProfileSchemaUnavailable(code) {
+  return code === '42P01' || code === 'PGRST205'
+}

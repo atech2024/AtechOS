@@ -11,3 +11,4 @@ export declare function canAccessStaffProfile(roles: readonly string[] | null | 
 export declare function dateInHaiti(date?: Date): string
 export type StaffGreetingKey = 'Good morning' | 'Good evening'
 export declare function staffGreetingAt(date?: Date): StaffGreetingKey
+export declare function isStaffProfileSchemaUnavailable(code: string | undefined): boolean

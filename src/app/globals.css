@@ -48,10 +48,17 @@ button, input { font: inherit; }
 @media (prefers-reduced-motion:reduce) { .student-dashboard__content { animation:none; } .student-shortcut,.student-attendance-entry,.student-attendance-exit { transition:none; } }
 
 /* KIOS uses the landing page's ink, blue and paper palette; motion only acknowledges a fresh scan. */
-.kiosk-page { background:radial-gradient(ellipse at 8% 0%,rgba(5,108,211,.07),transparent 30rem),#f5f7fb; font-family:"Avenir Next",Avenir,"Segoe UI",sans-serif; }
+.kiosk-page { padding-top:4rem; background:radial-gradient(ellipse at 8% 0%,rgba(5,108,211,.07),transparent 30rem),#f5f7fb; font-family:"Avenir Next",Avenir,"Segoe UI",sans-serif; }
+.kiosk-scan-guide { box-shadow:0 4px 14px rgba(8,26,53,.035); }
+.kiosk-scan-badge { transform-box:fill-box; transform-origin:center; animation:kiosk-badge-scan 2.8s cubic-bezier(.45,0,.25,1) 1 both; }
+.kiosk-scan-beam { transform-box:fill-box; transform-origin:center; animation:kiosk-beam-sweep 2.8s cubic-bezier(.45,0,.25,1) 1 both; }
+.kiosk-scan-confirm { animation:kiosk-scan-confirm 2.8s ease-out 1 both; }
+@keyframes kiosk-badge-scan { 0%,12% { transform:translateX(0); } 58%,100% { transform:translateX(48px); } }
+@keyframes kiosk-beam-sweep { 0%,28% { opacity:0; transform:scaleY(.25); } 48% { opacity:1; transform:scaleY(1); } 70%,100% { opacity:0; transform:scaleY(.25); } }
+@keyframes kiosk-scan-confirm { 0%,62% { opacity:0; transform:scale(.65); } 78%,100% { opacity:1; transform:scale(1); } }
 .kiosk-notice { animation:kiosk-notice-in .2s cubic-bezier(.16,1,.3,1) both; }
 @keyframes kiosk-notice-in { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
-@media (prefers-reduced-motion:reduce) { .kiosk-notice { animation:none; } }
+@media (prefers-reduced-motion:reduce) { .kiosk-notice,.kiosk-scan-badge,.kiosk-scan-beam,.kiosk-scan-confirm { animation:none; } }
 
 *:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
 ::selection { background: #cfe0ff; color: #071a35; }

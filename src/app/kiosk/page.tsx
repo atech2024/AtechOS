@@ -34,22 +34,34 @@ export default function StudentKiosk() {
  const noticeTone=notice?.tone==='success'?'border-emerald-200 bg-emerald-50 text-emerald-950':notice?.tone==='warning'?'border-amber-200 bg-amber-50 text-amber-950':'border-rose-200 bg-rose-50 text-rose-950'
  return <main className="kiosk-page min-h-screen px-4 py-5 text-[#081a35] sm:px-6 sm:py-8">
   <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8">
-   <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[#dce4ee] pb-4">
+   <header className="kiosk-header flex flex-wrap items-center justify-between gap-4 border-b border-[#dce4ee] pb-4">
     <Link href="/onboarding" aria-label="AtechOS" className="inline-flex min-h-11 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#056cd3] focus-visible:ring-offset-2">
-     <Image src="/landing/atechos-logo-mark.webp" alt="" width={420} height={372} priority className="h-11 w-12 object-contain"/>
-     <Image src="/landing/atechos-logo-wordmark.webp" alt="AtechOS" width={760} height={157} priority className="h-auto w-32 sm:w-36"/>
+     <Image src="/landing/atechos-logo-mark.webp" alt="" width={420} height={372} priority className="h-11 w-12 object-contain mix-blend-multiply"/>
+     <Image src="/landing/atechos-logo-wordmark.webp" alt="AtechOS" width={760} height={157} priority className="h-auto w-32 sm:w-36 mix-blend-multiply"/>
     </Link>
-    <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 shadow-sm sm:text-sm"><span className="size-2 rounded-full bg-emerald-500" aria-hidden="true"/><T text="School attendance station"/></div>
+    <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 shadow-sm"><span className="size-2 rounded-full bg-emerald-500" aria-hidden="true"/><T text="School attendance station"/></div>
    </header>
 
-   <section className="kiosk-intro grid gap-5 border-b border-[#dce4ee] pb-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-    <div><h1 className="max-w-3xl font-serif text-4xl font-medium leading-tight tracking-[-.035em] sm:text-5xl"><T text="Attendance Kiosk"/></h1><p className="mt-3 max-w-2xl text-sm leading-6 text-[#52637a] sm:text-base"><T text="Scan your private badge QR without a PIN, or enter your AtechOS ID and PIN."/></p></div>
-    <div className="inline-flex items-start gap-2 rounded-xl border border-[#dce4ee] bg-white px-4 py-3 text-sm text-[#35445a]"><Clock3 size={18} className="mt-0.5 shrink-0 text-[#056cd3]" aria-hidden="true"/><span><strong className="block text-[#081a35]"><T text="Haiti time"/></strong><T text="Check-in 00:00–07:45 · Late 07:46–08:00 · Closed 08:01–12:59 · Check-out 13:00–23:59."/></span></div>
+   <section className="kiosk-intro grid gap-5 border-b border-[#dce4ee] pb-6 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,34rem)] xl:items-end">
+    <div className="min-w-0"><h1 className="max-w-none font-serif text-3xl font-medium leading-tight tracking-[-.035em] sm:text-4xl"><T text="Attendance Kiosk"/></h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#52637a] sm:mt-3 sm:text-base"><T text="Scan your private badge QR without a PIN, or enter your AtechOS ID and PIN."/></p></div>
+    <div className="inline-flex max-w-full items-start gap-2 rounded-xl border border-[#dce4ee] bg-white px-3 py-3 text-sm leading-5 text-[#35445a] sm:px-4"><Clock3 size={18} className="mt-0.5 shrink-0 text-[#056cd3]" aria-hidden="true"/><span><strong className="block text-[#081a35]"><T text="Haiti time"/></strong><T text="Check-in 00:00–07:45 · Late 07:46–08:00 · Closed 08:01–12:59 · Check-out 13:00–23:59."/></span></div>
    </section>
 
    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,.95fr)]">
     <section aria-labelledby="scanner-title" className="rounded-2xl border border-[#dce4ee] bg-white p-4 shadow-[0_8px_28px_rgba(8,26,53,.06)] sm:p-6">
-     <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e9f3ff] text-[#056cd3]"><ScanLine size={20} aria-hidden="true"/></span><div><h2 id="scanner-title" className="text-lg font-bold tracking-[-.02em] sm:text-xl"><T text="Scan a student badge"/></h2><p className="mt-1 text-sm leading-5 text-[#52637a]"><T text="The camera stays on until you stop it. Each result appears here and in the scan history."/></p></div></div>
+     <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e9f3ff] text-[#056cd3]"><ScanLine size={20} aria-hidden="true"/></span><div><h2 id="scanner-title" className="text-lg font-bold tracking-[-.02em] sm:text-xl"><T text="Scan a student badge"/></h2><p className="mt-1 text-sm leading-5 text-[#52637a]"><T text="The camera stays on until you stop it. Scans appear in the history."/></p></div></div>
+     <div className="kiosk-scan-guide mt-4 flex items-center gap-3 rounded-xl border border-[#dce8f5] bg-white px-3 py-2.5 sm:gap-4 sm:px-4" role="img">
+      <span className="sr-only"><T text="Illustration: a student badge moves over the scanner, is read, then attendance is confirmed."/></span>
+      <svg className="kiosk-scan-demo h-14 w-24 shrink-0 sm:h-16 sm:w-28" viewBox="0 0 112 64" fill="none" aria-hidden="true">
+       <rect x="7" y="8" width="98" height="48" rx="10" fill="#F5F8FC" stroke="#DCE4EE"/>
+       <rect x="57" y="20" width="31" height="23" rx="4" fill="#E8F2FF" stroke="#8CB8E8"/>
+       <path d="M64 27h9M64 31h16M64 35h12" stroke="#397DBD" strokeWidth="1.7" strokeLinecap="round"/>
+       <rect className="kiosk-scan-beam" x="52" y="16" width="2" height="32" rx="1" fill="#0877DB"/>
+       <g className="kiosk-scan-badge"><rect x="15" y="17" width="27" height="31" rx="4" fill="white" stroke="#0B65B8" strokeWidth="1.5"/><circle cx="28.5" cy="26" r="4" fill="#F2AE24"/><path d="M21 39c1.8-5.3 13.2-5.3 15 0" stroke="#0B65B8" strokeWidth="2" strokeLinecap="round"/><path d="M19 44h19" stroke="#DCE4EE" strokeWidth="1.5"/></g>
+       <circle className="kiosk-scan-confirm" cx="93" cy="17" r="7" fill="#DCFCEB"/><path d="m90 17 2 2 4-4" stroke="#13834B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      <span className="min-w-0"><strong className="block text-sm font-semibold text-[#17304d]"><T text="Badge scan"/></strong><span className="mt-0.5 block text-xs leading-5 text-[#52637a]"><T text="Present badge · Scan · Confirm"/></span></span>
+     </div>
      <div className="mt-5 rounded-xl bg-[#f5f7fb] p-3 sm:p-4"><QRScanner keepActive onRead={value=>{if(lock.current||value===code)return;if(value.startsWith('AOSQ1.')){void record(value,'',true);return}setCode(value);setPin('');setNotice(null);pinInput.current?.focus()}}/></div>
      <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[.1em] text-[#64748b]"><span className="h-px flex-1 bg-[#dce4ee]"/><T text="Or enter manually"/><span className="h-px flex-1 bg-[#dce4ee]"/></div>
      <form onSubmit={submit} autoComplete="off" className="grid gap-4 sm:grid-cols-2">

@@ -10,6 +10,7 @@ on:
       - fix/progression-points-integrity
       - feature/sanctions-emergency-release
       - feat/family-attendance-history
+      - feat/staff-self-service-profile
     paths:
       - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
       - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
@@ -67,6 +68,7 @@ on:
       - "supabase/migrations/20261014151237_lock_legacy_finance_receipt_signature.sql"
       - "supabase/migrations/20261017154500_finance_bank_transaction_type.sql"
       - "supabase/migrations/20261017174604_finance_receipt_refund_audit.sql"
+      - "supabase/migrations/20261018100000_staff_self_service_profiles.sql"
       - "supabase/migrations/20261009110000_direction_member_receipt_signatures.sql"
       - "supabase/migrations/20261009133000_editable_receipt_signature_name.sql"
       - "supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql"
@@ -138,6 +140,7 @@ on:
       - "supabase/migrations/20261014151237_lock_legacy_finance_receipt_signature.sql"
       - "supabase/migrations/20261017154500_finance_bank_transaction_type.sql"
       - "supabase/migrations/20261017174604_finance_receipt_refund_audit.sql"
+      - "supabase/migrations/20261018100000_staff_self_service_profiles.sql"
       - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
       - "supabase/migrations/20261005050000_finance_overpayments_all_fees.sql"
       - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
@@ -256,6 +259,7 @@ jobs:
           cp supabase/migrations/20261014151237_lock_legacy_finance_receipt_signature.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261017154500_finance_bank_transaction_type.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261017174604_finance_receipt_refund_audit.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261018100000_staff_self_service_profiles.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |
@@ -275,6 +279,7 @@ jobs:
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < finance-verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < student-followup-verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < student-followup-badge-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < staff-profile-verification.sql
       - name: Stop local Supabase
         if: always()
         working-directory: supabase/ci

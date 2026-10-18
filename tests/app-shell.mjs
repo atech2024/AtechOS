@@ -26,9 +26,10 @@ assert.ok(settingsPage.includes("['school_admin', 'director']"),'Only school adm
 assert.ok(settingsPage.includes("['school_admin', 'director', 'censeur', 'secretary', 'accountant']"),'Authorized staff can configure their own receipt signatures.')
 assert.match(settingsPage,/href:\s*['"]\/dashboard\/grading-settings['"]/,'Settings center must link to the existing grading rules page.')
 let academicYearContext={years:[],year:null,yearId:'',canSelect:false,setYearId:()=>{}}
-const {default:AppShell}=compile('src/components/app-shell.tsx',{'next/link':{default:({children,...props})=>React.createElement('a',props,children)},'next/image':{default:({priority,...props})=>React.createElement('img',props)},'next/navigation':{usePathname:()=>'/dashboard/grades'},'@/lib/navigation':nav,'@/lib/school-date':{schoolDateTime:()=>''},'@/lib/translations':{translate:text=>text},'@/components/translation-provider':{T:({text})=>text,useLocale:()=> 'fr'},'@/components/language-selector':{default:()=>null},'@/components/academic-year-context':{useAcademicYear:()=>academicYearContext},'@/lib/supabase/client':{createClient:()=>{throw Error('render must not query')}}})
+let activeShellPath='/dashboard/grades'
+const {default:AppShell}=compile('src/components/app-shell.tsx',{'next/link':{default:({children,...props})=>React.createElement('a',props,children)},'next/image':{default:({priority,...props})=>React.createElement('img',props)},'next/navigation':{usePathname:()=>activeShellPath},'@/lib/navigation':nav,'@/lib/staff-profile':{canAccessStaffProfile:roles=>roles.some(role=>['school_admin','director','secretary','censeur','teacher','accountant','surveillant'].includes(role))},'@/lib/school-date':{schoolDateTime:()=>''},'@/lib/translations':{translate:text=>text},'@/components/translation-provider':{T:({text})=>text,useLocale:()=> 'fr'},'@/components/language-selector':{default:()=>null},'@/components/academic-year-context':{useAcademicYear:()=>academicYearContext},'@/lib/supabase/client':{createClient:()=>{throw Error('render must not query')}}})
 const html=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual Fixture Teacher',school:'Fixture School',avatar:null,roles:['teacher'],owner:false,academicYear:'2025–2026'},'Fixture content'))
-assert.ok(html.includes('Actual Fixture Teacher'));assert.ok(html.includes('Fixture School'));assert.ok(html.includes('aria-current="page"'));assert.ok(html.includes('Fixture content'));assert.ok(html.includes('Logout'));assert.ok(!html.includes('Jean Admin'));assert.ok(!html.includes('href="/dashboard/staff"'))
+assert.ok(html.includes('Actual Fixture Teacher'));assert.ok(html.includes('Teacher'));assert.ok(html.includes('href="/dashboard/my-profile"'));assert.ok(html.includes('Fixture School'));assert.ok(html.includes('aria-current="page"'));assert.ok(html.includes('Fixture content'));assert.ok(html.includes('Logout'));assert.ok(!html.includes('Jean Admin'));assert.ok(!html.includes('href="/dashboard/staff"'))
 assert.ok(html.includes('Students &amp; families'));assert.ok(html.includes('Teaching'));assert.ok(html.includes('aria-label="Breadcrumb"'));assert.ok(html.includes('Academic year'))
 console.log('PASS app shell: real page targets, teacher/parent/director menus, active route, actual identity, logout and content.')
 academicYearContext={years:[{id:'year-1',name:'2025–2026',is_current:true}],year:{id:'year-1',name:'2025–2026',is_current:true},yearId:'year-1',canSelect:true,setYearId:()=>{}}
@@ -36,6 +37,13 @@ const yearHtml=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual F
 assert.ok(yearHtml.includes('aria-label="Academic year"'),'Authorized users must get the global academic-year selector.')
 assert.ok(yearHtml.includes('href="/dashboard/grades?year=year-1"'),'Dashboard links must preserve the selected academic year.')
 console.log('PASS global year selector appears for authorized users and navigation preserves the selected year.')
+activeShellPath='/dashboard'
+const homeHtml=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual Fixture Teacher',school:'Fixture School',avatar:null,roles:['teacher'],owner:false,academicYear:'2025–2026',greeting:'Good morning'},'Fixture dashboard'))
+assert.ok(homeHtml.includes('Good morning, Actual Fixture Teacher'),'Staff dashboard should greet the signed-in person.')
+assert.ok(homeHtml.includes('Welcome to your school dashboard'),'Staff dashboard should display a welcome message.')
+assert.ok(homeHtml.includes('href="/dashboard/my-profile"'),'Staff can open the self-service profile from the dashboard.')
+console.log('PASS staff profile identity, greeting and profile shortcut render for the signed-in teacher.')
+activeShellPath='/dashboard/grades'
 const dashboardLayout=readFileSync('src/app/dashboard/layout.tsx','utf8')
 const selectorRoleList=dashboardLayout.match(/roles\.some\(role=>\[(.*?)\]\.includes\(role\)\)/)?.[1]||''
 for(const role of ['school_admin','director','secretary','teacher','surveillant','censeur','parent'])assert.ok(selectorRoleList.includes(`'${role}'`),'Academic-year selection must be available to '+role)

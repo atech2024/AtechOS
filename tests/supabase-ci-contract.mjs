@@ -28,8 +28,17 @@ const examSubmissionBaseline = readFileSync('supabase/ci-exam-submissions/supaba
 const gradeDeadlineMigration = readFileSync('supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql', 'utf8');
 const gradeDeadlineBaseline = readFileSync('supabase/ci-grade-deadline/supabase/migrations/20260901000000_grade_deadline_baseline.sql', 'utf8');
 const gradeDeadlineVerification = readFileSync('supabase/ci-grade-deadline/grade-deadline-verification.sql', 'utf8');
+const staffProfileMigration = readFileSync('supabase/migrations/20261018100000_staff_self_service_profiles.sql', 'utf8');
+const staffProfileVerification = readFileSync('supabase/ci/staff-profile-verification.sql', 'utf8');
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
+assert.match(workflow, /20261018100000_staff_self_service_profiles\.sql/);
+assert.match(workflow, /staff-profile-verification\.sql/);
+assert.match(staffProfileMigration, /alter table public\.staff_private_profiles enable row level security/i);
+assert.match(staffProfileMigration, /staff_private_profiles_update_self/);
+assert.match(staffProfileMigration, /staff_profile_photos_read_self/);
+assert.match(staffProfileVerification, /cross-school staff profile leaked/);
+assert.match(staffProfileVerification, /future staff birth date was accepted/);
 assert.match(workflow, /version:\s*2\.119\.0/);
 const pushBranches = workflow.match(/push:\r?\n\s+branches:\r?\n((?:\s+- [^\r\n]+\r?\n)+)/)?.[1] || '';
 assert.match(pushBranches, /- feature\/kindergarten-relocation/);

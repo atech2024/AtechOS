@@ -25,6 +25,7 @@ import {
   ChevronDown,
   Home,
   CircleDollarSign,
+  UserRound,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { permittedNavigation, type NavigationGroup, type NavigationItem } from '@/lib/navigation'
@@ -33,6 +34,7 @@ import { translate } from '@/lib/translations'
 import { T, useLocale } from '@/components/translation-provider'
 import LanguageSelector from '@/components/language-selector'
 import {useAcademicYear} from '@/components/academic-year-context'
+import { canAccessStaffProfile, type StaffGreetingKey } from '@/lib/staff-profile'
 
 type Notice = { id: string; title: string; description: string; created_at: string; read_at: string | null; priority: string; href: string; type: string }
 type SearchResult = { kind: string; label: string; href: string }
@@ -54,8 +56,8 @@ const groupLabels: Record<NavigationGroup, string> = {
 }
 const groupOrder: NavigationGroup[] = ['people', 'preschool', 'school_life', 'teaching', 'results', 'finance', 'followup', 'administration', 'family_portals']
 
-export default function AppShell({ children, school, name, avatar, roles, owner, academicYear }: {
-  children: ReactNode; school: string; name: string; avatar: string | null; roles: string[]; owner: boolean; academicYear: string | null
+export default function AppShell({ children, school, name, avatar, roles, owner, academicYear, greeting }: {
+  children: ReactNode; school: string; name: string; avatar: string | null; roles: string[]; owner: boolean; academicYear: string | null; greeting: StaffGreetingKey
 }) {
   const locale = useLocale()
   const {years,year,yearId,canSelect:canSelectYear,setYearId}=useAcademicYear()
@@ -139,6 +141,12 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
     setUnread(value => value === null ? null : Math.max(0, value - 1))
   }
 
+  const showStaffProfile = canAccessStaffProfile(roles)
+  const accountIdentity = <div className="flex min-w-0 max-w-[42vw] items-center gap-2 border-l border-slate-200 pl-2 sm:max-w-64 sm:gap-3 sm:pl-3">
+    {avatar ? <img src={avatar} alt="" width={40} height={40} className="h-9 w-9 shrink-0 rounded-full object-cover sm:h-10 sm:w-10"/> : <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 sm:h-10 sm:w-10">{name.trim().slice(0, 1).toUpperCase() || 'A'}</span>}
+    <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{name}</p><p className="truncate text-xs text-slate-500">{roles.map((role, index) => <span key={role}>{index > 0 ? ' · ' : ''}<T text={roleLabels[role] || role}/></span>)}</p></div>
+  </div>
+
   async function logout() {
     setBusy(true); setLogoutError(false)
     try {
@@ -215,10 +223,21 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
           <button onClick={() => setOpen(!open)} aria-label={t('Notifications')} aria-expanded={open} className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><Bell size={20} aria-hidden="true"/>{unread !== null && unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-blue-600 px-1.5 text-xs font-bold text-white">{unread}</span>}</button>
           {open && <section className="absolute right-0 top-full mt-3 w-80 max-w-[85vw] rounded-2xl border bg-white p-4 shadow-xl"><h2 className="mb-3 font-semibold"><T text="Notifications"/></h2>{noticeError && <p role="alert"><T text="Unable to load notifications."/></p>}<div className="max-h-96 overflow-auto">{notices.map(notice => {const actionable=notice.href.startsWith('/dashboard/')&&!notice.href.includes('\\');const content=<><p className="flex items-center gap-2 text-sm font-semibold"><Bell size={15} aria-hidden="true"/>{notice.title}</p><p className="my-1 text-sm text-slate-600">{notice.description}</p><p className="text-xs text-slate-500">{schoolDateTime(notice.created_at, locale)} · {notice.priority}</p></>;return <article key={notice.id} className={`mb-2 rounded-xl border p-3 transition-colors ${notice.read_at ? 'bg-white' : 'border-blue-200 bg-blue-50'}`}>{actionable?<Link href={withYear(notificationHref(notice))} onClick={()=>{void read(notice);setOpen(false)}} className="block rounded-lg outline-offset-2 hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700">{content}<span className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-blue-700"><T text="Open"/> <ArrowUpRight size={15} aria-hidden="true"/></span></Link>:content}{!notice.read_at&&<button className="mt-2 text-sm text-blue-700 underline" onClick={()=>void read(notice)}><T text="Mark as read"/></button>}</article>})}{!noticeError && !notices.length && <p className="text-sm text-slate-500"><T text="No notifications yet."/></p>}</div></section>}
         </div>
-        <div className="flex min-w-0 items-center gap-2 border-l border-slate-200 pl-2 sm:gap-3 sm:pl-3">{avatar ? <img src={avatar} alt="" className="h-9 w-9 rounded-full object-cover sm:h-10 sm:w-10"/> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 sm:h-10 sm:w-10">{name.trim().slice(0, 1).toUpperCase() || 'A'}</span>}<div className="w-24 min-w-0 shrink-0"><p className="truncate text-sm font-semibold">{name}</p><p className="hidden truncate text-xs text-slate-500 2xl:block">{roles.map((role, index) => <span key={role}>{index > 0 ? ' · ' : ''}<T text={roleLabels[role] || role}/></span>)}</p></div></div>
+        {showStaffProfile ? <Link href="/dashboard/my-profile" aria-label={t('View and update my profile')} className="rounded-xl outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700">{accountIdentity}</Link> : accountIdentity}
         <div className="ml-auto shrink-0 text-xs"><LanguageSelector locale={locale} compact/></div>
       </header>
-      {path !== '/dashboard' && <nav aria-label={t('Breadcrumb')} className="flex min-w-0 items-center gap-2 px-5 pt-4 text-sm text-slate-500 md:px-8"><Link href={withYear('/dashboard')} className="inline-flex shrink-0 items-center gap-1.5 hover:text-blue-700"><Home size={15} aria-hidden="true"/><T text="Dashboard"/></Link><ChevronRight size={14} aria-hidden="true"/><span aria-current="page" className="truncate font-medium text-slate-800"><T text={activeItem?.label || 'School modules'}/></span></nav>}
+      {path === '/dashboard' && showStaffProfile && <section aria-label={t('Welcome')} className="mx-4 mt-4 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between md:mx-8">
+        <div className="flex min-w-0 items-center gap-4">
+          {avatar ? <img src={avatar} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-full object-cover"/> : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700">{name.trim().slice(0, 1).toUpperCase() || 'A'}</span>}
+          <div className="min-w-0">
+            <p className="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl"><T text={greeting}/>, {name}</p>
+            <p className="mt-1 text-sm text-slate-600"><T text="Welcome to your school dashboard"/></p>
+            <p className="mt-1 truncate text-sm font-medium text-blue-800">{roles.map((role, index) => <span key={role}>{index > 0 ? ' · ' : ''}<T text={roleLabels[role] || role}/></span>)}</p>
+          </div>
+        </div>
+        <Link href="/dashboard/my-profile" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><UserRound size={17} aria-hidden="true"/><T text="Update my profile"/></Link>
+      </section>}
+      {path !== '/dashboard' && <nav aria-label={t('Breadcrumb')} className="flex min-w-0 items-center gap-2 px-5 pt-4 text-sm text-slate-500 md:px-8"><Link href={withYear('/dashboard')} className="inline-flex shrink-0 items-center gap-1.5 hover:text-blue-700"><Home size={15} aria-hidden="true"/><T text="Dashboard"/></Link><ChevronRight size={14} aria-hidden="true"/><span aria-current="page" className="truncate font-medium text-slate-800"><T text={path === '/dashboard/my-profile' ? 'My profile' : activeItem?.label || 'School modules'}/></span></nav>}
       <div id="main-content" tabIndex={-1} className="min-w-0 focus:outline-none">{children}</div>
     </div>
   </div>

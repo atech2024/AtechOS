@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import AppShell from '@/components/app-shell'
 import {AcademicYearProvider,type AcademicYearOption} from '@/components/academic-year-context'
+import { canAccessStaffProfile, staffGreetingAt } from '@/lib/staff-profile'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,8 +18,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const yearResult=context.data?.school_id?await supabase.from('academic_years').select('id,name,start_date,end_date,is_current').eq('school_id',context.data.school_id).order('is_current',{ascending:false}).order('start_date',{ascending:false}):{data:[],error:null}
   const years=(yearResult.data||[]) as AcademicYearOption[],roles:string[]=context.data?.roles||[]
   const currentYear=years.find(item=>item.is_current)||null
+  let avatarUrl=profile.data?.avatar_url||null
+  if(canAccessStaffProfile(roles)){
+    const {data:staffProfile}=await supabase.from('staff_private_profiles').select('profile_photo_path').eq('school_id',context.data.school_id).eq('user_id',user.id).maybeSingle()
+    if(staffProfile?.profile_photo_path){
+      const {data:signedPhoto}=await supabase.storage.from('staff-profile-photos').createSignedUrl(staffProfile.profile_photo_path,3600)
+      avatarUrl=signedPhoto?.signedUrl||avatarUrl
+    }
+  }
+  const greeting=staffGreetingAt()
   const canSelectYear=Boolean(context.data?.owner||roles.some(role=>['school_admin','director','secretary','teacher','surveillant','censeur','parent'].includes(role)))
   return <AcademicYearProvider years={years} currentYearId={currentYear?.id||null} canSelect={canSelectYear}>
-    <AppShell school={context.data?.school_name||'AtechOS'} name={profile.data?.full_name||user.email||'AtechOS'} avatar={profile.data?.avatar_url||null} roles={roles} owner={Boolean(context.data?.owner)} academicYear={currentYear?.name||null}>{children}</AppShell>
+    <AppShell school={context.data?.school_name||'AtechOS'} name={profile.data?.full_name||user.email||'AtechOS'} avatar={avatarUrl} roles={roles} greeting={greeting} owner={Boolean(context.data?.owner)} academicYear={currentYear?.name||null}>{children}</AppShell>
   </AcademicYearProvider>
 }

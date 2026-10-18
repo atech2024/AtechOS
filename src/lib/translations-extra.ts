@@ -1,4 +1,12 @@
 export const extraTranslations:Record<string,[string,string]> = {
+  "Owner": ["Propriétaire", "Pwopriyetè"],
+  "Protected": ["Protégé", "Pwoteje"],
+  "expired": ["expirée", "ekspire"],
+  "Name / email": ["Nom / e-mail", "Non / imèl"],
+  "Invitations": ["Invitations", "Envitasyon"],
+  "No invitations yet.": ["Aucune invitation pour le moment.", "Poko gen envitasyon."],
+  "School administrator": ["Administrateur de l’école", "Administratè lekòl"],
+  "Supervisor": ["Surveillant", "Sipèvizè"],
   "Not assigned": ["Aucune classe attribuée", "Pa gen klas ki afekte"],
   "Publish work, exams and learning documents for your assigned classes and subjects.": ["Publiez des devoirs, examens et ressources pédagogiques pour les classes et matières qui vous sont attribuées.", "Pibliye devwa, egzamen ak dokiman aprantisaj pou klas ak matyè yo ba ou yo."],
   "Homework / Exam / Project": ["Devoir / Examen / Projet", "Devwa / Egzamen / Pwojè"],

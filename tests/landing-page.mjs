@@ -77,6 +77,10 @@ assert.equal(motionClasses.has('landing-motion-ready'), true)
 const motionCss = readFileSync('src/app/globals.css', 'utf8')
 assert.ok(motionCss.includes('.landing-language-floating { position: absolute; top: 18px; right: 18px; }'), 'mobile language control must align with the compact header')
 assert.ok(motionCss.includes('.landing-header__actions { display: none; }'), 'mobile header must avoid repeating hero actions')
+const tabletHeaderCss = motionCss.slice(motionCss.indexOf('@media (max-width: 960px)'), motionCss.indexOf('@media (max-width: 860px)'))
+assert.ok(tabletHeaderCss.includes('.landing-header { padding-top: 18px; }'), 'tablet header must keep the brand row compact')
+assert.ok(tabletHeaderCss.includes('.landing-language-floating { position: absolute; top: 18px; right: 18px; }'), 'tablet language control must align with the compact header')
+assert.ok(tabletHeaderCss.includes('.landing-header__actions { display: none; }'), 'tablet header must not repeat hero actions')
 for (const path of ['/', '/solutions', '/fonctionnalites']) {
   activePath = path
   const markup = renderToStaticMarkup(React.createElement(globalLanguageModule.default, { locale: 'fr' }))

@@ -132,7 +132,7 @@ export default function AccountingDashboard(props:Props){
     <section className="grid gap-4 xl:grid-cols-[1.25fr_1fr]">
       <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between gap-3"><h3 className="font-bold"><T text="Quick actions"/></h3></div>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">{[
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{[
           {label:'Add a payment',icon:Plus,onClick:undefined,tab:'payments' as const,color:'border-blue-200 bg-blue-50 text-blue-800'},
           {label:'Create a fee plan',icon:FileText,onClick:undefined,tab:'plans' as const,color:'border-emerald-200 bg-emerald-50 text-emerald-800'},
           {label:'Scholarships and discounts',icon:GraduationCap,onClick:undefined,tab:'adjustments' as const,color:'border-violet-200 bg-violet-50 text-violet-800'},

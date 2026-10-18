@@ -111,6 +111,8 @@ assert.ok(authLanguage.includes('data-global-language="true"'), 'authentication 
 assert.ok(!authLanguage.includes('landing-language-floating'), 'authentication pages must keep the standard selector position')
 assert.ok(motionCss.includes('.auth-brand { display:flex; width:fit-content; align-items:center; justify-content:center; gap:10px; margin:0 auto 20px; }'), 'desktop authentication brand must be centered above the form panel')
 assert.ok(motionCss.includes('mix-blend-mode:multiply'), 'authentication logo assets must blend away their white backplates')
+assert.ok(motionCss.includes('.auth-frame { position:relative; width:min(1120px,100%); margin:auto; }'), 'authentication content must not isolate the logo from the page backdrop')
+assert.ok(motionCss.includes('.auth-page__glow { position:absolute; z-index:0;'), 'decorative glows must stay behind the authentication content')
 assert.ok(motionCss.includes('.auth-card__mobile-brand { display:flex; }'), 'mobile authentication pages must show the centered logo inside the form card')
 assert.ok(motionCss.includes('prefers-reduced-motion: reduce'), 'motion must respect reduced-motion settings')
 assert.ok(motionCss.includes('[data-landing-reveal]:focus-within'), 'keyboard focus must reveal animated content')

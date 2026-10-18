@@ -374,7 +374,7 @@ html.landing-motion-ready [data-landing-reveal]:focus-within {
 
 /* Shared sign-in and sign-up presentation */
 .auth-page { --auth-ink:#081a35; --auth-blue:#056cd3; --auth-blue-dark:#0757a8; --auth-muted:#64748b; position:relative; display:grid; min-height:100svh; overflow:hidden; padding:76px 32px 22px; color:var(--auth-ink); background:radial-gradient(ellipse at 82% 12%,rgba(5,108,211,.09),transparent 38%),#f4f7fb; font-family:"Avenir Next",Avenir,"Segoe UI",sans-serif; }
-.auth-frame { position:relative; z-index:1; width:min(1120px,100%); margin:auto; }
+.auth-frame { position:relative; width:min(1120px,100%); margin:auto; }
 .auth-brand { display:flex; width:fit-content; align-items:center; justify-content:center; gap:10px; margin:0 auto 20px; }
 .auth-brand img:first-child { width:42px; height:42px; object-fit:contain; mix-blend-mode:multiply; }
 .auth-brand img:last-child { width:128px; height:auto; mix-blend-mode:multiply; }
@@ -420,7 +420,7 @@ html.landing-motion-ready [data-landing-reveal]:focus-within {
 .auth-switch a:hover,.auth-footer__link:hover { text-decoration:underline; text-underline-offset:3px; }
 .auth-footer { display:flex; justify-content:space-between; gap:16px; padding:16px 6px 0; color:#78879a; font-size:11px; }
 .auth-footer__link { color:#47617f; }
-.auth-page__glow { position:absolute; width:280px; height:280px; border-radius:50%; pointer-events:none; }
+.auth-page__glow { position:absolute; z-index:0; width:280px; height:280px; border-radius:50%; pointer-events:none; }
 .auth-page__glow--one { top:8%; left:-200px; background:rgba(247,169,21,.08); }
 .auth-page__glow--two { right:-210px; bottom:3%; background:rgba(222,74,51,.06); }
 .auth-page :focus-visible { outline:3px solid #f7a915; outline-offset:3px; }

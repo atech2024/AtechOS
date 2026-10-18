@@ -77,6 +77,20 @@ assert.deepEqual(observedTargets, [deferredTarget])
 assert.equal(deferredTarget.properties.get('--landing-motion-delay'), '55ms')
 assert.equal(motionClasses.has('landing-motion-ready'), true)
 const motionCss = readFileSync('src/app/globals.css', 'utf8')
+function luminance(hex) {
+  const rgb = hex.slice(1).match(/../g).map(value => parseInt(value, 16) / 255)
+  const linear = rgb.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+  return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+}
+function contrast(foreground, background) {
+  const values = [luminance(foreground), luminance(background)]
+  return (Math.max(...values) + 0.05) / (Math.min(...values) + 0.05)
+}
+assert.ok(motionCss.includes('--landing-blue: #056cd3') && motionCss.includes('--landing-yellow: #f7a915') && motionCss.includes('--landing-red: #de4a33'), 'landing palette must use the official logo colors')
+assert.ok(contrast('#ffffff', '#056cd3') >= 4.5, 'primary button text must meet WCAG AA contrast')
+assert.ok(contrast('#865100', '#fff5df') >= 4.5, 'yellow role accents must keep readable icon contrast')
+assert.ok(contrast('#ad3526', '#fff0eb') >= 4.5, 'red role accents must keep readable icon contrast')
+assert.ok(motionCss.includes('landing-module-list li:nth-child(3n + 2)') && motionCss.includes('landing-role-row:nth-child(3n)'), 'logo accents must be applied consistently to role and feature icons')
 assert.ok(motionCss.includes('.landing-language-floating { position: absolute; top: 18px; right: 18px; }'), 'mobile language control must align with the compact header')
 assert.ok(motionCss.includes('.landing-header__actions { display: none; }'), 'mobile header must avoid repeating hero actions')
 const tabletHeaderCss = motionCss.slice(motionCss.indexOf('@media (max-width: 960px)'), motionCss.indexOf('@media (max-width: 860px)'))

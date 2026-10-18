@@ -41,8 +41,15 @@ button, input { font: inherit; }
 
 .landing { position: relative;
   --landing-ink: #081a35;
-  --landing-blue: #1c67f2;
-  --landing-blue-dark: #1556d4;
+  --landing-blue: #056cd3;
+  --landing-blue-dark: #0757a8;
+  --landing-blue-soft: #e9f3ff;
+  --landing-yellow: #f7a915;
+  --landing-yellow-soft: #fff5df;
+  --landing-gold-ink: #865100;
+  --landing-red: #de4a33;
+  --landing-red-soft: #fff0eb;
+  --landing-red-ink: #ad3526;
   --landing-paper: #f5f7fb;
   --landing-muted: #52637a;
   --landing-line: #dce4ee;
@@ -146,7 +153,7 @@ button, input { font: inherit; }
 .landing-access__icon { display: grid; place-items: center; width: 54px; height: 54px; border: 1px solid rgba(190, 212, 249, .25); border-radius: 15px; color: #a8c8ff; background: rgba(255,255,255,.05); }
 .landing-access h2 { max-width: 700px; font-family: "Iowan Old Style", "Baskerville", Georgia, serif; font-size: clamp(32px, 4vw, 48px); font-weight: 500; line-height: 1.08; letter-spacing: -.03em; }
 .landing-access p { max-width: 68ch; margin: 14px 0 0; color: #c2cfe1; font-size: 15px; line-height: 1.75; }
-.landing-closing { color: #fff; background: #1766ed; }
+.landing-closing { color: #fff; background: var(--landing-blue); }
 .landing-closing__inner { display: flex; align-items: center; justify-content: space-between; gap: 36px; min-height: 230px; padding-top: 48px; padding-bottom: 48px; }
 .landing-closing h2 { max-width: 650px; font-family: "Iowan Old Style", "Baskerville", Georgia, serif; font-size: clamp(32px, 4.2vw, 50px); font-weight: 500; line-height: 1.05; letter-spacing: -.03em; }
 .landing-closing p { margin: 12px 0 0; color: #e0ebff; font-size: 14px; line-height: 1.6; }
@@ -338,4 +345,28 @@ html.landing-motion-ready [data-landing-reveal]:focus-within {
 .landing-role-row__figure figcaption { margin: 7px 0 0; color: #62738b; font-size: 10px; line-height: 1.4; }
 @media (max-width: 700px) {
   .landing-role-row__figure { grid-column: 1 / -1; grid-row: 3; }
+}
+/* Official logo colors guide the landing palette: blue carries actions, warm hues identify quiet accents. */
+.landing :focus-visible { outline-color: var(--landing-blue); }
+.landing ::selection { background: #d8eafd; color: var(--landing-ink); }
+.landing-hero__emphasis-line { color: #9ccaff; }
+.landing-ribbon__inner i:nth-of-type(2) { background: var(--landing-yellow); }
+.landing-ribbon__inner i:nth-of-type(3) { background: var(--landing-red); }
+.landing-role-row:nth-child(3n + 2) .landing-role-row__icon,
+.landing-module-list li:nth-child(3n + 2) .landing-module-list__icon {
+  border-color: #f0d69e;
+  color: var(--landing-gold-ink);
+  background: var(--landing-yellow-soft);
+}
+.landing-role-row:nth-child(3n) .landing-role-row__icon,
+.landing-module-list li:nth-child(3n) .landing-module-list__icon {
+  border-color: #efc1b7;
+  color: var(--landing-red-ink);
+  background: var(--landing-red-soft);
+}
+.landing-role-row:nth-child(3n + 1) .landing-role-row__icon,
+.landing-module-list li:nth-child(3n + 1) .landing-module-list__icon {
+  border-color: #c8def5;
+  color: var(--landing-blue);
+  background: var(--landing-blue-soft);
 }

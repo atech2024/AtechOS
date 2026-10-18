@@ -1019,7 +1019,7 @@ export const extraTranslations:Record<string,[string,string]> = {
   'Need an account?': ["Vous n’avez pas encore de compte ?", "Ou poko gen kont ?"],
   'Your full name': ["Votre nom complet", "Non konplè ou"],
   'At least 8 characters': ["8 caractères minimum", "Omwen 8 karaktè"],
-  'Signing in…': ["Connexion en cours…", "Koneksyon an ap fèt…"],
+
   'Creating account…': ["Création du compte…", "Kont lan ap kreye…"],
   'We couldn’t sign you in. Check your email and password, then try again.': ["La connexion a échoué. Vérifiez votre adresse e-mail et votre mot de passe, puis réessayez.", "Nou pa t ka konekte w. Verifye imèl ak modpas ou, epi eseye ankò."],
   'We couldn’t create your account. Check your information and try again.': ["La création du compte a échoué. Vérifiez les informations saisies, puis réessayez.", "Nou pa t ka kreye kont ou. Verifye enfòmasyon yo epi eseye ankò."],

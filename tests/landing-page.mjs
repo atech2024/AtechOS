@@ -54,6 +54,8 @@ for (const name of ['atechos-hero.webp', 'atechos-direction.webp', 'atechos-ense
   assert.equal(asset.subarray(0, 4).toString(), 'RIFF', name + ' must be a valid WebP container')
   assert.equal(asset.subarray(8, 12).toString(), 'WEBP', name + ' must use the optimized WebP format')
 }
+const appIcon = readFileSync('src/app/icon.png')
+assert.equal(appIcon.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'the browser tab icon must be a valid PNG')
 const heroMotion = readFileSync('public/landing/atechos-hero-motion.mp4')
 assert.equal(heroMotion.subarray(4, 8).toString(), 'ftyp', 'hero motion must be a valid MP4 container')
 const motionRoot = { classList: { add: value => motionClasses.add(value) } }

@@ -1,4 +1,8 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Report cards appear after the school administration publishes them. If no report card is shown, ask the administration to publish the period.':['Les bulletins apparaissent après leur publication par la direction. Si aucun bulletin ne s’affiche, demandez à la direction de publier la période.','Biltin yo parèt apre Direksyon fin pibliye yo. Si ou pa wè okenn bilten, mande Direksyon an pibliye peryòd la.'],
+ 'Devoir remis':['Devoir remis','Devwa remèt'],
+ 'Non remis':['Non remis','Poko remèt'],
+ 'En attente':['En attente','An atant'],
  'A refund appears here only after the school records it, with its date and the staff member who processed it.':['Un remboursement s’affiche ici seulement après son enregistrement par l’école, avec sa date et le nom du membre du personnel qui l’a traité.','Ranbousman an ap parèt la sèlman lè lekòl la fin anrejistre li, ansanm ak dat la ak non manm pèsonèl ki te trete l la.'],
  'Extra payment applied to other installments':['Excédent affecté aux autres versements','Rès anplis la ale sou lòt vèsman yo'],
  'Available credit for future fees':['Crédit disponible pour les prochains frais','Kredi ki disponib pou pwochen frè yo'],

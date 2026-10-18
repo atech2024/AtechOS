@@ -77,6 +77,7 @@ on:
       - "supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql"
       - "supabase/migrations/20261012050004_enforce_subject_max_score_on_grade_updates.sql"
       - "supabase/migrations/20261008210000_section_grading_period_dates.sql"
+      - "supabase/migrations/20261009150000_student_dashboard_scope.sql"
       - "supabase/ci-exam-submissions/**"
       - "supabase/ci/student-followup-badge-verification.sql"
       - "supabase/ci-parent/**"
@@ -157,6 +158,7 @@ on:
       - "supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql"
       - "supabase/migrations/20261012050004_enforce_subject_max_score_on_grade_updates.sql"
       - "supabase/migrations/20261008210000_section_grading_period_dates.sql"
+      - "supabase/migrations/20261009150000_student_dashboard_scope.sql"
       - "supabase/ci-exam-submissions/**"
       - "supabase/ci/student-followup-badge-verification.sql"
       - "supabase/ci-parent/**"
@@ -249,6 +251,7 @@ jobs:
           cp supabase/migrations/20261006190617_separate_kiosk_and_student_suspensions.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261008134043_family_validated_payment_timeline.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261008210000_section_grading_period_dates.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261009150000_student_dashboard_scope.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009100000_finance_payment_receipts_signatures.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009110000_direction_member_receipt_signatures.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009133000_editable_receipt_signature_name.sql supabase/ci/supabase/migrations/

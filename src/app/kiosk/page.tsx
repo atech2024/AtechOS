@@ -19,8 +19,10 @@ const scanErrors:Record<string,string> = {
  }
 export default function StudentKiosk() {
  const [code,setCode]=useState(''),[pin,setPin]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState<Notice|null>(null),[log,setLog]=useState<ScanLog[]>([])
- const lock=useRef(false),nextId=useRef(0),codeInput=useRef<HTMLInputElement>(null),pinInput=useRef<HTMLInputElement>(null)
+ const [scanGuideActive,setScanGuideActive]=useState(false)
+ const lock=useRef(false),nextId=useRef(0),codeInput=useRef<HTMLInputElement>(null),pinInput=useRef<HTMLInputElement>(null),scanGuideRef=useRef<HTMLDivElement>(null)
  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(null),10000);return()=>clearTimeout(timer)},[notice])
+ useEffect(()=>{const guide=scanGuideRef.current;if(!guide)return;let isIntersecting=false;const syncMotion=()=>setScanGuideActive(document.visibilityState==='visible'&&isIntersecting);const observer=typeof IntersectionObserver==='undefined'?null:new IntersectionObserver(([entry])=>{isIntersecting=entry.isIntersecting;syncMotion()},{threshold:.1});if(observer)observer.observe(guide);else isIntersecting=true;document.addEventListener('visibilitychange',syncMotion);syncMotion();return()=>{observer?.disconnect();document.removeEventListener('visibilitychange',syncMotion)}},[])
  async function submit(event:FormEvent){event.preventDefault();await record(code.trim(),pin)}
  function announceError(message:string,details?:{first_name?:string;last_name?:string;class_name?:string},tone:'warning'|'error'='warning') {setNotice({tone,message,firstName:details?.first_name,lastName:details?.last_name,className:details?.class_name,at:new Date().toISOString()})}
  async function record(scanned:string,secret='',fromCamera=false){if(lock.current)return;lock.current=true;setBusy(true);setNotice(null)
@@ -50,7 +52,7 @@ export default function StudentKiosk() {
    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,.95fr)]">
     <section aria-labelledby="scanner-title" className="rounded-2xl border border-[#dce4ee] bg-white p-4 shadow-[0_8px_28px_rgba(8,26,53,.06)] sm:p-6">
      <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e9f3ff] text-[#056cd3]"><ScanLine size={20} aria-hidden="true"/></span><div><h2 id="scanner-title" className="text-lg font-bold tracking-[-.02em] sm:text-xl"><T text="Scan a student badge"/></h2><p className="mt-1 text-sm leading-5 text-[#52637a]"><T text="The camera stays on until you stop it. Scans appear in the history."/></p></div></div>
-     <div className="kiosk-scan-guide relative isolate mt-4 overflow-hidden rounded-xl border border-[#dce8f5] bg-[#f7faff]" role="img">
+     <div ref={scanGuideRef} data-motion-active={scanGuideActive} className="kiosk-scan-guide relative isolate mt-4 overflow-hidden rounded-xl border border-[#dce8f5] bg-[#f7faff]" role="img">
       <span className="sr-only"><T text="Illustration: a student badge moves over the scanner, is read, then attendance is confirmed."/></span>
       <svg className="kiosk-scan-demo absolute inset-0 h-full w-full" viewBox="0 0 560 180" fill="none" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
        <defs>

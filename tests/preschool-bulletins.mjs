@@ -9,7 +9,7 @@ import {renderToStaticMarkup} from 'react-dom/server'
 const migration=readFileSync('supabase/migrations/20261001144429_preschool_competency_bulletins.sql','utf8')
 const activeRoleMigration=readFileSync('supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql','utf8')
 const secretaryPublishMigration=readFileSync('supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql','utf8')
-const familyBulletinAclMigration=readFileSync('supabase/migrations/20261016230151_lock_family_preschool_bulletin_rpc.sql','utf8')
+const familyBulletinAclMigration=readFileSync('supabase/migrations/20261019104833_lock_family_preschool_bulletin_rpc.sql','utf8')
 const workspace=readFileSync('src/components/preschool-workspace.tsx','utf8')
 for(const text of [
  'create table public.preschool_competencies','create table public.preschool_class_staff','create table public.preschool_evaluations','create table public.preschool_evaluation_events','create table public.preschool_bulletin_versions',

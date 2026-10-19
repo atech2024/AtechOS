@@ -26,3 +26,12 @@ export function uniquePreschoolStaff(classes:PreschoolClassOverview[]){
  for(const item of classes)for(const person of item.staff)staff.set(person.id,person)
  return [...staff.values()].sort((a,b)=>a.name.localeCompare(b.name,'fr'))
 }
+
+export function uniquePreschoolClassStaff(staff:PreschoolAssignedStaff[]){
+ const people=new Map<string,PreschoolAssignedStaff>()
+ for(const person of staff){
+  const current=people.get(person.id)
+  if(!current||person.role==='titulaire')people.set(person.id,person)
+ }
+ return [...people.values()].sort((a,b)=>a.name.localeCompare(b.name,'fr'))
+}

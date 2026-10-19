@@ -17,6 +17,7 @@ assert.deepEqual(levels.map(({code,classCount,studentCount,teacherCount,assistan
  {code:'PS3',classCount:1,studentCount:18,teacherCount:0,assistantCount:0},
 ])
 assert.deepEqual(exports.uniquePreschoolStaff(classes).map(person=>person.id),['aide-1','teacher-1'])
+assert.deepEqual(exports.uniquePreschoolClassStaff([{id:'teacher-1',name:'Mme Test',role:'aide_educatrice'},{id:'teacher-1',name:'Mme Test',role:'titulaire'},{id:'aide-1',name:'Mme Aide',role:'aide_educatrice'}]).map(person=>[person.id,person.role]),[['aide-1','aide_educatrice'],['teacher-1','titulaire']])
 assert.deepEqual(exports.summarizePreschoolLevels([]).map(level=>level.classCount),[0,0,0])
 
 const navigation=readFileSync('src/lib/navigation.ts','utf8')
@@ -29,4 +30,7 @@ assert.match(component,/preschool_report_workspace/,'the dashboard must reuse th
 assert.match(component,/Role not configured/,'cleaning staff must remain an honest, unconfigured state until its access model is confirmed')
 assert.match(component,/No account or access has been created/,'the dashboard must not imply that unsupported staff access exists')
 assert.match(component,/state\.manager&&/,'management shortcuts must stay restricted to existing manager access')
+assert.match(component,/lg:hidden/,'class rows must use a compact mobile layout instead of forcing a wide table')
+assert.match(component,/lg:block/,'wide screens must retain the accessible class table')
+assert.doesNotMatch(component,/setYearId/,'the shared app header remains the only academic-year selector')
 console.log('Preschool overview role, data aggregation, and honest unsupported-role states passed.')

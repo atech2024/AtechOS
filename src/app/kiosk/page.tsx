@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Camera, CheckCircle2, Clock3, ScanLine, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Camera, CheckCircle2, Clock3, Pause, Play, ScanLine, ShieldCheck } from 'lucide-react'
 import { schoolTime,schoolDateTime } from '@/lib/school-date'
 import QRScanner from '@/components/qr-scanner'
 import { T } from '@/components/translation-provider'
@@ -19,7 +19,7 @@ const scanErrors:Record<string,string> = {
  }
 export default function StudentKiosk() {
  const [code,setCode]=useState(''),[pin,setPin]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState<Notice|null>(null),[log,setLog]=useState<ScanLog[]>([])
- const [scanGuideActive,setScanGuideActive]=useState(false)
+ const [scanGuideActive,setScanGuideActive]=useState(false),[scanGuidePaused,setScanGuidePaused]=useState(false)
  const lock=useRef(false),nextId=useRef(0),codeInput=useRef<HTMLInputElement>(null),pinInput=useRef<HTMLInputElement>(null),scanGuideRef=useRef<HTMLDivElement>(null)
  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(null),10000);return()=>clearTimeout(timer)},[notice])
  useEffect(()=>{const guide=scanGuideRef.current;if(!guide)return;let isIntersecting=false;const syncMotion=()=>setScanGuideActive(document.visibilityState==='visible'&&isIntersecting);const observer=typeof IntersectionObserver==='undefined'?null:new IntersectionObserver(([entry])=>{isIntersecting=entry.isIntersecting;syncMotion()},{threshold:.1});if(observer)observer.observe(guide);else isIntersecting=true;document.addEventListener('visibilitychange',syncMotion);syncMotion();return()=>{observer?.disconnect();document.removeEventListener('visibilitychange',syncMotion)}},[])
@@ -52,9 +52,9 @@ export default function StudentKiosk() {
    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,.95fr)]">
     <section aria-labelledby="scanner-title" className="rounded-2xl border border-[#dce4ee] bg-white p-4 shadow-[0_8px_28px_rgba(8,26,53,.06)] sm:p-6">
      <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e9f3ff] text-[#056cd3]"><ScanLine size={20} aria-hidden="true"/></span><div><h2 id="scanner-title" className="text-lg font-bold tracking-[-.02em] sm:text-xl"><T text="Scan a student badge"/></h2><p className="mt-1 text-sm leading-5 text-[#52637a]"><T text="The camera stays on until you stop it. Scans appear in the history."/></p></div></div>
-     <div ref={scanGuideRef} data-motion-active={scanGuideActive} className="kiosk-scan-guide relative isolate mt-4 overflow-hidden rounded-xl border border-[#dce8f5] bg-[#f7faff]" role="img">
+     <div ref={scanGuideRef} data-motion-active={scanGuideActive&&!scanGuidePaused} className="kiosk-scan-guide relative isolate mt-4 overflow-hidden rounded-xl border border-[#dce8f5] bg-[#f7faff]" role="img">
       <span className="sr-only"><T text="Illustration: a student badge moves over the scanner, is read, then attendance is confirmed."/></span>
-      <svg className="kiosk-scan-demo absolute inset-0 h-full w-full" viewBox="0 0 560 180" fill="none" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+      <svg className="kiosk-scan-demo kiosk-scan-demo-wide absolute inset-0 hidden h-full w-full sm:block" viewBox="0 0 560 180" fill="none" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
        <defs>
         <linearGradient id="kioskBackdrop" x1="0" y1="0" x2="560" y2="180" gradientUnits="userSpaceOnUse"><stop stopColor="#F7FAFF"/><stop offset=".58" stopColor="#EAF3FF"/><stop offset="1" stopColor="#F5F7FC"/></linearGradient>
         <linearGradient id="kioskCard" x1="0" y1="0" x2="194" y2="112" gradientUnits="userSpaceOnUse"><stop stopColor="white"/><stop offset="1" stopColor="#F4F8FF"/></linearGradient>
@@ -83,8 +83,36 @@ export default function StudentKiosk() {
        <circle className="kiosk-scan-confirm" cx="511" cy="35" r="13" fill="#DCFCEB"/><path d="m505 35 4 4 8-9" stroke="#13834B" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
        <path d="M520 121h19M529.5 111.5v19" stroke="white" strokeOpacity=".85" strokeWidth="2" strokeLinecap="round"/>
       </svg>
+      <svg className="kiosk-scan-demo kiosk-scan-demo-compact absolute inset-0 block h-full w-full sm:hidden" viewBox="0 0 300 180" fill="none" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+       <defs>
+        <linearGradient id="kioskCompactBackdrop" x1="0" y1="0" x2="300" y2="180" gradientUnits="userSpaceOnUse"><stop stopColor="#F7FAFF"/><stop offset="1" stopColor="#EAF3FF"/></linearGradient>
+        <linearGradient id="kioskCompactCard" x1="0" y1="0" x2="142" y2="82" gradientUnits="userSpaceOnUse"><stop stopColor="white"/><stop offset="1" stopColor="#F4F8FF"/></linearGradient>
+        <linearGradient id="kioskCompactHolo" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#42C8FF" stopOpacity="0"/><stop offset=".5" stopColor="white" stopOpacity=".9"/><stop offset=".7" stopColor="#F7C850" stopOpacity=".25"/><stop offset="1" stopColor="#42C8FF" stopOpacity="0"/></linearGradient>
+        <linearGradient id="kioskCompactBeam" x1="0" y1="0" x2="1" y2="0"><stop stopColor="#0877DB" stopOpacity="0"/><stop offset=".5" stopColor="#0877DB" stopOpacity=".4"/><stop offset="1" stopColor="#0877DB" stopOpacity="0"/></linearGradient>
+        <clipPath id="kioskCompactCardClip"><rect width="142" height="82" rx="12"/></clipPath>
+       </defs>
+       <rect width="300" height="180" fill="url(#kioskCompactBackdrop)"/>
+       <circle cx="253" cy="22" r="82" fill="#D9E9FF" fillOpacity=".42"/><circle cx="253" cy="22" r="54" stroke="#B9D5F5" strokeOpacity=".45"/>
+       <path d="M0 147c53-24 86 24 145 0s96-18 155-4" stroke="white" strokeOpacity=".72" strokeWidth="2"/>
+       <rect x="152" y="49" width="142" height="82" rx="14" fill="#D9E9FF" fillOpacity=".56" stroke="#A9C9EF" strokeDasharray="5 6"/>
+       <path d="M164 61h13M164 61v13M282 61h-13M282 61v13M164 119h13M164 119v-13M282 119h-13M282 119v-13" stroke="#4B92D5" strokeWidth="2" strokeLinecap="round"/>
+       <rect className="kiosk-scan-beam" x="153" y="50" width="140" height="80" rx="13" fill="url(#kioskCompactBeam)"/>
+       <g transform="translate(7 49)" filter="drop-shadow(0 6px 9px rgba(20,63,110,.15))">
+        <g className="kiosk-scan-badge">
+         <g clipPath="url(#kioskCompactCardClip)">
+          <rect width="142" height="82" rx="12" fill="url(#kioskCompactCard)" stroke="#B7CCE3"/><rect width="142" height="6" fill="#0877DB"/>
+          <circle cx="31" cy="40" r="19" fill="#E8F2FF"/><circle cx="31" cy="35" r="6.5" fill="#F3B22B"/><path d="M19 52c1.8-10 22.2-10 24 0" stroke="#2477C4" strokeWidth="4" strokeLinecap="round"/>
+          <text x="59" y="32" fill="#0877DB" fontSize="7.5" fontWeight="700" letterSpacing=".8">ATECHOS · ÉCOLE</text><text x="59" y="49" fill="#132B49" fontSize="10" fontWeight="700">BADGE ÉLÈVE</text><path d="M59 59h55M59 67h42" stroke="#AFC2D7" strokeWidth="2.5" strokeLinecap="round"/>
+          <path className="kiosk-scan-reflection" d="M-22 0h30l62 82H46z" fill="url(#kioskCompactHolo)"/>
+         </g>
+         <rect width="142" height="82" rx="12" stroke="#AFC7E2" strokeWidth="1.2"/>
+        </g>
+       </g>
+       <circle className="kiosk-scan-confirm" cx="284" cy="57" r="10" fill="#DCFCEB"/><path d="m279 57 3 3 6-7" stroke="#13834B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
       <div className="min-h-40 sm:min-h-44" aria-hidden="true"/>
      </div>
+     <div className="mt-2 flex justify-end"><button type="button" aria-pressed={scanGuidePaused} onClick={()=>setScanGuidePaused(value=>!value)} className="kiosk-motion-toggle inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-[#0757a8] transition-colors hover:bg-[#e9f3ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#056cd3] focus-visible:ring-offset-2"><span aria-hidden="true">{scanGuidePaused?<Play size={16}/>:<Pause size={16}/>}</span><T text={scanGuidePaused?'Resume badge animation':'Pause badge animation'}/></button></div>
      <div className="mt-5 rounded-xl bg-[#f5f7fb] p-3 sm:p-4"><QRScanner keepActive onRead={value=>{if(lock.current||value===code)return;if(value.startsWith('AOSQ1.')){void record(value,'',true);return}setCode(value);setPin('');setNotice(null);pinInput.current?.focus()}}/></div>
      <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[.1em] text-[#64748b]"><span className="h-px flex-1 bg-[#dce4ee]"/><T text="Or enter manually"/><span className="h-px flex-1 bg-[#dce4ee]"/></div>
      <form onSubmit={submit} autoComplete="off" className="grid gap-4 sm:grid-cols-2">

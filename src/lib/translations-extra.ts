@@ -309,6 +309,8 @@ export const extraTranslations:Record<string,[string,string]> = {
  'The camera stays on until you stop it. Each result appears here and in the scan history.':['La caméra reste active jusqu’à ce que vous l’arrêtiez. Chaque résultat apparaît ici et dans l’historique.','Kamera a rete limen jiskaske ou fèmen li. Chak rezilta parèt la a ak nan istorik scan yo.'],
  'The camera stays on until you stop it. Scans appear in the history.':['La caméra reste active jusqu’à son arrêt. Les scans apparaissent dans l’historique.','Kamera a rete limen jiskaske ou fèmen li. Scan yo parèt nan istorik la.'],
  'Illustration: a student badge moves over the scanner, is read, then attendance is confirmed.':['Illustration : le badge passe devant le lecteur, est lu, puis la présence est confirmée.','Imaj sa a montre badge la pase devan lektè a, yo li l epi yo konfime prezans lan.'],
+ 'Pause badge animation':['Mettre l’animation en pause','Mete animasyon badge la an poz'],
+ 'Resume badge animation':['Reprendre l’animation','Reprann animasyon badge la'],
  'Badge scan':['Lecture du badge','Lekti badge la'],
  'Present badge · Scan · Confirm':['Présenter · Scanner · Confirmer','Prezante · Eskane · Konfime'],
  'Camera active. Scan a badge; it stays on for the next person.':['Caméra active. Scannez un badge ; elle reste prête pour la personne suivante.','Kamera a limen. Eskane yon badj; l ap rete pare pou pwochen moun nan.'],

@@ -20,10 +20,13 @@ assert.match(styles,/data-motion-active="true"\] \.kiosk-scan-badge[^}]*animatio
 assert.match(styles,/data-motion-active="true"\] \.kiosk-scan-reflection[^}]*animation:[^;]+infinite/,'holographic reflections repeat with the badge scan')
 assert.match(styles,/data-motion-active="true"\] \.kiosk-scan-beam[^}]*animation:[^;]+infinite/,'scanner beam repeats with the badge scan')
 assert.match(styles,/data-motion-active="true"\] \.kiosk-scan-confirm[^}]*animation:[^;]+infinite/,'scan confirmation repeats with the badge scan')
+assert.match(styles,/@media \(max-width:639px\)[\s\S]*?\.kiosk-scan-demo-compact \{ display:block; \}[\s\S]*?kiosk-badge-scan-compact/,'the phone layout uses a compact, uncropped badge scan illustration')
+assert.match(styles,/\.kiosk-motion-toggle \{ display:none; \}/,'reduced-motion users do not see a control for an animation that is disabled')
+assert.match(kiosk,/aria-pressed=\{scanGuidePaused\}[\s\S]*setScanGuidePaused[\s\S]*Pause badge animation/,'users can pause and resume the decorative loop without stopping the camera')
 assert.match(kiosk,/document\.visibilityState==='visible'&&isIntersecting/,'continuous motion is enabled only while the guide is visible and the page is active')
 assert.match(kiosk,/kiosk-intro grid gap-5[^\n]*xl:grid-cols/,'the time card stays below the title until there is enough room for a two-column layout')
 assert.match(kiosk,/kiosk-scan-guide[\s\S]*role="img"[\s\S]*kiosk-scan-badge[\s\S]*kiosk-scan-reflection/,'a decorative, accessible student badge moves through the scanner with a reflective finish')
-for(const key of ['School attendance station','Scan a student badge','Camera active. Scan a badge; it stays on for the next person.','The camera stays on until you stop it. Scans appear in the history.','Illustration: a student badge moves over the scanner, is read, then attendance is confirmed.','Latest scan notification','Scanned students','No scans yet','Visible for 10 seconds']) {
+for(const key of ['School attendance station','Scan a student badge','Camera active. Scan a badge; it stays on for the next person.','The camera stays on until you stop it. Scans appear in the history.','Illustration: a student badge moves over the scanner, is read, then attendance is confirmed.','Pause badge animation','Resume badge animation','Latest scan notification','Scanned students','No scans yet','Visible for 10 seconds']) {
  assert.ok(translations.includes(`'${key}':[`),`${key} has French and Haitian Creole translations`)
 }
 console.log('PASS KIOS session UX: persistent camera, repeated-frame throttle, ten-second notice, session history, AtechOS branding, localization and reduced motion.')

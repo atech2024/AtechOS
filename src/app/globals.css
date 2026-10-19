@@ -62,9 +62,18 @@ button, input { font: inherit; }
 @keyframes kiosk-badge-reflection { 0%,30% { transform:translateX(-40px); opacity:0; } 42% { opacity:.72; } 56% { opacity:.52; } 68%,100% { transform:translateX(250px); opacity:0; } }
 @keyframes kiosk-beam-sweep { 0%,30% { opacity:0; transform:scaleX(.12); } 43% { opacity:1; transform:scaleX(1); } 58%,100% { opacity:.16; transform:scaleX(1); } }
 @keyframes kiosk-scan-confirm { 0%,40% { opacity:0; transform:scale(.65); } 48%,58% { opacity:1; transform:scale(1); } 68%,100% { opacity:0; transform:scale(.65); } }
+@media (max-width:639px) {
+ .kiosk-scan-demo-wide { display:none; }
+ .kiosk-scan-demo-compact { display:block; }
+ .kiosk-scan-badge { transform:translateX(145px); }
+ .kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-badge { animation-name:kiosk-badge-scan-compact; }
+ .kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-reflection { animation-name:kiosk-badge-reflection-compact; }
+}
+@keyframes kiosk-badge-scan-compact { 0%,8% { transform:translateX(0); } 38%,58% { transform:translateX(145px); } 86%,100% { transform:translateX(0); } }
+@keyframes kiosk-badge-reflection-compact { 0%,30% { transform:translateX(-30px); opacity:0; } 42% { opacity:.72; } 56% { opacity:.52; } 68%,100% { transform:translateX(118px); opacity:0; } }
 .kiosk-notice { animation:kiosk-notice-in .2s cubic-bezier(.16,1,.3,1) both; }
 @keyframes kiosk-notice-in { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
-@media (prefers-reduced-motion:reduce) { .kiosk-notice,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-badge,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-reflection,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-beam,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-confirm { animation:none; } }
+@media (prefers-reduced-motion:reduce) { .kiosk-notice,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-badge,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-reflection,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-beam,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-confirm { animation:none; } .kiosk-motion-toggle { display:none; } }
 
 *:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
 ::selection { background: #cfe0ff; color: #071a35; }

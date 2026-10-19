@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+import ts from 'typescript'
+
+const source=readFileSync('src/lib/preschool-overview.ts','utf8')
+const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
+const exports={};new Function('exports',compiled)(exports)
+const classes=[
+ {id:'class-1',name:'PS1-A',grade:'PS1',year_id:'year-1',year:'2026-2027',student_count:20,staff:[{id:'teacher-1',name:'Mme Test',role:'titulaire'},{id:'aide-1',name:'Mme Aide',role:'aide_educatrice'}]},
+ {id:'class-2',name:'PS1-B',grade:'ps1',year_id:'year-1',year:'2026-2027',student_count:14,staff:[{id:'teacher-1',name:'Mme Test',role:'titulaire'}]},
+ {id:'class-3',name:'PS3-A',grade:'PS3',year_id:'year-1',year:'2026-2027',student_count:18,staff:[]},
+]
+const levels=exports.summarizePreschoolLevels(classes)
+assert.deepEqual(levels.map(({code,classCount,studentCount,teacherCount,assistantCount})=>({code,classCount,studentCount,teacherCount,assistantCount})),[
+ {code:'PS1',classCount:2,studentCount:34,teacherCount:1,assistantCount:1},
+ {code:'PS2',classCount:0,studentCount:0,teacherCount:0,assistantCount:0},
+ {code:'PS3',classCount:1,studentCount:18,teacherCount:0,assistantCount:0},
+])
+assert.deepEqual(exports.uniquePreschoolStaff(classes).map(person=>person.id),['aide-1','teacher-1'])
+assert.deepEqual(exports.summarizePreschoolLevels([]).map(level=>level.classCount),[0,0,0])
+
+const navigation=readFileSync('src/lib/navigation.ts','utf8')
+assert.match(navigation,/href:'\/dashboard\/preschool\/overview'/,'the Preschool workspace must be reachable in the role-aware menu')
+assert.match(navigation,/label:'Preschool competency bulletins',href:'\/dashboard\/preschool'/,'the existing evaluation workflow must remain accessible')
+const page=readFileSync('src/app/dashboard/preschool/overview/page.tsx','utf8')
+for(const role of ['school_admin','director','secretary','teacher','censeur'])assert.ok(page.includes(`'${role}'`),`${role} should retain the established Preschool route access`)
+const component=readFileSync('src/components/preschool-overview.tsx','utf8')
+assert.match(component,/preschool_report_workspace/,'the dashboard must reuse the existing tenant-scoped Preschool workspace')
+assert.match(component,/Role not configured/,'cleaning staff must remain an honest, unconfigured state until its access model is confirmed')
+assert.match(component,/No account or access has been created/,'the dashboard must not imply that unsupported staff access exists')
+assert.match(component,/state\.manager&&/,'management shortcuts must stay restricted to existing manager access')
+console.log('Preschool overview role, data aggregation, and honest unsupported-role states passed.')

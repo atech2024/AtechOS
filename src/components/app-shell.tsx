@@ -26,6 +26,7 @@ import {
   Home,
   CircleDollarSign,
   UserRound,
+  Baby,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { permittedNavigation, type NavigationGroup, type NavigationItem } from '@/lib/navigation'
@@ -39,7 +40,7 @@ import { canAccessStaffProfile, type StaffGreetingKey } from '@/lib/staff-profil
 type Notice = { id: string; title: string; description: string; created_at: string; read_at: string | null; priority: string; href: string; type: string }
 type SearchResult = { kind: string; label: string; href: string }
 const icons: Record<string, typeof Users> = {
-  dashboard: LayoutDashboard, students: GraduationCap, parents: Users, teachers: Users, classes: BookOpen,
+  dashboard: LayoutDashboard, students: GraduationCap, parents: Users, teachers: Users, classes: BookOpen, preschool: Baby,
   attendance: ClipboardCheck, badge: Contact, calendar: CalendarDays, grades: FileText,
   publication: ClipboardCheck, reports: FileText, assignments: BookOpen, progression: ArrowUpRight,
   requests: UserPlus, users: Users, settings: Settings, finance: CircleDollarSign,

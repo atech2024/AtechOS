@@ -7,21 +7,22 @@ import {translate} from '@/lib/translations'
 import StudentIdentityCard from '@/components/student-identity-card'
 import {PreschoolReportCard,ReportCard,type Report} from '@/components/report-card'
 import {CalendarDays,CalendarRange,Printer,CheckCircle2,Clock3,XCircle} from 'lucide-react'
-type Student={id:string;first_name:string;last_name:string;atechos_id:string;class_name:string|null;academic_year:string|null;photo_available:boolean}
-type Grade={student_id:string;subject:string;period:string|null;year:string;score:number;max_score:number;weight:number}
-type Attendance={date:string;status:string;check_in_at:string|null;check_out_at:string|null;year:string}
-type Period={id:string;name:string;year:string;start_date:string;end_date:string;exam_start:string|null;exam_end:string|null}
+export type Student={id:string;first_name:string;last_name:string;atechos_id:string;class_name:string|null;academic_year:string|null;photo_available:boolean}
+export type Grade={student_id:string;subject:string;period:string|null;year:string;score:number;max_score:number;weight:number}
+export type Attendance={date:string;status:string;check_in_at:string|null;check_out_at:string|null;year:string}
+export type Period={id:string;name:string;year:string;start_date:string;end_date:string;exam_start:string|null;exam_end:string|null}
 export function studentBulletinsForSelection(report:Report,year:string,periodId:string){
  return {
   numeric:report.cards.filter(card=>card.year===year&&(!periodId||card.period_id===periodId)),
   preschool:(report.preschool_cards||[]).filter(card=>card.payload.academic_year===year&&(!periodId||card.payload.period_id===periodId)),
  }
 }
-export default function StudentOverview({student,grades,attendance,periods,report,qr}:{student:Student;grades:Grade[];attendance:Attendance[];periods:Period[];report:Report;qr?:string|null}){
+export default function StudentOverview({student,grades,attendance,periods,report,qr,selectedYear,onSelectedYearChange}:{student:Student;grades:Grade[];attendance:Attendance[];periods:Period[];report:Report;qr?:string|null;selectedYear?:string;onSelectedYearChange?:(year:string)=>void}){
  const locale=useLocale()
  const t=(text:string)=>translate(text,locale)
  const years=Array.from(new Set([student.academic_year,...grades.map(g=>g.year),...periods.map(p=>p.year),...attendance.map(a=>a.year),...(report.preschool_cards||[]).map(card=>card.payload.academic_year)].filter((y):y is string=>!!y)))
- const [year,setYear]=useState(student.academic_year||years[0]||''),[periodId,setPeriodId]=useState('')
+ const [internalYear,setInternalYear]=useState(student.academic_year||years[0]||''),[periodId,setPeriodId]=useState('')
+ const year=selectedYear??internalYear,chooseYear=onSelectedYearChange??setInternalYear
  const available=periods.filter(p=>p.year===year),period=available.find(p=>p.id===periodId)
  const examPeriodDates=available.filter(p=>(!period||p.id===period.id)&&p.exam_start)
  const bulletins=studentBulletinsForSelection(report,year,periodId)
@@ -37,7 +38,7 @@ export default function StudentOverview({student,grades,attendance,periods,repor
   <StudentIdentityCard qr={qr} student={student} attendance={attendance.find(a=>a.date===today)}/>
   <p className="mt-3 text-sm text-slate-600"><T text="Attendance today"/> · {schoolDate(today,locale)} · <T text="Haiti time"/></p>
   <section aria-label={`${t('Academic year')} / ${t('Period')}`} className="my-5 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(8,26,53,.045)] sm:grid-cols-2">
-   <label className="block text-sm font-semibold text-slate-800"><span className="inline-flex items-center gap-2"><CalendarRange size={16} className="text-[#1766bb]" aria-hidden="true"/><T text="Academic year"/></span><select value={year} onChange={e=>{setYear(e.target.value);setPeriodId('')}} className="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100">{years.map(y=><option key={y}>{y}</option>)}</select></label>
+   <label className="block text-sm font-semibold text-slate-800"><span className="inline-flex items-center gap-2"><CalendarRange size={16} className="text-[#1766bb]" aria-hidden="true"/><T text="Academic year"/></span><select value={year} onChange={e=>{chooseYear(e.target.value);setPeriodId('')}} className="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100">{years.map(y=><option key={y}>{y}</option>)}</select></label>
    <label className="block text-sm font-semibold text-slate-800"><span className="inline-flex items-center gap-2"><CalendarDays size={16} className="text-[#1766bb]" aria-hidden="true"/><T text="Period"/></span><select value={periodId} onChange={e=>setPeriodId(e.target.value)} className="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"><option value=""><T text="All periods"/></option>{available.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
   </section>
   <section className="my-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="student-attendance-heading">

@@ -1218,4 +1218,6 @@ export const extraTranslations:Record<string,[string,string]> = {
   "Not added": ["Non ajoutée","Pa ajoute"],
   "Uploading…": ["Envoi en cours…","Ap telechaje…"],
   "Family portal quick navigation": ["Navigation rapide du portail parent", "Navigasyon rapid nan pòtal paran an"],
+ 'Check-in 00:00–07:45 · Late 07:46–08:00 · Closed 08:01–12:59 · Check-out 13:00–23:59.':['Entrée 00:00–07:45 · Retard 07:46–08:00 · Fermé 08:01–12:59 · Sortie 13:00–23:59.','Antre 00:00–07:45 · Reta 07:46–08:00 · Fèmen 08:01–12:59 · Sòti 13:00–23:59.'],
+ 'Personal identification number (PIN)':['Numéro d’identification personnel (PIN)','Nimewo idantifikasyon pèsonèl (PIN)'],
 }

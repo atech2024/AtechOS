@@ -1231,4 +1231,12 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Scanned students':['Élèves scannés','Elèv ki pase nan scan an'],
  'No scans yet':['Aucun scan pour le moment','Pa gen scan ankò'],
  'Visible for 10 seconds':['Visible pendant 10 secondes','Vizib pandan 10 segonn'],
+ 'Or enter manually':['Ou saisissez-le manuellement','Oswa antre li manyèlman'],
+ 'Scan not completed':['Scan non terminé','Eskanè a pa fini'],
+ 'Presence recorded at the Director’s office only. The student may not join class.':['Présence enregistrée uniquement au bureau de la Direction. L’élève ne peut pas rejoindre la classe.','Prezans lan anrejistre nan direksyon an sèlman. Elèv la pa dwe antre nan klas la.'],
+ 'Please go to the Director’s office with your parent or guardian for the required meeting.':['Veuillez vous rendre au bureau de la Direction avec votre parent ou tuteur pour la rencontre requise.','Tanpri ale nan direksyon an avèk paran ou oswa responsab ou pou rankont ki nesesè a.'],
+ 'Scan a badge to see the student’s name, class and attendance status here.':['Scannez un badge pour afficher ici le nom de l’élève, sa classe et son statut de présence.','Eskane yon badj pou wè non elèv la, klas li ak estati prezans li la a.'],
+ 'Completed scans stay in this list during the session.':['Les scans terminés restent dans cette liste pendant la session.','Eskanè ki fini yo rete nan lis sa a pandan sesyon an.'],
+ 'Time':['Heure','Lè'],
+ 'Attendance is recorded securely by the school. Only a student’s name, class and scan status are shown here.':['La présence est enregistrée de manière sécurisée par l’établissement. Seuls le nom de l’élève, sa classe et le statut du scan s’affichent ici.','Lekòl la anrejistre prezans lan yon fason ki an sekirite. Se non elèv la, klas li ak estati eskanè a sèlman ki parèt la a.'],
 }

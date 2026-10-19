@@ -1,7 +1,8 @@
 'use client'
 
 import {useCallback,useEffect,useMemo,useState,type FormEvent} from 'react'
-import {T} from '@/components/translation-provider'
+import {T,useLocale} from '@/components/translation-provider'
+import {schoolDate} from '@/lib/school-date'
 import {createClient} from '@/lib/supabase/client'
 import {FINANCE_PAYMENT_METHODS,familyPaymentMethodsForCurrency,type FinancePaymentMethods} from '@/lib/finance-payment-methods'
 import {convertedPaymentValue} from '@/lib/finance-display'
@@ -14,13 +15,13 @@ type Charge={id:string;description:string;class_name:string;currency_code:string
 type Payment={id:string;amount:number;applied_amount?:number;currency_code:string;applied_currency_code?:string;payment_method:string;bank_transaction_type?:BankTransactionType|null;reference:string|null;paid_at:string;status:string;review_reason:string|null;recorded_at:string;charge_description:string;class_name:string;exchange_rate_snapshot?:number|null;exchange_rate_effective_date?:string|null;exchange_rate_source_url?:string|null}
 type Workspace={school_id:string;student:{id:string;first_name:string;last_name:string;class_name:string};settings:{currency_code:string;moncash_payment_instructions:string;natcash_payment_instructions:string;bank_transfer_instructions:string;general_payment_instructions:string;payment_methods:FinancePaymentMethods;brh_rate?:{date:string;rate:number;source_url:string}|null};charges:Charge[];payments:Payment[]}
 
-function localDate(value:string){return new Intl.DateTimeFormat('fr-HT',{dateStyle:'medium',timeZone:'America/Port-au-Prince'}).format(new Date(`${value.slice(0,10)}T12:00:00`))}
 function money(value:number,code:string){try{return new Intl.NumberFormat('fr-HT',{style:'currency',currency:code}).format(Number(value))}catch{return `${Number(value).toFixed(2)} ${code}`} }
 function destination(method:string,config:FinancePaymentMethods){const entry=FINANCE_PAYMENT_METHODS.find(item=>item.paymentMethod===method);return entry?config[entry.key]:undefined}
 function destinationText(method:string,config:FinancePaymentMethods){const item=destination(method,config);if(!item)return '';return [item.account_name,item.phone,item.email,item.bank_name,item.account_number,item.branch,item.max_htg?`Maximum ${item.max_htg} HTG`:null].filter(Boolean).join(' · ')}
 function paymentCurrency(method:string,chargeCurrency:string){const entry=FINANCE_PAYMENT_METHODS.find(item=>item.paymentMethod===method);return entry&&(entry.key.endsWith('_usd')||entry.key==='paypal'||entry.key==='zelle')?'USD':chargeCurrency}
 
 export default function FamilyFinancePanel({studentId}:{studentId:string}){
+ const locale=useLocale()
  const db=useMemo(()=>createClient(),[])
  const [data,setData]=useState<Workspace|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('')
  const [chargeId,setChargeId]=useState(''),[method,setMethod]=useState(''),[bankTransactionType,setBankTransactionType]=useState<BankTransactionType|''>(''),[amount,setAmount]=useState(''),[reference,setReference]=useState(''),[proof,setProof]=useState<File|null>(null)
@@ -53,7 +54,7 @@ export default function FamilyFinancePanel({studentId}:{studentId:string}){
    <div className="grid gap-4 lg:grid-cols-2">
     <form onSubmit={submit} className="space-y-3 rounded-xl border border-slate-200 p-4">
      <h3 className="font-semibold"><T text="Submit a payment request"/></h3><p className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-950"><T text="You can pay before an installment is due. Enter the full amount you want to pay now; after approval, any excess is saved as student credit and applied automatically to other unpaid installments in due-date order."/></p>
-     <label className="block text-sm"><T text="Fee / installment"/><select required className={field} value={chargeId} onChange={event=>{setChargeId(event.target.value);setMethod('');setBankTransactionType('')}}><option value=""><T text="Choose"/></option>{data.charges.map(item=><option key={item.id} value={item.id}>{item.description} · {item.class_name} · {localDate(item.due_date)} · {money(Number(item.remaining_amount),item.currency_code)}</option>)}</select></label>
+     <label className="block text-sm"><T text="Fee / installment"/><select required className={field} value={chargeId} onChange={event=>{setChargeId(event.target.value);setMethod('');setBankTransactionType('')}}><option value=""><T text="Choose"/></option>{data.charges.map(item=><option key={item.id} value={item.id}>{item.description} · {item.class_name} · {schoolDate(item.due_date,locale)} · {money(Number(item.remaining_amount),item.currency_code)}</option>)}</select></label>
      {selectedCharge&&<p className="text-xs text-slate-600"><T text="Amount still due"/>: {money(Number(selectedCharge.remaining_amount),selectedCharge.currency_code)}{Number(selectedCharge.pending_amount)>0&&<> · <T text="Already submitted"/>: {money(Number(selectedCharge.pending_amount),selectedCharge.currency_code)}</>}</p>}
      <div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm"><T text="Payment method"/><select required className={field} value={method} onChange={event=>{setMethod(event.target.value);setBankTransactionType('');setAmount('')}}><option value=""><T text="Choose"/></option>{enabledMethods.map(item=>{const usd=item.key.endsWith('_usd')||item.key==='paypal'||item.key==='zelle';return <option key={item.key} value={item.paymentMethod} disabled={usd&&!data.settings.brh_rate}><T text={item.title}/>{usd&&!data.settings.brh_rate?' — indisponible (taux BRH du jour manquant)':''}</option>})}</select></label><label className="block text-sm"><T text="Amount paid"/> ({tenderCurrency})<input type="number" min="0.01" step="0.01" required className={field} value={amount} onChange={event=>setAmount(event.target.value)}/></label></div>
      {!enabledMethods.length&&selectedCharge&&<p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900"><T text="The school has not enabled a digital payment method for this currency."/></p>}

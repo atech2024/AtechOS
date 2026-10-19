@@ -7,8 +7,8 @@ import {translate} from '@/lib/translations'
 import {LogIn,LogOut,ShieldCheck} from 'lucide-react'
 type Identity={first_name:string;last_name:string;atechos_id:string;class_name?:string|null;academic_year?:string|null;photo_available?:boolean}
 export default function StudentIdentityCard({student,attendance,qr}:{student:Identity;qr?:string|null;attendance?:{check_in_at:string|null;check_out_at:string|null}|null}){
- const time=schoolTime
  const locale=useLocale()
+ const time=(value:string|null|undefined)=>schoolTime(value,locale)
  return <section className="student-identity-card my-6 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6" aria-label={translate('Student portal',locale)}>
   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
    <div className="flex h-28 w-24 shrink-0 items-center justify-center self-start overflow-hidden rounded-2xl bg-[#e9f3ff] text-3xl font-bold text-[#0757a8] ring-1 ring-[#d5e7fa] sm:h-32 sm:w-28">{student.photo_available?<Image unoptimized src="/student/photo" alt={`${student.first_name} ${student.last_name}`} width={112} height={128} className="h-full w-full object-cover"/>:<span aria-hidden="true">{student.first_name[0]}{student.last_name[0]}</span>}</div>

@@ -50,17 +50,38 @@ export default function StudentKiosk() {
    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,.95fr)]">
     <section aria-labelledby="scanner-title" className="rounded-2xl border border-[#dce4ee] bg-white p-4 shadow-[0_8px_28px_rgba(8,26,53,.06)] sm:p-6">
      <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e9f3ff] text-[#056cd3]"><ScanLine size={20} aria-hidden="true"/></span><div><h2 id="scanner-title" className="text-lg font-bold tracking-[-.02em] sm:text-xl"><T text="Scan a student badge"/></h2><p className="mt-1 text-sm leading-5 text-[#52637a]"><T text="The camera stays on until you stop it. Scans appear in the history."/></p></div></div>
-     <div className="kiosk-scan-guide mt-4 flex items-center gap-3 rounded-xl border border-[#dce8f5] bg-white px-3 py-2.5 sm:gap-4 sm:px-4" role="img">
+     <div className="kiosk-scan-guide relative isolate mt-4 overflow-hidden rounded-xl border border-[#dce8f5] bg-[#f7faff]" role="img">
       <span className="sr-only"><T text="Illustration: a student badge moves over the scanner, is read, then attendance is confirmed."/></span>
-      <svg className="kiosk-scan-demo h-14 w-24 shrink-0 sm:h-16 sm:w-28" viewBox="0 0 112 64" fill="none" aria-hidden="true">
-       <rect x="7" y="8" width="98" height="48" rx="10" fill="#F5F8FC" stroke="#DCE4EE"/>
-       <rect x="57" y="20" width="31" height="23" rx="4" fill="#E8F2FF" stroke="#8CB8E8"/>
-       <path d="M64 27h9M64 31h16M64 35h12" stroke="#397DBD" strokeWidth="1.7" strokeLinecap="round"/>
-       <rect className="kiosk-scan-beam" x="52" y="16" width="2" height="32" rx="1" fill="#0877DB"/>
-       <g className="kiosk-scan-badge"><rect x="15" y="17" width="27" height="31" rx="4" fill="white" stroke="#0B65B8" strokeWidth="1.5"/><circle cx="28.5" cy="26" r="4" fill="#F2AE24"/><path d="M21 39c1.8-5.3 13.2-5.3 15 0" stroke="#0B65B8" strokeWidth="2" strokeLinecap="round"/><path d="M19 44h19" stroke="#DCE4EE" strokeWidth="1.5"/></g>
-       <circle className="kiosk-scan-confirm" cx="93" cy="17" r="7" fill="#DCFCEB"/><path d="m90 17 2 2 4-4" stroke="#13834B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <svg className="kiosk-scan-demo absolute inset-0 h-full w-full" viewBox="0 0 560 180" fill="none" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+       <defs>
+        <linearGradient id="kioskBackdrop" x1="0" y1="0" x2="560" y2="180" gradientUnits="userSpaceOnUse"><stop stopColor="#F7FAFF"/><stop offset=".58" stopColor="#EAF3FF"/><stop offset="1" stopColor="#F5F7FC"/></linearGradient>
+        <linearGradient id="kioskCard" x1="0" y1="0" x2="194" y2="112" gradientUnits="userSpaceOnUse"><stop stopColor="white"/><stop offset="1" stopColor="#F4F8FF"/></linearGradient>
+        <linearGradient id="kioskHolo" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#42C8FF" stopOpacity="0"/><stop offset=".46" stopColor="#80D8FF" stopOpacity=".16"/><stop offset=".53" stopColor="white" stopOpacity=".9"/><stop offset=".62" stopColor="#F7C850" stopOpacity=".25"/><stop offset="1" stopColor="#42C8FF" stopOpacity="0"/></linearGradient>
+        <linearGradient id="kioskBeam" x1="0" y1="0" x2="1" y2="0"><stop stopColor="#0877DB" stopOpacity="0"/><stop offset=".5" stopColor="#0877DB" stopOpacity=".4"/><stop offset="1" stopColor="#0877DB" stopOpacity="0"/></linearGradient>
+        <clipPath id="kioskCardClip"><rect x="0" y="0" width="194" height="112" rx="14"/></clipPath>
+       </defs>
+       <rect width="560" height="180" fill="url(#kioskBackdrop)"/>
+       <circle cx="478" cy="20" r="96" fill="#D9E9FF" fillOpacity=".42"/><circle cx="478" cy="20" r="66" stroke="#B9D5F5" strokeOpacity=".45"/><circle cx="478" cy="20" r="39" stroke="#B9D5F5" strokeOpacity=".38"/>
+       <path d="M0 145C108 111 172 178 284 143s177-26 276-6" stroke="white" strokeOpacity=".72" strokeWidth="2"/>
+       <rect x="310" y="28" width="194" height="112" rx="20" fill="#D9E9FF" fillOpacity=".56" stroke="#A9C9EF" strokeDasharray="5 6"/>
+       <path d="M327 45h18M327 45v18M487 45h-18M487 45v18M327 123h18M327 123v-18M487 123h-18M487 123v-18" stroke="#4B92D5" strokeWidth="2" strokeLinecap="round"/>
+       <rect className="kiosk-scan-beam" x="311" y="29" width="192" height="110" rx="20" fill="url(#kioskBeam)"/>
+       <g transform="translate(46 34)" filter="drop-shadow(0 8px 12px rgba(20,63,110,.15))">
+        <g className="kiosk-scan-badge">
+        <g clipPath="url(#kioskCardClip)">
+         <rect width="194" height="112" rx="14" fill="url(#kioskCard)" stroke="#B7CCE3"/>
+         <rect x="0" y="0" width="194" height="8" fill="#0877DB"/>
+         <circle cx="42" cy="52" r="24" fill="#E8F2FF"/><circle cx="42" cy="45" r="8" fill="#F3B22B"/><path d="M27 66c2.2-12.5 27.8-12.5 30 0" stroke="#2477C4" strokeWidth="5" strokeLinecap="round"/>
+         <text x="78" y="35" fill="#0877DB" fontSize="9" fontWeight="700" letterSpacing="1.2">ATECHOS · ÉCOLE</text><text x="78" y="54" fill="#132B49" fontSize="13" fontWeight="700">BADGE ÉLÈVE</text><path d="M78 66h67M78 76h51" stroke="#AFC2D7" strokeWidth="3" strokeLinecap="round"/><rect x="78" y="88" width="52" height="11" rx="5.5" fill="#E9F3FF"/>
+         <path className="kiosk-scan-reflection" d="M-30 0h43l80 112H50z" fill="url(#kioskHolo)"/>
+        </g>
+        <rect width="194" height="112" rx="14" stroke="#AFC7E2" strokeWidth="1.2"/>
+        </g>
+       </g>
+       <circle className="kiosk-scan-confirm" cx="511" cy="35" r="13" fill="#DCFCEB"/><path d="m505 35 4 4 8-9" stroke="#13834B" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+       <path d="M520 121h19M529.5 111.5v19" stroke="white" strokeOpacity=".85" strokeWidth="2" strokeLinecap="round"/>
       </svg>
-      <span className="min-w-0"><strong className="block text-sm font-semibold text-[#17304d]"><T text="Badge scan"/></strong><span className="mt-0.5 block text-xs leading-5 text-[#52637a]"><T text="Present badge · Scan · Confirm"/></span></span>
+      <div className="min-h-40 sm:min-h-44" aria-hidden="true"/>
      </div>
      <div className="mt-5 rounded-xl bg-[#f5f7fb] p-3 sm:p-4"><QRScanner keepActive onRead={value=>{if(lock.current||value===code)return;if(value.startsWith('AOSQ1.')){void record(value,'',true);return}setCode(value);setPin('');setNotice(null);pinInput.current?.focus()}}/></div>
      <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[.1em] text-[#64748b]"><span className="h-px flex-1 bg-[#dce4ee]"/><T text="Or enter manually"/><span className="h-px flex-1 bg-[#dce4ee]"/></div>

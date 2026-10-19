@@ -15,11 +15,12 @@ assert.ok(kiosk.includes('/landing/atechos-logo-mark.webp')&&kiosk.includes('/la
 assert.match(kiosk,/atechos-logo-mark\.webp[\s\S]*?mix-blend-multiply[\s\S]*?atechos-logo-wordmark\.webp[\s\S]*?mix-blend-multiply/,'white logo canvases blend into the kiosk background')
 assert.match(kiosk,/<T text="Scanned students"[\s\S]*?<table/,'the scan history is a labelled, accessible table')
 assert.match(kiosk,/role=\{notice\.tone==='error'\?'alert':'status'\}/,'live scan results and errors are announced accessibly')
-assert.match(styles,/@media \(prefers-reduced-motion:reduce\)[^}]*\.kiosk-scan-badge[^}]*animation:none/,'badge scan motion respects reduced-motion preference')
-assert.match(styles,/\.kiosk-scan-badge[^}]*animation:[^;]+ 1 both/,'badge scan illustration plays once instead of looping beside the live camera')
+assert.match(styles,/@media \(prefers-reduced-motion:reduce\)[^}]*\.kiosk-scan-reflection[^}]*animation:none/,'badge reflection respects reduced-motion preference')
+assert.match(styles,/\.kiosk-scan-badge[^}]*animation:[^;]+ 1 both/,'illustrated badge movement plays once instead of looping beside the live camera')
+assert.match(styles,/\.kiosk-scan-reflection[^}]*animation:[^;]+3\.8s[^;]+ 2 both/,'two soft holographic reflections finish after the badge reaches the scanner')
 assert.match(kiosk,/kiosk-intro grid gap-5[^\n]*xl:grid-cols/,'the time card stays below the title until there is enough room for a two-column layout')
-assert.match(kiosk,/kiosk-scan-guide[\s\S]*kiosk-scan-badge[\s\S]*<T text="Badge scan"\/>/,'the kiosk explains the badge scan sequence with an animated illustration')
-for(const key of ['School attendance station','Scan a student badge','Camera active. Scan a badge; it stays on for the next person.','The camera stays on until you stop it. Scans appear in the history.','Illustration: a student badge moves over the scanner, is read, then attendance is confirmed.','Badge scan','Present badge · Scan · Confirm','Latest scan notification','Scanned students','No scans yet','Visible for 10 seconds']) {
+assert.match(kiosk,/kiosk-scan-guide[\s\S]*role="img"[\s\S]*kiosk-scan-badge[\s\S]*kiosk-scan-reflection/,'a decorative, accessible student badge moves through the scanner with a reflective finish')
+for(const key of ['School attendance station','Scan a student badge','Camera active. Scan a badge; it stays on for the next person.','The camera stays on until you stop it. Scans appear in the history.','Illustration: a student badge moves over the scanner, is read, then attendance is confirmed.','Latest scan notification','Scanned students','No scans yet','Visible for 10 seconds']) {
  assert.ok(translations.includes(`'${key}':[`),`${key} has French and Haitian Creole translations`)
 }
 console.log('PASS KIOS session UX: persistent camera, repeated-frame throttle, ten-second notice, session history, AtechOS branding, localization and reduced motion.')

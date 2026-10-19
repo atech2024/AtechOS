@@ -1,12 +1,12 @@
 # AtechOS / KIOS build roadmap
-
+Updated: 2026-10-19
 Updated: 2026-10-18
 
 Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION REQUIRED` when a missing business rule changes permissions, audit, or user-visible behavior. A build is not done until its acceptance criteria and relevant tests pass. Existing code is not proof that a build meets the product requirements; unreviewed areas remain explicitly unaudited.
 
 ## Current state
 
-- Latest verified application `main`: `b925ec16042f11d0a2c590662ef5b5de00d53ef7` (PR #149). PR #150 uses this exact base and its Vercel bot confirms the existing KIOS Preview is Ready at https://atech-os-kog7-8oyg5rs1e-weedchard-toussaint-s-projects.vercel.app/kiosk; a physical-camera test remains open, so no duplicate KIOS deployment is needed. PR #149 is merged in this base; staff profile save/photo upload remain unverified. PR #130 (student dashboard) and PR #140 (family portal) remain open drafts on stale bases and are being consolidated on a branch based on this `main`. Local typecheck, production build, full test suite, targeted lint, and whitespace checks pass for the consolidated work; isolated SQL CI and a Preview for the consolidated commit are pending. BUILD 13 and PHASE 00 stay IN PROGRESS. The dashboard selection walkthrough, full parent access review, responsive review, and Production checks remain open. PR #131's exam work is merged; the Production migration registry and authenticated staff workflow are not verified in this checkpoint.
+- Latest verified application `main`: `58349176359b4a150d20057a10c5ec5ecb6efedc` (PR #150 merged 2026-10-19). The merged KIOS baseline includes persistent scanning, session history, and translated attendance feedback; physical-camera verification remains open. This KIOS follow-up moves feedback above the camera, adds front/back camera controls, makes session history collapsible, and reduces the always-visible Haiti-hours footprint. Status remains `IN PROGRESS` until CI, responsive Preview review, and physical front/back camera verification pass. Other module statuses remain as recorded in their BUILD rows and need separate current verification.
 - The separate documentation PR branch `docs/current-workflows-deployment` remains unchanged; its PR is not part of this implementation branch.
 - Live review: `https://atech-os-kog7.vercel.app/dashboard` was accessible in the authenticated browser on 2026-10-02. It showed a flat sidebar, a duplicate “Vos modules” dashboard catalog, no breadcrumb or academic-year control, and a Haitian-Creole date in a French UI. This records the observed page only; it does not identify the live deployment's source commit.
 - No database or RLS changes are in scope for BUILD 01. The topbar reads the existing current academic-year label when available; year selection and applying a selected year across domains belong to BUILD 03.

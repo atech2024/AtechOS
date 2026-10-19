@@ -47,6 +47,53 @@ button, input { font: inherit; }
 @keyframes student-dashboard-enter { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 @media (prefers-reduced-motion:reduce) { .student-dashboard__content { animation:none; } .student-shortcut,.student-attendance-entry,.student-attendance-exit { transition:none; } }
 
+/* Family portal: precise hierarchy and meaningful state feedback, in the shared AtechOS ink/blue system. */
+.family-portal { --family-ink:#081a35; --family-blue:#056cd3; --family-blue-dark:#0757a8; --family-line:#dce4ee; --family-muted:#52637a; color:var(--family-ink); }
+.family-portal__header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; }
+.family-portal__header > div { min-width:0; }
+.family-portal__title { max-width:760px; margin:0; font-size:clamp(38px,4.6vw,56px); line-height:1.02; letter-spacing:-.035em; text-wrap:balance; }
+.family-portal__subtitle { max-width:64ch; margin:12px 0 0; color:#52637a; font-size:16px; line-height:1.65; }
+.family-portal__child-picker { display:grid; flex:0 1 340px; gap:8px; min-width:240px; color:#334155; font-size:13px; font-weight:650; }
+.family-portal__child-picker > span { display:flex; align-items:center; gap:8px; color:#31516f; }
+.family-portal__child-picker select { box-shadow:0 4px 12px rgba(8,26,53,.045); }
+.family-portal__quick-nav { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px; border:1px solid #dce4ee; border-radius:16px; background:linear-gradient(180deg,#fff 0%,#f8fbff 100%); box-shadow:0 8px 22px rgba(8,26,53,.055); }
+.family-portal__quick-link { display:inline-flex; min-height:42px; flex:0 0 auto; align-items:center; justify-content:center; gap:8px; padding:0 13px; border:1px solid transparent; border-radius:11px; color:#21476f; font-size:13px; font-weight:650; line-height:1.25; white-space:nowrap; scroll-snap-align:start; transition:color .18s ease,border-color .18s ease,background-color .18s ease,transform .18s ease; }
+.family-portal__quick-link svg { flex:0 0 auto; color:#176dbb; }
+.family-portal__quick-link:hover { transform:translateY(-1px); border-color:#d5e5f5; background:#edf6ff; color:#0b4b86; }
+.family-portal__quick-link:active { transform:translateY(0); }
+.family-portal__state { display:flex; min-height:72px; align-items:center; gap:12px; padding:18px; border:1px solid #dce4ee; border-radius:16px; background:#fff; color:#52637a; box-shadow:0 8px 22px rgba(8,26,53,.045); }
+.family-portal__state--empty { min-height:112px; }
+.family-portal__children { border:1px solid #dce4ee; box-shadow:0 9px 25px rgba(8,26,53,.055); }
+.family-portal__children-heading { margin-bottom:2px; }
+.family-portal__child-card { min-height:78px; border-radius:14px; transition:transform .18s ease,border-color .18s ease,background-color .18s ease,box-shadow .18s ease; }
+.family-portal__child-card:hover:not([aria-pressed="true"]) { transform:translateY(-1px); border-color:#b8d1eb; box-shadow:0 7px 16px rgba(8,26,53,.065); }
+.family-portal__child-card[aria-pressed="true"] { border-color:#176dbb; background:#f0f7ff; box-shadow:0 5px 14px rgba(5,108,211,.09); }
+.family-portal__child-selected { display:grid; width:28px; height:28px; flex:0 0 28px; place-items:center; border-radius:50%; background:#176dbb; color:#fff; opacity:0; transform:scale(.78); transition:opacity .18s ease,transform .18s cubic-bezier(.16,1,.3,1); }
+.family-portal__child-card[aria-pressed="true"] .family-portal__child-selected { opacity:1; transform:scale(1); }
+.family-portal__child-status { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:650; line-height:1.3; }
+.family-portal__child-status > span { width:7px; height:7px; flex:0 0 7px; border-radius:50%; background:currentColor; }
+.family-portal__child-status--present { color:#17653a; }
+.family-portal__child-status--late { color:#8a5200; }
+.family-portal__child-status--absent { color:#a62c2c; }
+.family-portal__child-status--unknown { color:#52637a; }
+.family-portal__student-profile { border:1px solid #dce4ee; box-shadow:0 12px 30px rgba(8,26,53,.065); }
+.family-portal__assignments-heading { display:flex; align-items:center; gap:10px; }
+.family-portal__assignment-card { box-shadow:0 6px 18px rgba(8,26,53,.045); transition:border-color .18s ease,box-shadow .18s ease; }
+.family-portal__assignment-card:hover { border-color:#c4d7eb; box-shadow:0 10px 24px rgba(8,26,53,.075); }
+.family-portal__assignment-meta { display:flex; align-items:flex-start; gap:7px; line-height:1.5; }
+@media (max-width:760px) {
+ .family-portal__header { align-items:stretch; flex-direction:column; gap:16px; }
+ .family-portal__child-picker { width:100%; min-width:0; }
+ .family-portal__quick-nav { flex-wrap:nowrap; overflow-x:auto; overscroll-behavior-inline:contain; scroll-snap-type:x proximity; scrollbar-color:#b8c9dc transparent; scrollbar-width:thin; }
+ .family-portal__quick-nav::-webkit-scrollbar { height:5px; }
+ .family-portal__quick-nav::-webkit-scrollbar-thumb { border-radius:999px; background:#b8c9dc; }
+ .family-portal__children-heading { align-items:flex-start; flex-direction:column; }
+}
+@media (prefers-reduced-motion:reduce) {
+ .family-portal__quick-link,.family-portal__child-card,.family-portal__child-selected,.family-portal__assignment-card { transition:none !important; }
+ .family-portal__quick-link:hover,.family-portal__child-card:hover:not([aria-pressed="true"]) { transform:none; }
+}
+
 *:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
 ::selection { background: #cfe0ff; color: #071a35; }
 
@@ -621,3 +668,4 @@ html.landing-motion-ready [data-landing-reveal]:focus-within {
     transform: none;
   }
 }
+

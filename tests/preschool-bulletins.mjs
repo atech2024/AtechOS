@@ -9,6 +9,7 @@ import {renderToStaticMarkup} from 'react-dom/server'
 const migration=readFileSync('supabase/migrations/20261001144429_preschool_competency_bulletins.sql','utf8')
 const activeRoleMigration=readFileSync('supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql','utf8')
 const secretaryPublishMigration=readFileSync('supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql','utf8')
+const familyBulletinAclMigration=readFileSync('supabase/migrations/20261019104833_lock_family_preschool_bulletin_rpc.sql','utf8')
 const workspace=readFileSync('src/components/preschool-workspace.tsx','utf8')
 for(const text of [
  'create table public.preschool_competencies','create table public.preschool_class_staff','create table public.preschool_evaluations','create table public.preschool_evaluation_events','create table public.preschool_bulletin_versions',
@@ -18,6 +19,8 @@ for(const text of [
 ])assert.ok(migration.includes(text),`missing preschool capability: ${text}`)
 for(const role of ["m.enabled and m.role='teacher'","m.enabled and m.role in ('teacher','school_admin','director','secretary')"])assert.ok(activeRoleMigration.includes(role),`stale Preschool access must require active eligible membership: ${role}`)
 assert.ok(secretaryPublishMigration.includes("'director'',''censeur'',''secretary'"),'Preschool publication permission must include the secretary who sees the publish control')
+assert.match(familyBulletinAclMigration,/revoke all on function public\.family_preschool_bulletins\(\) from public,\s*anon/i,'parent bulletin RPC must not be executable by anonymous users')
+assert.match(familyBulletinAclMigration,/grant execute on function public\.family_preschool_bulletins\(\) to authenticated/i,'parent bulletin RPC must remain available to authenticated parents')
 assert.match(activeRoleMigration,/create or replace function private\.can_edit_preschool_class\(p_class uuid\)[\s\S]*?select private\.can_access_preschool_class\(p_class\)/)
 assert.match(migration,/revoke all on public\.preschool_program_settings,[\s\S]*?from public,anon,authenticated/i)
 assert.match(migration,/private\.family_student\(s\.id\)/,'parent bulletin RPC must remain linked-child scoped')

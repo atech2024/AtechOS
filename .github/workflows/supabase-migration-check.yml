@@ -79,9 +79,13 @@ on:
       - "supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql"
       - "supabase/migrations/20261012050004_enforce_subject_max_score_on_grade_updates.sql"
       - "supabase/migrations/20261008210000_section_grading_period_dates.sql"
+      - "supabase/migrations/20261019104755_student_dashboard_scope.sql"
       - "supabase/ci-exam-submissions/**"
       - "supabase/ci/student-followup-badge-verification.sql"
       - "supabase/ci-parent/**"
+      - "supabase/ci-assignment-files/**"
+      - "supabase/migrations/20261016154709_parent_assignment_file_access.sql"
+      - "supabase/migrations/20261019104833_lock_family_preschool_bulletin_rpc.sql"
       - "supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
@@ -160,9 +164,13 @@ on:
       - "supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql"
       - "supabase/migrations/20261012050004_enforce_subject_max_score_on_grade_updates.sql"
       - "supabase/migrations/20261008210000_section_grading_period_dates.sql"
+      - "supabase/migrations/20261019104755_student_dashboard_scope.sql"
       - "supabase/ci-exam-submissions/**"
       - "supabase/ci/student-followup-badge-verification.sql"
       - "supabase/ci-parent/**"
+      - "supabase/ci-assignment-files/**"
+      - "supabase/migrations/20261016154709_parent_assignment_file_access.sql"
+      - "supabase/migrations/20261019104833_lock_family_preschool_bulletin_rpc.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "vercel.json"
       - "supabase/ci/**"
@@ -206,6 +214,7 @@ jobs:
           cp supabase/migrations/20261001001600_kindergarten_private_relocation.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001144429_preschool_competency_bulletins.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261019104833_lock_family_preschool_bulletin_rpc.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001222000_school_calendar_year_successor.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261002100000_official_calendar_sources.sql supabase/ci/supabase/migrations/
@@ -252,6 +261,7 @@ jobs:
           cp supabase/migrations/20261006190617_separate_kiosk_and_student_suspensions.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261008134043_family_validated_payment_timeline.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261008210000_section_grading_period_dates.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261019104755_student_dashboard_scope.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009100000_finance_payment_receipts_signatures.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009110000_direction_member_receipt_signatures.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261009133000_editable_receipt_signature_name.sql supabase/ci/supabase/migrations/
@@ -426,4 +436,32 @@ jobs:
       - name: Stop grade-deadline verification Supabase
         if: always()
         working-directory: supabase/ci-grade-deadline
+        run: supabase stop --no-backup
+
+  family-assignment-files:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Stage the parent assignment-file policy over a synthetic schema
+        working-directory: supabase/ci-assignment-files
+        run: cp ../migrations/20261016154709_parent_assignment_file_access.sql supabase/migrations/
+      - name: Start isolated Supabase and apply the assignment-file policy
+        working-directory: supabase/ci-assignment-files
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Verify linked-parent storage isolation and current-year scope
+        working-directory: supabase/ci-assignment-files
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-family-assignment-files-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < assignment-files-verification.sql
+      - name: Stop assignment-file verification Supabase
+        if: always()
+        working-directory: supabase/ci-assignment-files
         run: supabase stop --no-backup

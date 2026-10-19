@@ -3,6 +3,7 @@
 import {useEffect,useState} from 'react'
 import {T} from '@/components/translation-provider'
 import {createClient} from '@/lib/supabase/client'
+import {Check} from 'lucide-react'
 
 type Child={id:string;first_name:string;last_name:string;atechos_id:string;photo_url?:string|null}
 type ChildView=Child & {photo:string;attendance:'present'|'late'|'absent'|'unknown'}
@@ -44,15 +45,17 @@ export default function FamilyChildrenOverview({students,selectedId,onSelect}:{s
   })()
   return()=>{active=false}
  },[students])
- return <section aria-labelledby="family-children-overview-title" className="mb-5 rounded-2xl border bg-white p-4 sm:p-5">
-  <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 id="family-children-overview-title" className="text-lg font-bold text-slate-900"><T text="My children today"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Today's recorded school attendance"/></p></div><p className="text-xs text-slate-600"><T text="Color means present; grayscale means recorded absent."/></p></div>
+ return <section aria-labelledby="family-children-overview-title" className="family-portal__children mb-5 rounded-2xl bg-white p-4 sm:p-5">
+  <div className="family-portal__children-heading flex flex-wrap items-end justify-between gap-2"><div><h2 id="family-children-overview-title" className="text-lg font-bold text-slate-900"><T text="My children today"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Today's recorded school attendance"/></p></div><p className="text-xs text-slate-600"><T text="Color means present; grayscale means recorded absent."/></p></div>
   {loading?<p className="mt-4 text-sm text-slate-600"><T text="Loading..."/></p>:<ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{views.map(child=>{
    const fullName=`${child.first_name} ${child.last_name}`
    const stateText=child.attendance==='present'?'Present':child.attendance==='late'?'Late':child.attendance==='absent'?'Absent':'No record today'
-   return <li key={child.id}><button type="button" onClick={()=>onSelect(child.id)} aria-pressed={selectedId===child.id} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700 ${selectedId===child.id?'border-blue-700 bg-blue-50':'border-slate-200 hover:bg-slate-50'}`}>
+   return <li key={child.id}><button type="button" onClick={()=>onSelect(child.id)} aria-pressed={selectedId===child.id} className={`family-portal__child-card flex w-full items-center gap-3 rounded-xl border p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700 ${selectedId===child.id?'border-blue-700 bg-blue-50':'border-slate-200 hover:bg-slate-50'}`}>
     {child.photo?<img src={child.photo} alt="" loading="lazy" referrerPolicy="no-referrer" className={`h-14 w-14 shrink-0 rounded-lg object-cover ${childPortraitTone(child.attendance)}`}/>:<span aria-hidden="true" className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100 font-semibold text-slate-700 ${childPortraitTone(child.attendance)}`}>{child.first_name[0]}{child.last_name[0]}</span>}
-    <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-slate-900">{fullName}</span><span className="block truncate text-xs text-slate-600">{child.atechos_id}</span><span className="mt-1 block text-xs font-medium"><T text={stateText}/></span></span>
+    <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-slate-900">{fullName}</span><span className="block truncate text-xs text-slate-600">{child.atechos_id}</span><span className={`family-portal__child-status family-portal__child-status--${child.attendance} mt-1`}><span aria-hidden="true"/><T text={stateText}/></span></span>
+    <span className="family-portal__child-selected" aria-hidden="true"><Check className="h-4 w-4" strokeWidth={2.5}/></span>
    </button></li>
   })}</ul>}
  </section>
 }
+

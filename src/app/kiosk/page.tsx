@@ -41,7 +41,7 @@ export default function StudentKiosk() {
      <Image src="/landing/atechos-logo-mark.webp" alt="" width={420} height={372} priority className="h-11 w-12 object-contain mix-blend-multiply"/>
      <Image src="/landing/atechos-logo-wordmark.webp" alt="AtechOS" width={760} height={157} priority className="h-auto w-32 sm:w-36 mix-blend-multiply"/>
     </Link>
-    <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 shadow-sm"><span className="size-2 rounded-full bg-emerald-500" aria-hidden="true"/><T text="School attendance station"/></div>
+    
    </header>
 
    <section className="kiosk-intro grid gap-5 border-b border-[#dce4ee] pb-6 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,34rem)] xl:items-end">

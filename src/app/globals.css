@@ -696,3 +696,24 @@ html.landing-motion-ready [data-landing-reveal]:focus-within {
 @keyframes kiosk-notice-in { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
 @media (prefers-reduced-motion:reduce) { .kiosk-notice,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-badge,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-reflection,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-beam,.kiosk-scan-guide[data-motion-active="true"] .kiosk-scan-confirm { animation:none; } .kiosk-motion-toggle { display:none; } }
 
+
+/* KIOS controls remain compact and readable on narrow and landscape screens. */
+.kiosk-schedule summary::-webkit-details-marker { display:none; }
+.kiosk-schedule:focus-within { border-color:#8ab9e9; box-shadow:0 0 0 3px rgba(5,108,211,.12); }
+.kiosk-page { padding-top:clamp(1rem,4vh,2.5rem); }
+.kiosk-page :where(button,summary):focus-visible { outline:2px solid #056cd3; outline-offset:3px; }
+@media (max-width:639px) {
+ .kiosk-page { padding-inline:max(12px,env(safe-area-inset-left)) max(12px,env(safe-area-inset-right)); }
+ .kiosk-page > div { gap:1rem; }
+ .kiosk-header { gap:.75rem; }
+ .kiosk-schedule { max-width:100%; }
+}
+@media (max-height:700px) and (orientation:landscape) {
+ .kiosk-page { padding-top:1rem; padding-bottom:1rem; }
+ .kiosk-page > div { gap:1rem; }
+ .kiosk-intro { padding-bottom:1rem; }
+ .kiosk-scan-guide { min-height:8rem; }
+}
+@media (prefers-reduced-motion:reduce) {
+ .kiosk-page :where(button,summary) { scroll-behavior:auto; transition-duration:0ms; }
+}

@@ -13,7 +13,8 @@ assert.match(kiosk,/setTimeout\(\(\)=>setNotice\(null\),10000\)/,'the live scan 
 assert.match(kiosk,/setLog\(current=>\[entry,\.\.\.current\]\.slice\(0,50\)\)/,'completed scans stay in the session list, capped to the latest 50')
 assert.ok(kiosk.includes('/landing/atechos-logo-mark.webp')&&kiosk.includes('/landing/atechos-logo-wordmark.webp'),'the kiosk header uses the official AtechOS logo assets')
 assert.match(kiosk,/atechos-logo-mark\.webp[\s\S]*?mix-blend-multiply[\s\S]*?atechos-logo-wordmark\.webp[\s\S]*?mix-blend-multiply/,'white logo canvases blend into the kiosk background')
-assert.match(kiosk,/<T text="Scanned students"[\s\S]*?<table/,'the scan history is a labelled, accessible table')
+assert.match(kiosk,/aria-expanded=\{historyOpen\}[\s\S]*?aria-controls="scan-history-content"[\s\S]*?setHistoryOpen/,'operators can collapse and reopen scan history')
+assert.match(kiosk,/<ol className="max-h-\[420px\][\s\S]*?grid-cols-\[minmax\(0,1fr\)_auto\]/,'scan history uses narrow-screen friendly list rows instead of a wide table')
 assert.match(kiosk,/role=\{notice\.tone==='error'\?'alert':'status'\}/,'live scan results and errors are announced accessibly')
 assert.match(styles,/@media \(prefers-reduced-motion:reduce\)[^}]*\.kiosk-scan-reflection[^}]*animation:none/,'badge reflection respects reduced-motion preference')
 assert.match(styles,/data-motion-active="true"\] \.kiosk-scan-badge[^}]*animation:[^;]+infinite/,'badge scan animation repeats continuously while its guide is active')
@@ -24,9 +25,12 @@ assert.match(styles,/@media \(max-width:639px\)[\s\S]*?\.kiosk-scan-demo-compact
 assert.match(styles,/\.kiosk-motion-toggle \{ display:none; \}/,'reduced-motion users do not see a control for an animation that is disabled')
 assert.match(kiosk,/aria-pressed=\{scanGuidePaused\}[\s\S]*setScanGuidePaused[\s\S]*Pause badge animation/,'users can pause and resume the decorative loop without stopping the camera')
 assert.match(kiosk,/document\.visibilityState==='visible'&&isIntersecting/,'continuous motion is enabled only while the guide is visible and the page is active')
-assert.match(kiosk,/kiosk-intro grid gap-5[^\n]*xl:grid-cols/,'the time card stays below the title until there is enough room for a two-column layout')
+assert.match(kiosk,/<details className="kiosk-schedule[\s\S]*?<T text="Check-in 00:00/,'Haiti attendance hours are compact and expandable')
+assert.ok(kiosk.indexOf('notice-title')<kiosk.indexOf('<QRScanner'),'live scan feedback is positioned before the camera view')
+assert.match(scanner,/facingMode:\{ideal:mode\}[\s\S]*?chooseCamera/,'operators can switch between front and back cameras while scanning')
 assert.match(kiosk,/kiosk-scan-guide[\s\S]*role="img"[\s\S]*kiosk-scan-badge[\s\S]*kiosk-scan-reflection/,'a decorative, accessible student badge moves through the scanner with a reflective finish')
 for(const key of ['School attendance station','Scan a student badge','Camera active. Scan a badge; it stays on for the next person.','The camera stays on until you stop it. Scans appear in the history.','Illustration: a student badge moves over the scanner, is read, then attendance is confirmed.','Pause badge animation','Resume badge animation','Latest scan notification','Scanned students','No scans yet','Visible for 10 seconds']) {
  assert.ok(translations.includes(`'${key}':[`),`${key} has French and Haitian Creole translations`)
 }
-console.log('PASS KIOS session UX: persistent camera, repeated-frame throttle, ten-second notice, session history, AtechOS branding, localization and reduced motion.')
+for(const key of ['Haiti schedule','Show scan history','Hide scan history','Front camera','Back camera','Camera facing']) { assert.ok(translations.includes(`'${key}':[`),`${key} has French and Haitian Creole translations`) }
+console.log('PASS KIOS session UX: persistent camera, front/back switch, collapsible responsive history, compact Haiti hours, camera-first feedback, localization and reduced motion.')

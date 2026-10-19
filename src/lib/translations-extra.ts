@@ -1239,4 +1239,10 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Completed scans stay in this list during the session.':['Les scans terminés restent dans cette liste pendant la session.','Eskanè ki fini yo rete nan lis sa a pandan sesyon an.'],
  'Time':['Heure','Lè'],
  'Attendance is recorded securely by the school. Only a student’s name, class and scan status are shown here.':['La présence est enregistrée de manière sécurisée par l’établissement. Seuls le nom de l’élève, sa classe et le statut du scan s’affichent ici.','Lekòl la anrejistre prezans lan yon fason ki an sekirite. Se non elèv la, klas li ak estati eskanè a sèlman ki parèt la a.'],
+ 'Haiti schedule':['Horaires en Haïti','Orè Ayiti'],
+ 'Show scan history':['Afficher l’historique','Montre istorik la'],
+ 'Hide scan history':['Masquer l’historique','Kache istorik la'],
+ 'Front camera':['Caméra avant','Kamera devan'],
+ 'Back camera':['Caméra arrière','Kamera dèyè'],
+ 'Camera facing':['Caméra utilisée','Kamera an sèvis'],
 }

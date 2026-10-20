@@ -16,17 +16,22 @@ export default function AttendancePage({embedded=false}:{embedded?:boolean}){con
   const getSupabase = () => {
     if (!supabase) supabase = createClient()
     return supabase
-  };const loadVersion=useRef(0);const [canMark,setCanMark]=useState(false),[events,setEvents]=useState<{student_id:string;source:string;actor_name:string;actor_role:string;action:string;recorded_at:string}[]>([]),[saving,setSaving]=useState(false);const [classes,setClasses]=useState<ClassRow[]>([]),[students,setStudents]=useState<Student[]>([]),[records,setRecords]=useState<Record<string,AttendanceRow>>({});const [classId,setClassId]=useState(''),[date,setDate]=useState(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Port-au-Prince'}).format(new Date())),[loading,setLoading]=useState(true),[error,setError]=useState('')
+  };const loadVersion=useRef(0),classLoadVersion=useRef(0);const [canMark,setCanMark]=useState(false),[events,setEvents]=useState<{student_id:string;source:string;actor_name:string;actor_role:string;action:string;recorded_at:string}[]>([]),[saving,setSaving]=useState(false);const [classes,setClasses]=useState<ClassRow[]>([]),[students,setStudents]=useState<Student[]>([]),[records,setRecords]=useState<Record<string,AttendanceRow>>({});const [classId,setClassId]=useState(''),[date,setDate]=useState(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Port-au-Prince'}).format(new Date())),[loading,setLoading]=useState(true),[error,setError]=useState('')
  async function loadClasses(){
+  const version=++classLoadVersion.current
+  if(!academicYearId){setLoading(true);return}
+  setLoading(true);setError('')
   const [classesResult,gradesResult]=await Promise.all([
    getSupabase().from('classes').select('id,name,grade_level,grade_level_id,academic_year_id').eq('enabled',true).eq('academic_year_id',academicYearId).order('name'),
    getSupabase().rpc('get_grade_levels'),
   ])
+  if(version!==classLoadVersion.current)return
   const {data,error}=classesResult
   if(error||gradesResult.error){setError((error||gradesResult.error)?.message||'');setLoading(false);return}
   const scoped=embedded?filterPreschoolAttendanceClasses(data||[],gradesResult.data||[]):data||[]
   const ids=[...new Set(scoped.map(c=>c.academic_year_id).filter(Boolean))]
   const years=ids.length?await getSupabase().from('academic_years').select('id,start_date,end_date').in('id',ids):{data:[],error:null}
+  if(version!==classLoadVersion.current)return
   if(years.error){setError(years.error.message);setLoading(false);return}
   const rows=scoped.map(c=>{const y=years.data?.find(y=>y.id===c.academic_year_id);return {...c,year_start:y?.start_date||'',year_end:y?.end_date||''}}) as ClassRow[]
   setClasses(rows)

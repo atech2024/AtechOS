@@ -369,8 +369,8 @@ begin
  if summary->>'present'<>'1' or summary->>'late'<>'1' then raise exception 'school-wide present total must include late arrivals and expose lateness as a subset: %',summary;end if;
  perform public.activate_school_section('11000000-0000-0000-0000-000000000001','primary',true);
  select id into nonpreschool_class from public.classes where school_id='10000000-0000-0000-0000-000000000001' and grade_level_id='30000000-0000-0000-0000-000000000002' and academic_year_id='11000000-0000-0000-0000-000000000001';
- insert into public.students(id,school_id,first_name,last_name,atechos_id) values('50000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','Primary','CI','AOS-CI-0002');
- insert into public.enrollments(id,school_id,student_id,class_id,status) values('60000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000002',nonpreschool_class,'active');
+ insert into public.students(id,school_id,first_name,last_name,atechos_id) values('50000000-0000-0000-0000-000000000007','10000000-0000-0000-0000-000000000001','Primary','CI','AOS-CI-KIOS');
+ insert into public.enrollments(id,school_id,student_id,class_id,status) values('60000000-0000-0000-0000-000000000007','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000007',nonpreschool_class,'active');
  perform public.save_school_kiosk_schedule(time '06:30',time '07:30',time '07:45',time '12:30',time '20:00',time '07:00',time '08:00',time '08:15',time '12:00',time '18:00');
  if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '08:00',today,null,null)<>'present'
   or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '08:01',today,null,null)<>'late'
@@ -379,11 +379,11 @@ begin
   or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '12:00',today,now()-interval '1 hour',null)<>'checkout' then
    raise exception 'Preschool-specific attendance and departure hours were not enforced';
  end if;
- if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '10:59',today,now()-interval '1 hour',null)<>'present' then raise exception 'school release window opened before its approved time';end if;
+ if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000007',time '10:59',today,now()-interval '1 hour',null)<>'present' then raise exception 'school release window opened before its approved time';end if;
  perform public.activate_school_release_protocol('CI approved early dismissal',time '11:00');
- if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '10:59',today,now()-interval '1 hour',null)<>'present'
-  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '11:00',today,now()-interval '1 hour',null)<>'checkout'
-  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '11:00',today,null,null)<>'blocked' then
+ if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000007',time '10:59',today,now()-interval '1 hour',null)<>'present'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000007',time '11:00',today,now()-interval '1 hour',null)<>'checkout'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000007',time '11:00',today,null,null)<>'blocked' then
   raise exception 'Direction-approved timed release did not honor its time or check-in requirement';
  end if;
  insert into public.official_calendar_sources(url,source,label,school_year,suggested_dates)
@@ -396,8 +396,8 @@ begin
   or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '06:01',today,now()-interval '1 hour',null)<>'checkout' then
   raise exception 'confirmed exam period did not allow flexible entry and exit';
  end if;
- if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '06:00',today,null,null)<>'present'
-  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '06:01',today,now()-interval '1 hour',null)<>'checkout' then
+ if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000007',time '06:00',today,null,null)<>'present'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000007',time '06:01',today,now()-interval '1 hour',null)<>'checkout' then
   raise exception 'confirmed primary exam period did not allow flexible entry and exit';
  end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);

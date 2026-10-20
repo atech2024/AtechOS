@@ -319,10 +319,12 @@ $$;
 create or replace function private.record_student_kiosk(p_student uuid) returns jsonb
 language plpgsql security definer set search_path=''
 as $$
-declare s public.students%rowtype;a public.attendance%rowtype;ts timestamptz:=now();d date:=(now() at time zone 'America/Port-au-Prince')::date;result text;window_name text:=private.kiosk_window((now() at time zone 'America/Port-au-Prince')::time);
+declare s public.students%rowtype;a public.attendance%rowtype;cl public.classes%rowtype;ts timestamptz:=now();d date:=(now() at time zone 'America/Port-au-Prince')::date;result text;window_name text:=private.kiosk_window((now() at time zone 'America/Port-au-Prince')::time);
 begin
  select * into s from public.students where id=p_student and active and school_status='active';
  if s.id is null then return jsonb_build_object('error','invalid_credentials');end if;
+ select c.* into cl from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id where e.student_id=s.id and e.status='active' and y.is_current limit 1;
+ if private.student_sanction_restriction(s.id,'kiosk') is not null then return jsonb_build_object('error',private.student_sanction_restriction(s.id,'kiosk')); end if;
  select * into a from public.attendance where student_id=s.id and attendance_date=d for update;
  if window_name='blocked' then return jsonb_build_object('error','kiosk_closed');end if;
  if window_name='checkout' then
@@ -331,7 +333,7 @@ begin
  elsif a.check_in_at is not null then result:='duplicate_scan';
  else
   insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by)
-  select s.school_id,s.id,e.class_id,d,window_name,ts,case when window_name='late' then greatest(1,floor(extract(epoch from ((ts at time zone 'America/Port-au-Prince')::time-time '07:45'))/60)::integer) else 0 end,s.user_id from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id where e.student_id=s.id and e.status='active' and y.is_current limit 1
+  values(s.school_id,s.id,cl.id,d,window_name,ts,case when window_name='late' then greatest(1,floor(extract(epoch from ((ts at time zone 'America/Port-au-Prince')::time-time '07:45'))/60)::integer) else 0 end,s.user_id)
   on conflict(student_id,attendance_date) do update set check_in_at=excluded.check_in_at,status=excluded.status,late_minutes=excluded.late_minutes,recorded_by=excluded.recorded_by,updated_at=ts returning * into a;
   if a.id is null then return jsonb_build_object('error','current_class_required');end if;result:='check_in';
  end if;

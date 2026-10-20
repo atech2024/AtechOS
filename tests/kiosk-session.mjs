@@ -33,4 +33,8 @@ for(const key of ['School attendance station','Scan a student badge','Camera act
  assert.ok(translations.includes(`'${key}':[`),`${key} has French and Haitian Creole translations`)
 }
 for(const key of ['Haiti schedule','Show scan history','Hide scan history','Front camera','Back camera','Camera facing']) { assert.ok(translations.includes(`'${key}':[`),`${key} has French and Haitian Creole translations`) }
+assert.match(kiosk,/already_picked_up_by_parent:\{label:'Exit already recorded',kind:'exit'\}/,'a child already collected is shown as an existing exit, never a new entry')
+assert.match(kiosk,/status\.kind==='exit'\?result\.check_out_at\|\|at:at/,'an existing exit uses the recorded check-out time')
+assert.match(kiosk,/status\.kind==='exit'\?<ArrowUpFromLine[\s\S]*?status\.kind==='entry'\?<ArrowDownToLine[\s\S]*?<T text=\{status\.label\}/,'history icons and labels follow the recorded action')
+for(const key of ['Exit already recorded','Already checked in','Attendance status']) { assert.ok(translations.includes("'"+key+"':["),key+' has French and Haitian Creole translations') }
 console.log('PASS KIOS session UX: persistent camera, front/back switch, collapsible responsive history, compact Haiti hours, camera-first feedback, localization and reduced motion.')

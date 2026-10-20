@@ -47,6 +47,21 @@ create table public.grading_periods (
  sections text[] not null default array['preschool']::text[],
  is_active boolean not null default true
 );
+-- The selected migration workflow does not replay the historical class-exam
+-- calendar migration. Keep its queried relation in the synthetic baseline so
+-- later KIOS integration checks can exercise the ordinary (non-exam) path.
+create table public.exam_schedule (
+ id uuid primary key default gen_random_uuid(),
+ school_id uuid not null references public.schools(id),
+ class_id uuid not null references public.classes(id),
+ subject_id uuid not null references public.subjects(id),
+ period_id uuid not null references public.grading_periods(id),
+ starts_at timestamptz not null,
+ ends_at timestamptz not null,
+ published_version_id uuid,
+ cancelled boolean not null default false,
+ check (ends_at > starts_at)
+);
 create table public.students (
  id uuid primary key,
  school_id uuid not null references public.schools(id),

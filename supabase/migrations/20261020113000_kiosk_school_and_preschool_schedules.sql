@@ -156,7 +156,7 @@ begin
  if position('school_kiosk_schedule_apply' in src)>0 then raise exception 'kiosk_schedule_patch_already_applied';end if;
  attendance_anchor:='select * into a from public.attendance where student_id=s.id and attendance_date=d for update;';
  if position(attendance_anchor in src)=0 then raise exception 'kiosk_schedule_attendance_anchor_missing';end if;
- src:=replace(src,attendance_anchor,attendance_anchor||' /* school_kiosk_schedule_apply */ window_name:=private.kiosk_window_for_student(s.id,(ts at time zone ''America/Port-au-Prince'')::time,d,a.check_in_at,a.check_out_at);');
+ src:=replace(src,attendance_anchor,attendance_anchor||' /* school_kiosk_schedule_apply */ if not coalesce((gate->>''meeting_window'')::boolean,false) and not coalesce((gate->>''allow_exit'')::boolean,false) then window_name:=private.kiosk_window_for_student(s.id,(ts at time zone ''America/Port-au-Prince'')::time,d,a.check_in_at,a.check_out_at);end if;');
  release_anchor:='if protocol_id is not null and not private.is_preschool_student(s.id) then window_name:=''checkout'';end if;';
  if position(release_anchor in src)=0 then raise exception 'kiosk_schedule_release_anchor_missing';end if;
  src:=replace(src,release_anchor,'if protocol_id is not null and not private.is_preschool_student(s.id) and (ts at time zone ''America/Port-au-Prince'')::time >= (select p.release_at from public.school_release_protocols p where p.id=protocol_id) and a.check_in_at is not null and a.check_out_at is null then window_name:=''checkout'';end if;');

@@ -7,6 +7,12 @@ export const preschoolLevelDefinitions=[
  {code:'PS3',name:'Grande Section',age:'5–6 ans'},
 ] as const
 
+export function filterPreschoolAttendanceClasses<T extends {grade_level:string|null;grade_level_id:string|null}>(classes:T[],gradeLevels:{id:string;code:string}[]):T[]{
+ const codes=new Map(gradeLevels.map(level=>[level.id,level.code]))
+ const preschoolCodes=new Set<string>(preschoolLevelDefinitions.map(level=>level.code))
+ return classes.filter(item=>preschoolCodes.has((item.grade_level_id?codes.get(item.grade_level_id):null)||item.grade_level||''))
+}
+
 export function summarizePreschoolLevels(classes:PreschoolClassOverview[]){
  return preschoolLevelDefinitions.map(level=>{
   const matching=classes.filter(item=>item.grade.trim().toUpperCase()===level.code)

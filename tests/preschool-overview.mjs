@@ -19,6 +19,13 @@ assert.deepEqual(levels.map(({code,classCount,studentCount,teacherCount,assistan
 assert.deepEqual(exports.uniquePreschoolStaff(classes).map(person=>person.id),['aide-1','teacher-1'])
 assert.deepEqual(exports.uniquePreschoolClassStaff([{id:'teacher-1',name:'Mme Test',role:'aide_educatrice'},{id:'teacher-1',name:'Mme Test',role:'titulaire'},{id:'aide-1',name:'Mme Aide',role:'aide_educatrice'}]).map(person=>[person.id,person.role]),[['aide-1','aide_educatrice'],['teacher-1','titulaire']])
 assert.deepEqual(exports.summarizePreschoolLevels([]).map(level=>level.classCount),[0,0,0])
+const attendanceClasses=[
+ {id:'ps-code',grade_level:'PS1',grade_level_id:null},
+ {id:'ps-id',grade_level:null,grade_level_id:'grade-ps3'},
+ {id:'primary',grade_level:'AF1',grade_level_id:null},
+ {id:'secondary',grade_level:null,grade_level_id:'grade-ns1'},
+]
+assert.deepEqual(exports.filterPreschoolAttendanceClasses(attendanceClasses,[{id:'grade-ps3',code:'PS3'},{id:'grade-ns1',code:'NS1'}]).map(item=>item.id),['ps-code','ps-id'],'Kindergarten attendance must only include PS1–PS3 classes, including classes resolved by grade-level ID')
 
 const navigation=readFileSync('src/lib/navigation.ts','utf8')
 assert.match(navigation,/href:'\/dashboard\/preschool\/overview'/,'the Preschool workspace must be reachable in the role-aware menu')
@@ -26,6 +33,7 @@ assert.match(navigation,/label:'Preschool competency bulletins',href:'\/dashboar
 const page=readFileSync('src/app/dashboard/preschool/overview/page.tsx','utf8')
 for(const role of ['school_admin','director','secretary','teacher','censeur'])assert.ok(page.includes(`'${role}'`),`${role} should retain the established Preschool route access`)
 const component=readFileSync('src/components/preschool-overview.tsx','utf8')
+const attendance=readFileSync('src/components/attendance-workspace.tsx','utf8')
 assert.match(component,/preschool_report_workspace/,'the dashboard must reuse the existing tenant-scoped Preschool workspace')
 assert.match(component,/Role not configured/,'cleaning staff must remain an honest, unconfigured state until its access model is confirmed')
 assert.match(component,/No account or access has been created/,'the dashboard must not imply that unsupported staff access exists')
@@ -36,6 +44,9 @@ assert.doesNotMatch(component,/setYearId/,'the shared app header remains the onl
 assert.match(component,/setActiveView\('reports'\)/,'report actions should open inside the Kindergarten workspace')
 assert.match(component,/ClassesPage embedded/,'class management should be embedded in the Kindergarten workspace')
 assert.match(component,/AttendancePage embedded/,'attendance actions should stay inside the Kindergarten workspace')
+assert.match(attendance,/filterPreschoolAttendanceClasses\(data\|\|\[\],gradesResult\.data\|\|\[\]\)/,'embedded Kindergarten attendance must scope its roster to preschool classes')
+assert.match(attendance,/!embedded&&canMark&&<SchoolReleaseProtocolPanel\/>/,'Kindergarten attendance must not expose the school-wide dismissal controls')
+assert.match(attendance,/!embedded&&<HomeArrivalStaffPanel\/>/,'Kindergarten attendance must not duplicate the staff home-arrival controls')
 assert.match(component,/KindergartenPickupPage embedded/,'pickup workflow should stay inside the Kindergarten workspace')
 assert.doesNotMatch(component,/<Link|href=/,'Kindergarten overview actions should not navigate to another dashboard route')
 assert.match(component,/preschool-graffiti-art/,'the visual direction should include the agreed colorful Kindergarten illustration')

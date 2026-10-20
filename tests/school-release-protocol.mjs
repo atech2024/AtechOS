@@ -41,7 +41,7 @@ assert.ok(workflow.includes('20261005210100_school_release_protocol.sql'),'isola
 
 const ui=readFileSync('src/components/school-release-protocol.tsx','utf8')
 const page=readFileSync('src/components/attendance-workspace.tsx','utf8')
-assert.ok(page.includes('{canMark&&<SchoolReleaseProtocolPanel/>}'),'only staff already authorized for the attendance workspace should load the protocol panel')
+assert.ok(page.includes('{!embedded&&canMark&&<SchoolReleaseProtocolPanel/>}'),'only staff already authorized for the standalone attendance workspace should load the school-wide protocol panel')
 assert.ok(ui.includes("rpc('school_release_protocol_workspace')")&&ui.includes("rpc('activate_school_release_protocol'"),'UI must read and activate through scoped server RPCs')
 const kiosk=readFileSync('src/app/kiosk/page.tsx','utf8')
 assert.ok(kiosk.includes('school_release_protocol_active')&&kiosk.includes('School release protocol active. Check-out recorded.'),'KIOS should confirm checkout under the school dismissal protocol')

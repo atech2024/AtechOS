@@ -89,6 +89,7 @@ create table public.attendance (
  check_in_at timestamptz,
  check_out_at timestamptz,
  status text not null,
+ notes text,
  late_minutes integer not null default 0,
  recorded_by uuid references public.users(id),
  updated_at timestamptz not null default now(),

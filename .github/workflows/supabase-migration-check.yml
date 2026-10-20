@@ -69,6 +69,9 @@ on:
       - "supabase/migrations/20261017154500_finance_bank_transaction_type.sql"
       - "supabase/migrations/20261017174604_finance_receipt_refund_audit.sql"
       - "supabase/migrations/20261018100000_staff_self_service_profiles.sql"
+      - "supabase/migrations/20261020090533_preschool_kind_workspace_and_team.sql"
+      - "supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql"
+      - "supabase/migrations/20261020130000_attendance_summary_late_included.sql"
       - "supabase/migrations/20261009110000_direction_member_receipt_signatures.sql"
       - "supabase/migrations/20261009133000_editable_receipt_signature_name.sql"
       - "supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql"
@@ -145,6 +148,9 @@ on:
       - "supabase/migrations/20261017154500_finance_bank_transaction_type.sql"
       - "supabase/migrations/20261017174604_finance_receipt_refund_audit.sql"
       - "supabase/migrations/20261018100000_staff_self_service_profiles.sql"
+      - "supabase/migrations/20261020090533_preschool_kind_workspace_and_team.sql"
+      - "supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql"
+      - "supabase/migrations/20261020130000_attendance_summary_late_included.sql"
       - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
       - "supabase/migrations/20261005050000_finance_overpayments_all_fees.sql"
       - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
@@ -270,6 +276,9 @@ jobs:
           cp supabase/migrations/20261017154500_finance_bank_transaction_type.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261017174604_finance_receipt_refund_audit.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261018100000_staff_self_service_profiles.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261020090533_preschool_kind_workspace_and_team.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261020130000_attendance_summary_late_included.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
         working-directory: supabase/ci
         run: |

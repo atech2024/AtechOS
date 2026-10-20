@@ -8,6 +8,7 @@ export const navigation:NavigationItem[]=[
  {label:'Subjects & Teachers',href:'/dashboard/subjects',icon:'teachers',roles:administration,group:'teaching'},
  {label:'Classes',href:'/dashboard/classes',icon:'classes',roles:[...administration,'censeur'],group:'teaching'},
  {label:'Attendance',href:'/dashboard/attendance',icon:'attendance',roles:[...administration,'teacher','surveillant'],group:'school_life'},
+ {label:'KIOS schedules',href:'/dashboard/kiosk-settings',icon:'kiosk',roles:[...administration,'surveillant','censeur'],group:'school_life'},
  {label:'Kindergarten pickup',href:'/dashboard/attendance/kindergarten-pickup',icon:'attendance',roles:[...administration,'surveillant','censeur'],group:'preschool'},
  {label:'Preschool / Kindergarten',href:'/dashboard/preschool/overview',icon:'preschool',roles:[...administration,'teacher','censeur'],group:'preschool'},
  {label:'Student Badges',href:'/dashboard/badges',icon:'badge',roles:[...administration,'surveillant'],group:'people'},

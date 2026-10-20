@@ -16,6 +16,7 @@ insert into public.users(id,full_name) values
  ('20000000-0000-0000-0000-000000000007','CI Secretary'),
  ('20000000-0000-0000-0000-000000000008','CI School Administrator');
 insert into public.grade_levels(id,code) values('30000000-0000-0000-0000-000000000001','PS1');
+insert into public.grade_levels(id,code,name) values('30000000-0000-0000-0000-000000000002','AF1','Primary CI');
 insert into public.classes(id,school_id,grade_level_id,grade_level,name,academic_year_id) values
  ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','PS1','Preschool CI','11000000-0000-0000-0000-000000000001');
 insert into public.students(id,school_id,first_name,last_name,atechos_id) values
@@ -44,7 +45,7 @@ insert into public.attendance(id,school_id,student_id,class_id,attendance_date,c
  ('80000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',(now() at time zone 'America/Port-au-Prince')::date,now(),'present','20000000-0000-0000-0000-000000000001');
 
 do $test$
-declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false; adult_id uuid; pickup_workspace jsonb; pickup_update_id uuid; term_year uuid:='11000000-0000-0000-0000-000000000001'; ps_period uuid; ps_competency uuid; ps_version uuid; ps_workspace jsonb; ps_report jsonb; ps_published integer;
+declare v_case_id uuid; family jsonb; kiosk jsonb; failed boolean:=false; adult_id uuid; pickup_workspace jsonb; pickup_update_id uuid; term_year uuid:='11000000-0000-0000-0000-000000000001'; ps_period uuid; ps_competency uuid; ps_version uuid; ps_workspace jsonb; ps_report jsonb; ps_published integer; ps_attendance jsonb; ps_staff_labels jsonb;
 begin
  if has_function_privilege('anon','public.family_preschool_bulletins()','EXECUTE') then raise exception 'anonymous users can execute family preschool bulletin RPC'; end if;
  if not has_function_privilege('authenticated','public.family_preschool_bulletins()','EXECUTE') then raise exception 'authenticated parents cannot execute family preschool bulletin RPC'; end if;
@@ -165,6 +166,28 @@ begin
  if not failed then raise exception 'preschool teacher accessed unassigned class';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  perform public.save_preschool_settings('20000000-0000-0000-0000-000000000004',false,false,true);
+ failed:=false;begin perform public.save_preschool_class_team('40000000-0000-0000-0000-000000000001','[{"user_id":"20000000-0000-0000-0000-000000000004","assignment_role":"titulaire"}]'::jsonb);exception when others then failed:=sqlerrm='invalid_preschool_class_team';end;
+ if not failed then raise exception 'Kindergarten accepted a one-person classroom team';end if;
+ perform public.save_preschool_class_team('40000000-0000-0000-0000-000000000001','[{"user_id":"20000000-0000-0000-0000-000000000004","assignment_role":"titulaire"},{"user_id":"20000000-0000-0000-0000-000000000008","assignment_role":"aide_educatrice"}]'::jsonb);
+ failed:=false;begin perform public.save_preschool_class_team('40000000-0000-0000-0000-000000000001','[{"user_id":"20000000-0000-0000-0000-000000000004","assignment_role":"titulaire"},{"user_id":"20000000-0000-0000-0000-000000000008","assignment_role":"aide_educatrice"},{"user_id":"20000000-0000-0000-0000-000000000007","assignment_role":"aide_educatrice"},{"user_id":"20000000-0000-0000-0000-000000000001","assignment_role":"titulaire"},{"user_id":"20000000-0000-0000-0000-000000000006","assignment_role":"aide_educatrice"}]'::jsonb);exception when others then failed:=sqlerrm='invalid_preschool_class_team';end;
+ if not failed then raise exception 'Kindergarten accepted a five-person classroom team';end if;
+ insert into public.staff_private_profiles(school_id,user_id,sex) values('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000004','female');
+ insert into public.classes(id,school_id,grade_level,name,academic_year_id) values('40000000-0000-0000-0000-000000000006','10000000-0000-0000-0000-000000000001','AF1','Primary CI','11000000-0000-0000-0000-000000000001');
+ insert into public.students(id,school_id,first_name,last_name,atechos_id) values('50000000-0000-0000-0000-000000000006','10000000-0000-0000-0000-000000000001','Primary','Student','AOS-CI-0006');
+ insert into public.enrollments(id,school_id,student_id,class_id,status) values('60000000-0000-0000-0000-000000000006','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000006','40000000-0000-0000-0000-000000000006','active');
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
+ if not public.preschool_management_access() then raise exception 'designated Kind coordinator did not receive module access';end if;
+ ps_attendance:=public.preschool_attendance_workspace(term_year,(now() at time zone 'America/Port-au-Prince')::date);
+ if jsonb_array_length(ps_attendance)<>2 or position('CI Student' in ps_attendance::text)=0 or position('Primary Student' in ps_attendance::text)>0 then raise exception 'Kind attendance RPC failed its roster or school-section scope';end if;
+ ps_staff_labels:=public.preschool_class_staff_display('40000000-0000-0000-0000-000000000001');
+ if ps_staff_labels->0->>'label'<>'Enseignante titulaire' or ps_staff_labels::text like '%sex%' then raise exception 'staff gendered label or profile privacy contract failed';end if;
+ perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','late');
+ if not exists(select 1 from public.attendance_events where student_id='50000000-0000-0000-0000-000000000001' and actor_role='teacher' and action='late') then raise exception 'Kind coordinator attendance action was not attributed';end if;
+ failed:=false;begin perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000006','40000000-0000-0000-0000-000000000006','present');exception when others then failed:=sqlerrm='not_authorized';end;
+ if not failed then raise exception 'Kind coordinator marked non-Kind attendance';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+ failed:=false;begin perform public.preschool_attendance_workspace('11000000-0000-0000-0000-000000000099',(now() at time zone 'America/Port-au-Prince')::date);exception when others then failed:=sqlerrm='not_authorized';end;
+ if not failed then raise exception 'Kind attendance workspace accepted a foreign academic year';end if;
  update public.school_members set role='parent' where school_id='10000000-0000-0000-0000-000000000001' and user_id='20000000-0000-0000-0000-000000000004';
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
  failed:=false;begin perform public.preschool_report_workspace('40000000-0000-0000-0000-000000000001',ps_period);exception when others then failed:=sqlerrm='not_authorized';end;
@@ -319,5 +342,59 @@ begin
   raise exception 'departed student lost history or saw a future numeric bulletin';end if;
 end
 $numeric_bulletin$;
+
+do $kiosk_schedule_ci$
+declare denied boolean:=false;today date:=(now() at time zone 'America/Port-au-Prince')::date;source_url text:='https://ci.invalid/kiosk-exams';nonpreschool_class uuid;summary jsonb;
+begin
+ if has_function_privilege('anon','public.school_kiosk_schedule_workspace()','EXECUTE') then raise exception 'anonymous can read KIOS schedule settings';end if;
+ if has_function_privilege('authenticated','private.kiosk_window_for_student(uuid,time,date,timestamp with time zone,timestamp with time zone)','EXECUTE') then raise exception 'authenticated can call internal KIOS scheduler';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
+ begin
+  perform public.save_school_kiosk_schedule(time '06:30',time '07:30',time '07:45',time '12:30',time '20:00',time '07:00',time '08:00',time '08:15',time '12:00',time '18:00');
+ exception when others then denied:=sqlerrm='not_authorized';
+ end;
+ if not denied then raise exception 'teacher changed KIOS schedules';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ update public.attendance set status='late',late_minutes=8 where id='80000000-0000-0000-0000-000000000001';
+ summary:=public.dashboard_summary();
+ if summary->>'present'<>'1' or summary->>'late'<>'1' then raise exception 'school-wide present total must include late arrivals and expose lateness as a subset: %',summary;end if;
+ perform public.activate_school_section('11000000-0000-0000-0000-000000000001','primary',true);
+ select id into nonpreschool_class from public.classes where school_id='10000000-0000-0000-0000-000000000001' and grade_level_id='30000000-0000-0000-0000-000000000002' and academic_year_id='11000000-0000-0000-0000-000000000001';
+ insert into public.students(id,school_id,first_name,last_name,atechos_id) values('50000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','Primary','CI','AOS-CI-0002');
+ insert into public.enrollments(id,school_id,student_id,class_id,status) values('60000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000002',nonpreschool_class,'active');
+ perform public.save_school_kiosk_schedule(time '06:30',time '07:30',time '07:45',time '12:30',time '20:00',time '07:00',time '08:00',time '08:15',time '12:00',time '18:00');
+ if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '08:00',today,null,null)<>'present'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '08:01',today,null,null)<>'late'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '08:16',today,null,null)<>'blocked'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '11:59',today,null,null)<>'blocked'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '12:00',today,now()-interval '1 hour',null)<>'checkout' then
+   raise exception 'Preschool-specific attendance and departure hours were not enforced';
+ end if;
+ if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '10:59',today,now()-interval '1 hour',null)<>'present' then raise exception 'school release window opened before its approved time';end if;
+ perform public.activate_school_release_protocol('CI approved early dismissal',time '11:00');
+ if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '10:59',today,now()-interval '1 hour',null)<>'present'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '11:00',today,now()-interval '1 hour',null)<>'checkout'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '11:00',today,null,null)<>'blocked' then
+  raise exception 'Direction-approved timed release did not honor its time or check-in requirement';
+ end if;
+ insert into public.official_calendar_sources(url,source,label,school_year,suggested_dates)
+ values(source_url,'MENFP','KIOS exam-period test','2026/2027','[]'::jsonb) on conflict(url) do nothing;
+ insert into public.confirmed_official_exam_dates(school_id,academic_year_id,section,source_url,source_name,source_label,source_wording,source_context,category,starts_on,ends_on,proposal_snapshot,proposal_hash,confirmed_by,confirmed_by_name,confirmed_by_role)
+ values('10000000-0000-0000-0000-000000000001','11000000-0000-0000-0000-000000000001','preschool',source_url,'MENFP','KIOS exam-period test','Test period','CI fixture','exam_period',today,today,'{}'::jsonb,'kiosk-schedule-ci','20000000-0000-0000-0000-000000000008','CI School Administrator','school_admin');
+ insert into public.confirmed_official_exam_dates(school_id,academic_year_id,section,source_url,source_name,source_label,source_wording,source_context,category,starts_on,ends_on,proposal_snapshot,proposal_hash,confirmed_by,confirmed_by_name,confirmed_by_role)
+ values('10000000-0000-0000-0000-000000000001','11000000-0000-0000-0000-000000000001','primary',source_url,'MENFP','KIOS primary exam test','Test period','CI fixture','exam_period',today,today,'{}'::jsonb,'kiosk-schedule-ci-primary','20000000-0000-0000-0000-000000000008','CI School Administrator','school_admin');
+ if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '06:00',today,null,null)<>'present'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000001',time '06:01',today,now()-interval '1 hour',null)<>'checkout' then
+  raise exception 'confirmed exam period did not allow flexible entry and exit';
+ end if;
+ if private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '06:00',today,null,null)<>'present'
+  or private.kiosk_window_for_student('50000000-0000-0000-0000-000000000002',time '06:01',today,now()-interval '1 hour',null)<>'checkout' then
+  raise exception 'confirmed primary exam period did not allow flexible entry and exit';
+ end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ denied:=false;begin perform public.school_kiosk_schedule_workspace();exception when others then denied:=sqlerrm='not_authorized';end;
+ if not denied then raise exception 'parent read KIOS schedule settings';end if;
+end
+$kiosk_schedule_ci$;
 
 rollback;

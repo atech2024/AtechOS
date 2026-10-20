@@ -8,6 +8,7 @@ export default async function PreschoolOverviewPage(){
  const db=await createClient()
  const {data:context}=await db.rpc('school_context')
  if(!context?.roles?.some((role:string)=>['school_admin','director','secretary','teacher','censeur'].includes(role))&&!context?.owner)redirect('/dashboard')
- const canManage=Boolean(context?.roles?.some((role:string)=>['school_admin','director','secretary','censeur'].includes(role)))
+ const {data:manageAccess}=await db.rpc('preschool_management_access')
+ const canManage=Boolean(manageAccess)
  return <PreschoolOverview canManage={canManage}/>
 }

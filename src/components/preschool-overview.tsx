@@ -1,20 +1,20 @@
 'use client'
 
 import {useCallback,useEffect,useMemo,useState} from 'react'
-import {Baby,BookOpen,CalendarDays,CheckCircle2,ClipboardCheck,GraduationCap,Layers3,Users,ClipboardList,DoorOpen,School} from 'lucide-react'
+import {Baby,BookOpen,CalendarDays,CheckCircle2,ClipboardCheck,GraduationCap,Layers3,Users,ClipboardList,DoorOpen,School,Settings2} from 'lucide-react'
 import {T,useLocale} from '@/components/translation-provider'
 import {useAcademicYear} from '@/components/academic-year-context'
 import {createClient} from '@/lib/supabase/client'
 import {translate} from '@/lib/translations'
 import {summarizePreschoolLevels,uniquePreschoolClassStaff,uniquePreschoolStaff,type PreschoolClassOverview,type PreschoolAssignedStaff} from '@/lib/preschool-overview'
-import ClassesPage from '@/components/classes-workspace'
 import PreschoolWorkspace from '@/components/preschool-workspace'
+import PreschoolSettingsWorkspace from '@/components/preschool-settings-workspace'
 import AttendancePage from '@/components/attendance-workspace'
 import KindergartenPickupPage from '@/components/kindergarten-pickup-workspace'
 
 type ClassRow={id:string;name:string;grade:string;year_id:string;year:string}
 type Workspace={classes:ClassRow[];settings?:{coordinator_user_id?:string|null}}
-type ClassDetail={students?:{id:string}[];staff?:PreschoolAssignedStaff[];staff_options?:{id:string;name:string}[];settings?:{coordinator_user_id?:string|null}}
+type ClassDetail={students?:{id:string}[];staff?:PreschoolAssignedStaff[];staff_options?:{id:string;name:string}[];settings?:{coordinator_user_id?:string|null};manager?:boolean}
 type ViewState={classes:PreschoolClassOverview[];manager:boolean;coordinatorName:string|null;coordinatorAssigned:boolean}
 const blank:ViewState={classes:[],manager:false,coordinatorName:null,coordinatorAssigned:false}
 
@@ -24,7 +24,7 @@ export default function PreschoolOverview({canManage}:{canManage:boolean}){
  const locale=useLocale(),t=(text:string)=>translate(text,locale),db=useMemo(()=>createClient(),[])
  const {yearId,years}=useAcademicYear()
  const activeYear=years.find(item=>item.id===yearId)||years.find(item=>item.is_current)||null
- const [state,setState]=useState(blank),[loading,setLoading]=useState(true),[error,setError]=useState(''),[activeView,setActiveView]=useState<'overview'|'classes'|'reports'|'attendance'|'pickup'>('overview')
+ const [state,setState]=useState(blank),[loading,setLoading]=useState(true),[error,setError]=useState(''),[activeView,setActiveView]=useState<'overview'|'classes'|'reports'|'attendance'|'pickup'|'settings'>('overview')
  const load=useCallback(async()=>{
   setLoading(true);setError('')
   try{
@@ -36,11 +36,15 @@ export default function PreschoolOverview({canManage}:{canManage:boolean}){
     const {data,error:detailError}=await db.rpc('preschool_report_workspace',{p_class:item.id,p_period:null})
     if(detailError)throw detailError
     const detail=data as ClassDetail
-    return {overview:{...item,student_count:detail.students?.length||0,staff:detail.staff||[]} satisfies PreschoolClassOverview,detail}
+    const labels=(canManage||detail.manager)?await db.rpc('preschool_class_staff_display',{p_class:item.id}):{data:[],error:null}
+    if(labels.error)throw labels.error
+    const roleLabels=new Map<string,string>((labels.data||[]).map((person:{id:string;label:string})=>[person.id,person.label]))
+    const team=(detail.staff||[]).map(person=>({...person,display_label:roleLabels.get(person.id)}))
+    return {overview:{...item,student_count:detail.students?.length||0,staff:team} satisfies PreschoolClassOverview,detail:{...detail,staff:team}}
    }))
    const settings=classDetails.map(item=>item.detail.settings).find(Boolean)||result.settings
    const coordinator=classDetails.flatMap(item=>item.detail.staff_options||[]).find(item=>item.id===settings?.coordinator_user_id)
-   setState({classes:classDetails.map(item=>item.overview),manager:canManage,coordinatorName:coordinator?.name||null,coordinatorAssigned:Boolean(settings?.coordinator_user_id)})
+   setState({classes:classDetails.map(item=>item.overview),manager:canManage||classDetails.some(item=>Boolean(item.detail.manager)),coordinatorName:coordinator?.name||null,coordinatorAssigned:Boolean(settings?.coordinator_user_id)})
   }catch{
    setState(blank);setError(translate('Unable to load the Preschool workspace. Check your school access and try again.',locale))
   }finally{setLoading(false)}
@@ -59,6 +63,7 @@ export default function PreschoolOverview({canManage}:{canManage:boolean}){
   {id:'reports' as const,label:'Preschool competency bulletins',icon:ClipboardList},
   {id:'attendance' as const,label:'Attendance',icon:CheckCircle2},
   ...(state.manager?[{id:'pickup' as const,label:'Kindergarten pickup',icon:DoorOpen}]:[]),
+  ...(state.manager?[{id:'settings' as const,label:'Kindergarten settings',icon:Settings2}]:[]),
  ]
  return <main className="preschool-hub mx-auto max-w-7xl space-y-5 p-4 md:p-6">
   <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -119,11 +124,11 @@ export default function PreschoolOverview({canManage}:{canManage:boolean}){
   </section>
 
   <section id="preschool-team" className="scroll-mt-24 grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-   <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold text-slate-950"><T text="Teaching team"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Teachers and teaching assistants assigned to Preschool classes."/></p></div><button type="button" onClick={()=>setActiveView('reports')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><T text={state.manager?'Manage assignments':'Open competency reports'}/></button></div>
-    {loading?<p className="mt-4 text-sm text-slate-500"><T text="Loading..."/></p>:!staff.length?<p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600"><T text="No teaching team members are assigned to the available classes yet."/></p>:<div className="mt-4 grid gap-2 sm:grid-cols-2">{staff.map(person=><div key={person.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-100 p-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue-50 text-sm font-bold text-blue-800">{initials(person.name)}</span><div className="min-w-0"><p className="truncate font-semibold text-slate-900">{person.name}</p><p className="text-xs text-slate-600"><T text={person.role==='titulaire'?'Classroom lead teacher':'Teaching assistant'}/></p></div></div>)}</div>}
+   <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold text-slate-950"><T text="Teaching team"/></h2><p className="mt-1 text-sm text-slate-600"><T text="Teachers and teaching assistants assigned to Preschool classes."/></p></div><button type="button" onClick={()=>setActiveView(state.manager?'settings':'reports')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><T text={state.manager?'Manage assignments':'Open competency reports'}/></button></div>
+    {loading?<p className="mt-4 text-sm text-slate-500"><T text="Loading..."/></p>:!staff.length?<p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600"><T text="No teaching team members are assigned to the available classes yet."/></p>:<div className="mt-4 grid gap-2 sm:grid-cols-2">{staff.map(person=><div key={person.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-100 p-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue-50 text-sm font-bold text-blue-800">{initials(person.name)}</span><div className="min-w-0"><p className="truncate font-semibold text-slate-900">{person.name}</p><p className="text-xs text-slate-600"><T text={person.display_label|| (person.role==='titulaire'?'Classroom lead teacher':'Teaching assistant')}/></p></div></div>)}</div>}
    </article>
    <div className="grid gap-4">
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><GraduationCap size={19}/></span><div><h3 className="font-bold text-slate-950"><T text="Academic coordinator"/></h3><p className="text-sm text-slate-600">{loading?'—':coordinatorText}</p></div></div><button type="button" onClick={()=>setActiveView('reports')} className="mt-3 inline-block text-sm font-semibold text-blue-700 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><T text={state.manager?'Review coordinator assignment':'Open competency reports'}/></button></article>
+    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><GraduationCap size={19}/></span><div><h3 className="font-bold text-slate-950"><T text="Academic coordinator"/></h3><p className="text-sm text-slate-600">{loading?'—':coordinatorText}</p></div></div><button type="button" onClick={()=>setActiveView(state.manager?'settings':'reports')} className="mt-3 inline-block text-sm font-semibold text-blue-700 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><T text={state.manager?'Review coordinator assignment':'Open competency reports'}/></button></article>
     <article className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/70 p-4"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-amber-800"><Users size={18}/></span><div><h3 className="font-bold text-slate-950"><T text="Cleaning staff"/></h3><span className="text-xs font-semibold text-amber-900"><T text="Role not configured"/></span></div></div><p className="mt-2 text-sm leading-relaxed text-slate-700"><T text="AtechOS does not currently define a cleaning-staff assignment or access role. No account or access has been created."/></p></article>
    </div>
   </section>
@@ -134,7 +139,7 @@ export default function PreschoolOverview({canManage}:{canManage:boolean}){
    <Shortcut onClick={()=>setActiveView('classes')} icon={Layers3} title="Preschool levels" text="Review the classes and assigned team for each level."/>
    <Shortcut onClick={()=>setActiveView('reports')} icon={BookOpen} title="Academic program" text="Review observations and bulletins."/>
   </section>
-  </div>:<section key={activeView} className="preschool-panel-enter space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-bold text-slate-950"><T text={views.find(view=>view.id===activeView)?.label||'Overview'}/></h2><button type="button" onClick={()=>setActiveView('overview')} className="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><T text="Overview"/></button></div>{activeView==='classes'?<ClassesPage embedded/>:activeView==='reports'?<PreschoolWorkspace embedded/>:activeView==='attendance'?<AttendancePage embedded/>:<KindergartenPickupPage embedded/>}</section>}
+  </div>:<section key={activeView} className="preschool-panel-enter space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-bold text-slate-950"><T text={views.find(view=>view.id===activeView)?.label||'Overview'}/></h2><button type="button" onClick={()=>setActiveView('overview')} className="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><T text="Overview"/></button></div>{activeView==='classes'?<section className="space-y-3">{state.classes.length?state.classes.map(item=><article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-semibold text-slate-950">{item.name}</h3><p className="text-sm text-slate-600">{item.grade} · {item.year}</p></div><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800"><T text="Active"/></span></div><p className="mt-2 text-sm text-slate-700">{item.student_count} <T text="students"/></p><div className="mt-3 flex flex-wrap gap-2">{uniquePreschoolClassStaff(item.staff).map(person=><span key={person.id} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-700">{person.name} · <T text={person.display_label||(person.role==='titulaire'?'Classroom lead teacher':'Teaching assistant')}/></span>)}</div></article>):<p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600"><T text="No preschool classes are available for this academic year."/></p>}</section>:activeView==='reports'?<PreschoolWorkspace embedded/>:activeView==='attendance'?<AttendancePage embedded/>:activeView==='pickup'?<KindergartenPickupPage embedded/>:<PreschoolSettingsWorkspace/>}</section>}
  </main>
 }
 

@@ -189,16 +189,17 @@ begin
  -- Fix the regular KIOS schedule so this integration assertion is independent
  -- of the hosted runner's clock. The surrounding fixture rolls back.
  create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $school_release_window$ select 'blocked'::text; $school_release_window$;
+ create or replace function private.kiosk_window_for_student(p_student uuid,p_time time,p_date date,p_check_in_at timestamptz,p_check_out_at timestamptz) returns text language sql stable security definer set search_path='' as $school_release_schedule_test$ select 'blocked'::text; $school_release_schedule_test$;
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000006',true);
  protocol:=public.school_release_protocol_workspace();
  if protocol->>'active'<>'false' or protocol->>'can_activate'<>'true' then raise exception 'other-school release protocol leaked or failed to initialize';end if;
  kiosk:=public.student_kiosk_badge('AOSQ1.'||repeat('b',64));
  if kiosk->>'error'<>'kiosk_closed' then raise exception 'KIOS departure was allowed before the school protocol was activated: %',kiosk;end if;
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000004',true);
- denied:=false;begin perform public.activate_school_release_protocol('Unauthorized teacher dismissal');exception when others then denied:=sqlerrm='not_authorized';end;
+ denied:=false;begin perform public.activate_school_release_protocol('Unauthorized teacher dismissal',time '11:00');exception when others then denied:=sqlerrm='not_authorized';end;
  if not denied then raise exception 'teacher activated a school-wide dismissal';end if;
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000006',true);
- protocol:=public.activate_school_release_protocol('Authorized school-wide dismissal');
+ protocol:=public.activate_school_release_protocol('Authorized school-wide dismissal',time '00:00');
  if protocol->>'active'<>'true' or protocol->>'can_activate'<>'true' or protocol->'protocol'->>'activated_role'<>'school_admin' then raise exception 'school release protocol activation and actor audit failed';end if;
  kiosk:=public.student_kiosk_badge('AOSQ1.'||repeat('b',64));
  if kiosk->>'action'<>'check_out' or not exists(select 1 from public.attendance a where a.student_id='fb400000-0000-0000-0000-000000000003' and a.attendance_date=(now() at time zone 'America/Port-au-Prince')::date and a.check_out_at is not null) then raise exception 'school release protocol did not let a checked-in non-Preschool student check out: %',kiosk;end if;

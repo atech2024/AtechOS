@@ -41,7 +41,7 @@ type Notice = { id: string; title: string; description: string; created_at: stri
 type SearchResult = { kind: string; label: string; href: string }
 const icons: Record<string, typeof Users> = {
   dashboard: LayoutDashboard, students: GraduationCap, parents: Users, teachers: Users, classes: BookOpen, preschool: Baby,
-  attendance: ClipboardCheck, badge: Contact, calendar: CalendarDays, grades: FileText,
+  attendance: ClipboardCheck, kiosk: Contact, badge: Contact, calendar: CalendarDays, grades: FileText,
   publication: ClipboardCheck, reports: FileText, assignments: BookOpen, progression: ArrowUpRight,
   requests: UserPlus, users: Users, settings: Settings, finance: CircleDollarSign,
 }

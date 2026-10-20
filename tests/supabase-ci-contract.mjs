@@ -34,9 +34,19 @@ const gradeDeadlineBaseline = readFileSync('supabase/ci-grade-deadline/supabase/
 const gradeDeadlineVerification = readFileSync('supabase/ci-grade-deadline/grade-deadline-verification.sql', 'utf8');
 const staffProfileMigration = readFileSync('supabase/migrations/20261018100000_staff_self_service_profiles.sql', 'utf8');
 const staffProfileVerification = readFileSync('supabase/ci/staff-profile-verification.sql', 'utf8');
+const preschoolKindMigration=readFileSync('supabase/migrations/20261020090533_preschool_kind_workspace_and_team.sql','utf8');
+const attendanceSummaryMigration=readFileSync('supabase/migrations/20261020130000_attendance_summary_late_included.sql','utf8');
 
 assert.match(workflow, /supabase\/setup-cli@v1/);
 assert.match(workflow, /20261018100000_staff_self_service_profiles\.sql/);
+assert.match(workflow,/20261020090533_preschool_kind_workspace_and_team\.sql/);
+assert.match(workflow,/cp supabase\/migrations\/20261020090533_preschool_kind_workspace_and_team\.sql supabase\/ci\/supabase\/migrations\//);
+assert.match(workflow,/20261020130000_attendance_summary_late_included\.sql/);
+assert.match(workflow,/cp supabase\/migrations\/20261020130000_attendance_summary_late_included\.sql supabase\/ci\/supabase\/migrations\//);
+assert.match(attendanceSummaryMigration,/a\.status in \(''present'',''late''\)/);
+assert.match(verification,/school-wide present total must include late arrivals/);
+assert.match(preschoolKindMigration,/preschool_attendance_workspace/);
+assert.match(preschoolKindMigration,/jsonb_array_length\(p_assignments\)<2 or jsonb_array_length\(p_assignments\)>4/);
 assert.match(workflow, /staff-profile-verification\.sql/);
 assert.match(staffProfileMigration, /alter table public\.staff_private_profiles enable row level security/i);
 assert.match(staffProfileMigration, /staff_private_profiles_update_self/);

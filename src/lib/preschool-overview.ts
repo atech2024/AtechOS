@@ -1,4 +1,4 @@
-export type PreschoolAssignedStaff={id:string;name:string;role:string}
+export type PreschoolAssignedStaff={id:string;name:string;role:string;display_label?:string}
 export type PreschoolClassOverview={id:string;name:string;grade:string;year_id:string;year:string;student_count:number;staff:PreschoolAssignedStaff[]}
 
 export const preschoolLevelDefinitions=[
@@ -40,4 +40,19 @@ export function uniquePreschoolClassStaff(staff:PreschoolAssignedStaff[]){
   if(!current||person.role==='titulaire')people.set(person.id,person)
  }
  return [...people.values()].sort((a,b)=>a.name.localeCompare(b.name,'fr'))
+}
+
+export type PreschoolAttendanceState='present'|'absent'|'unrecorded'
+export function preschoolAttendanceState(status?:string|null):PreschoolAttendanceState{
+ if(status==='present'||status==='late'||status==='checkout')return 'present'
+ if(status==='absent')return 'absent'
+ return 'unrecorded'
+}
+
+export function summarizePreschoolAttendance<T extends {status?:string|null}>(students:T[]){
+ return students.reduce((summary,student)=>{
+  const state=preschoolAttendanceState(student.status)
+  summary[state]++
+  return summary
+ },{present:0,absent:0,unrecorded:0})
 }

@@ -144,5 +144,3 @@ function Metric({icon:Icon,label,value,tone}:{icon:typeof Users;label:string;val
 }
 function Count({label,value}:{label:string;value:number}){return <div><p className="text-lg font-bold tabular-nums text-slate-950">{value}</p><p className="text-[11px] leading-tight text-slate-500"><T text={label}/></p></div>}
 function Shortcut({onClick,icon:Icon,title,text}:{onClick:()=>void;icon:typeof Users;title:string;text:string}){return <button type="button" onClick={onClick} className="group flex min-h-24 items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-blue-200 hover:bg-blue-50/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-700 transition-colors group-hover:bg-white"><Icon size={19}/></span><span><strong className="block text-sm text-slate-900"><T text={title}/></strong><span className="mt-1 block text-xs leading-relaxed text-slate-600"><T text={text}/></span></span></button>}
-
-\n

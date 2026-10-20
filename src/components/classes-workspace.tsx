@@ -113,5 +113,3 @@ export default function ClassesPage({embedded=false}:{embedded?:boolean}) {
 
 function Input({ name, label, placeholder = '', type = 'text', required = false }: { name: string; label: string; placeholder?: string; type?: string; required?: boolean }) { return <label className="block text-sm font-medium"><T text={label}/><input name={name} type={type} placeholder={placeholder} required={required} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus:border-blue-500"/></label> }
 function Modal({title,onClose,children}:{title:ReactNode;onClose:()=>void;children:ReactNode}) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-6"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"><div className="flex justify-between"><h2 className="text-xl font-bold">{title}</h2><button onClick={onClose} className="text-slate-500" aria-label="Close"><T text="Close"/></button></div><div className="mt-5">{children}</div></div></div> }
-
-\n

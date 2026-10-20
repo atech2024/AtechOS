@@ -60,7 +60,7 @@ begin
  preschool_entry_opens_at=excluded.preschool_entry_opens_at,preschool_entry_ends_at=excluded.preschool_entry_ends_at,preschool_late_ends_at=excluded.preschool_late_ends_at,preschool_checkout_starts_at=excluded.preschool_checkout_starts_at,preschool_checkout_ends_at=excluded.preschool_checkout_ends_at,updated_by=auth.uid(),updated_at=now();
 end $$;
 
-create function private.prevent_school_release_protocol_change()
+create or replace function private.prevent_school_release_protocol_change()
 returns trigger language plpgsql set search_path=''
 as $$ begin raise exception 'school_release_protocol_immutable';end $$;
 

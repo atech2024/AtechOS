@@ -277,6 +277,8 @@ begin
  if jsonb_array_length(family_sanctions->'meeting_options')=0 then raise exception 'parent received no available school-hour meeting';end if;
  perform public.submit_student_sanction_meeting(portal_sanction_id,(family_sanctions->'meeting_options'->>0)::timestamptz);
  perform set_config('request.jwt.claim.sub','fb300000-0000-0000-0000-000000000001',true);
+ update public.attendance set status='absent',check_in_at=null,check_out_at=null,direction_only=false
+ where student_id='fb400000-0000-0000-0000-000000000002' and attendance_date=(now() at time zone 'America/Port-au-Prince')::date;
  create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $collective_direction_window$ select 'present'::text; $collective_direction_window$;
  kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
  if kiosk->>'error'<>'sanction_meeting_not_today' then raise exception 'KIOS allowed a family meeting visit before its scheduled day: %',kiosk;end if;

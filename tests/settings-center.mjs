@@ -13,6 +13,7 @@ for (const path of [
   '/dashboard/calendar',
   '/dashboard/classes',
   '/dashboard/subjects',
+  '/dashboard/kiosk-settings',
   '/dashboard/grading-settings',
   '/dashboard/grading-periods',
   '/dashboard/finance/settings',

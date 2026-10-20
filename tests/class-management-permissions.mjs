@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 
-const page=readFileSync('src/app/dashboard/classes/page.tsx','utf8')
+const page=readFileSync('src/components/classes-workspace.tsx','utf8')
 const translations=readFileSync('src/lib/translations-extra.ts','utf8')
 const baseTranslations=readFileSync('src/lib/translations.ts','utf8')
 const foundations=readFileSync('supabase/migrations/20260922211050_school_platform_foundations.sql','utf8')

@@ -47,6 +47,26 @@ create table public.grading_periods (
  sections text[] not null default array['preschool']::text[],
  is_active boolean not null default true
 );
+create table public.subjects (
+ id uuid primary key default gen_random_uuid(),
+ name text not null,
+ active boolean not null default true
+);
+-- The selected migration workflow does not replay the historical class-exam
+-- calendar migration. Keep its queried relation in the synthetic baseline so
+-- later KIOS integration checks can exercise the ordinary (non-exam) path.
+create table public.exam_schedule (
+ id uuid primary key default gen_random_uuid(),
+ school_id uuid not null references public.schools(id),
+ class_id uuid not null references public.classes(id),
+ subject_id uuid not null references public.subjects(id),
+ period_id uuid not null references public.grading_periods(id),
+ starts_at timestamptz not null,
+ ends_at timestamptz not null,
+ published_version_id uuid,
+ cancelled boolean not null default false,
+ check (ends_at > starts_at)
+);
 create table public.students (
  id uuid primary key,
  school_id uuid not null references public.schools(id),
@@ -69,6 +89,8 @@ create table public.attendance (
  check_in_at timestamptz,
  check_out_at timestamptz,
  status text not null,
+ notes text,
+ late_minutes integer not null default 0,
  recorded_by uuid references public.users(id),
  updated_at timestamptz not null default now(),
  unique(student_id,attendance_date)
@@ -210,6 +232,40 @@ create or replace function private.has_role(p_school uuid,p_roles text[]) return
 language sql stable security definer set search_path=''
 as $$ select exists(select 1 from public.school_members m where m.school_id=p_school and m.user_id=auth.uid() and m.enabled and m.role=any(p_roles)) $$;
 
+-- Minimal synthetic dashboard RPC matching the live count anchor so the late
+-- arrival migration can verify that its present total includes late students.
+create or replace function public.dashboard_summary() returns jsonb language plpgsql stable security invoker set search_path='' as $$
+declare sid uuid:=public.get_my_school_id();d date:=(now() at time zone 'America/Port-au-Prince')::date;
+begin
+ if auth.uid() is null or sid is null then raise exception 'not_authorized';end if;
+ return jsonb_build_object(
+  'present',(select count(*) from public.attendance a where a.school_id=sid and a.attendance_date=d and a.status='present'),
+  'late',(select count(*) from public.attendance a where a.school_id=sid and a.attendance_date=d and a.status='late'));
+end $$;
+revoke all on function public.dashboard_summary() from public,anon,authenticated;
+grant execute on function public.dashboard_summary() to authenticated;
+
+-- Synthetic pre-change attendance RPC: mirrors the authorization and attribution
+-- anchors that the Kind coordinator migration must safely extend.
+create or replace function public.staff_mark_attendance(p_student uuid,p_class uuid,p_status text) returns uuid language plpgsql security definer set search_path='' as $$
+declare s public.students; actor_role text; actor_name text; attendance_id uuid; d date:=(now() at time zone 'America/Port-au-Prince')::date;
+begin
+ select * into s from public.students where id=p_student and active and school_status='active';
+ if s.id is null or not private.has_role(s.school_id,array['school_admin','director','secretary','surveillant','censeur']) then raise exception 'not_authorized'; end if;
+ if p_status not in ('present','late','absent','checkout') then raise exception 'invalid_status'; end if;
+ select role::text into actor_role from public.school_members where school_id=s.school_id and user_id=auth.uid() and enabled and role in ('school_admin','director','secretary','surveillant','censeur') order by role limit 1;
+ if actor_role is null then raise exception 'not_authorized'; end if;
+ select full_name into actor_name from public.users where id=auth.uid();
+ insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,recorded_by)
+ values(s.school_id,s.id,p_class,d,p_status,case when p_status<>'absent' and p_status<>'checkout' then now() end,auth.uid())
+ on conflict(student_id,attendance_date) do update set status=excluded.status,check_in_at=coalesce(attendance.check_in_at,excluded.check_in_at),recorded_by=auth.uid(),updated_at=now() returning id into attendance_id;
+ insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date)
+ values(attendance_id,s.id,'STAFF',auth.uid(),coalesce(actor_name,auth.uid()::text),actor_role,p_status,d);
+ return attendance_id;
+end $$;
+revoke all on function public.staff_mark_attendance(uuid,uuid,text) from public,anon,authenticated;
+grant execute on function public.staff_mark_attendance(uuid,uuid,text) to authenticated;
+
 create or replace function public.create_academic_year(p_name text,p_start_date date,p_end_date date,p_is_current boolean default false)
 returns uuid language plpgsql security invoker set search_path='public','pg_temp' as $$
 declare sid uuid:=public.get_my_school_id();v_id uuid;
@@ -297,10 +353,12 @@ $$;
 create or replace function private.record_student_kiosk(p_student uuid) returns jsonb
 language plpgsql security definer set search_path=''
 as $$
-declare s public.students%rowtype;a public.attendance%rowtype;ts timestamptz:=now();d date:=(now() at time zone 'America/Port-au-Prince')::date;result text;window_name text:=private.kiosk_window((now() at time zone 'America/Port-au-Prince')::time);
+declare s public.students%rowtype;a public.attendance%rowtype;cl public.classes%rowtype;ts timestamptz:=now();d date:=(now() at time zone 'America/Port-au-Prince')::date;result text;window_name text:=private.kiosk_window((now() at time zone 'America/Port-au-Prince')::time);
 begin
  select * into s from public.students where id=p_student and active and school_status='active';
  if s.id is null then return jsonb_build_object('error','invalid_credentials');end if;
+ select c.* into cl from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id where e.student_id=s.id and e.status='active' and y.is_current limit 1;
+ if private.student_sanction_restriction(s.id,'kiosk') is not null then return jsonb_build_object('error',private.student_sanction_restriction(s.id,'kiosk')); end if;
  select * into a from public.attendance where student_id=s.id and attendance_date=d for update;
  if window_name='blocked' then return jsonb_build_object('error','kiosk_closed');end if;
  if window_name='checkout' then
@@ -308,9 +366,9 @@ begin
   if a.check_out_at is not null then result:='already_complete';else update public.attendance set check_out_at=ts,recorded_by=s.user_id,updated_at=ts where id=a.id returning * into a;result:='check_out';end if;
  elsif a.check_in_at is not null then result:='duplicate_scan';
  else
-  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,recorded_by)
-  select s.school_id,s.id,e.class_id,d,window_name,ts,s.user_id from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id where e.student_id=s.id and e.status='active' and y.is_current limit 1
-  on conflict(student_id,attendance_date) do update set check_in_at=excluded.check_in_at,status=excluded.status,recorded_by=excluded.recorded_by,updated_at=ts returning * into a;
+  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by)
+  values(s.school_id,s.id,cl.id,d,window_name,ts,case when window_name='late' then greatest(1,floor(extract(epoch from ((ts at time zone 'America/Port-au-Prince')::time-time '07:45'))/60)::integer) else 0 end,s.user_id)
+  on conflict(student_id,attendance_date) do update set check_in_at=excluded.check_in_at,status=excluded.status,late_minutes=excluded.late_minutes,recorded_by=excluded.recorded_by,updated_at=ts returning * into a;
   if a.id is null then return jsonb_build_object('error','current_class_required');end if;result:='check_in';
  end if;
  if result in ('check_in','check_out') then insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date) values(a.id,s.id,'KIOS',s.user_id,s.first_name||' '||s.last_name,'student',result,d);end if;

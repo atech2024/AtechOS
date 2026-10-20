@@ -14,6 +14,7 @@ const settingGroups = [
       { href: '/dashboard/calendar', title: 'Academic year and school calendar', description: 'Manage school years, holidays, closures and school dates.' },
       { href: '/dashboard/classes', title: 'Sections and classes', description: 'Choose active school sections and organize classes.' },
       { href: '/dashboard/subjects', title: 'Subjects and teachers', description: 'Configure subjects and their teaching assignments.' },
+      { href: '/dashboard/kiosk-settings', title: 'KIOS schedules', description: 'Configure school-wide and Preschool entry and departure hours.' },
     ],
   },
   {

@@ -25,7 +25,7 @@ assert.match(styles,/@media \(max-width:639px\)[\s\S]*?\.kiosk-scan-demo-compact
 assert.match(styles,/\.kiosk-motion-toggle \{ display:none; \}/,'reduced-motion users do not see a control for an animation that is disabled')
 assert.match(kiosk,/aria-pressed=\{scanGuidePaused\}[\s\S]*setScanGuidePaused[\s\S]*Pause badge animation/,'users can pause and resume the decorative loop without stopping the camera')
 assert.match(kiosk,/document\.visibilityState==='visible'&&isIntersecting/,'continuous motion is enabled only while the guide is visible and the page is active')
-assert.match(kiosk,/<details className="kiosk-schedule[\s\S]*?<T text="Check-in 00:00/,'Haiti attendance hours are compact and expandable')
+assert.match(kiosk,/<details className="kiosk-schedule[\s\S]*?<T text="KIOS uses the entry and checkout hours configured by the school, in Haiti local time\."/,'KIOS schedule guidance is compact and does not hard-code school hours')
 assert.ok(kiosk.indexOf('notice-title')<kiosk.indexOf('<QRScanner'),'live scan feedback is positioned before the camera view')
 assert.match(scanner,/facingMode:\{ideal:mode\}[\s\S]*?chooseCamera/,'operators can switch between front and back cameras while scanning')
 assert.match(kiosk,/kiosk-scan-guide[\s\S]*role="img"[\s\S]*kiosk-scan-badge[\s\S]*kiosk-scan-reflection/,'a decorative, accessible student badge moves through the scanner with a reflective finish')

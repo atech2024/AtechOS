@@ -95,8 +95,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const data = summary.data
   const kpis = [
     ['Students', data?.students, Users, 'bg-blue-50 text-blue-700'],
-    ['Present today', data?.present, UserCheck, 'bg-emerald-50 text-emerald-700'],
-    ['Late today', data?.late, Clock, 'bg-amber-50 text-amber-700'],
+    ['Present today (late included)', data?.present, UserCheck, 'bg-emerald-50 text-emerald-700'],
+    ['Of these, late', data?.late, Clock, 'bg-amber-50 text-amber-700'],
     ['Absent today', data?.absent, UserX, 'bg-red-50 text-red-700'],
   ] as const
   const visibleKpis = kpis.filter(([, value]) => value !== null && value !== undefined)

@@ -368,7 +368,7 @@ begin
  summary:=public.dashboard_summary();
  if summary->>'present'<>'1' or summary->>'late'<>'1' then raise exception 'school-wide present total must include late arrivals and expose lateness as a subset: %',summary;end if;
  perform public.activate_school_section('11000000-0000-0000-0000-000000000001','primary',true);
- select id into nonpreschool_class from public.classes where school_id='10000000-0000-0000-0000-000000000001' and grade_level_id='30000000-0000-0000-0000-000000000002' and academic_year_id='11000000-0000-0000-0000-000000000001';
+ select id into nonpreschool_class from public.classes where school_id='10000000-0000-0000-0000-000000000001' and (grade_level_id='30000000-0000-0000-0000-000000000002' or grade_level='AF1') and academic_year_id='11000000-0000-0000-0000-000000000001' limit 1;
  insert into public.students(id,school_id,first_name,last_name,atechos_id) values('50000000-0000-0000-0000-000000000007','10000000-0000-0000-0000-000000000001','Primary','CI','AOS-CI-KIOS');
  insert into public.enrollments(id,school_id,student_id,class_id,status) values('60000000-0000-0000-0000-000000000007','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000007',nonpreschool_class,'active');
  perform public.save_school_kiosk_schedule(time '06:30',time '07:30',time '07:45',time '12:30',time '20:00',time '07:00',time '08:00',time '08:15',time '12:00',time '18:00');

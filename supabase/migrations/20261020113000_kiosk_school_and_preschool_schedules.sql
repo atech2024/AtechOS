@@ -96,21 +96,21 @@ end $$;
 create function private.kiosk_window_for_student(p_student uuid,p_time time,p_date date,p_check_in_at timestamptz,p_check_out_at timestamptz)
 returns text language plpgsql stable security definer set search_path=''
 as $$
-declare sid uuid; v_class_id uuid; section text; preschool boolean; opens_at time;entry_end time;late_end time;checkout_start time;checkout_end time;release_at time;
+declare sid uuid; v_class_id uuid; v_section text; preschool boolean; opens_at time;entry_end time;late_end time;checkout_start time;checkout_end time;release_at time;
 begin
- select s.school_id,c.id,public.grade_section(coalesce(c.grade_level,gl.code)) into sid,v_class_id,section
+ select s.school_id,c.id,public.grade_section(coalesce(c.grade_level,gl.code)) into sid,v_class_id,v_section
  from public.students s join public.enrollments e on e.student_id=s.id and e.status='active'
  join public.classes c on c.id=e.class_id and c.school_id=s.school_id and c.enabled
  join public.academic_years y on y.id=c.academic_year_id and y.is_current
  left join public.grade_levels gl on gl.id=c.grade_level_id
  where s.id=p_student and s.active and s.school_status='active' limit 1;
  if sid is null then return 'blocked';end if;
- preschool:=section='preschool';
+ preschool:=v_section='preschool';
  -- Published class exams and school-confirmed exam periods both allow flexible arrival/departure.
  if exists(select 1 from public.exam_schedule ex where ex.school_id=sid and ex.class_id=v_class_id and ex.published_version_id is not null and not ex.cancelled
     and (ex.starts_at at time zone 'America/Port-au-Prince')::date=p_date)
   or exists(select 1 from public.confirmed_official_exam_dates d join public.academic_years y on y.id=d.academic_year_id and y.school_id=d.school_id
-    where d.school_id=sid and d.section=section and d.category='exam_period' and p_date between d.starts_on and d.ends_on and y.is_current) then
+    where d.school_id=sid and d.section=v_section and d.category='exam_period' and p_date between d.starts_on and d.ends_on and y.is_current) then
    if p_check_in_at is null then return 'present'; end if;
    return 'checkout';
  end if;

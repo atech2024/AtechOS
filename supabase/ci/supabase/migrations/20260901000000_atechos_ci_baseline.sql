@@ -69,6 +69,7 @@ create table public.attendance (
  check_in_at timestamptz,
  check_out_at timestamptz,
  status text not null,
+ late_minutes integer not null default 0,
  recorded_by uuid references public.users(id),
  updated_at timestamptz not null default now(),
  unique(student_id,attendance_date)
@@ -329,9 +330,9 @@ begin
   if a.check_out_at is not null then result:='already_complete';else update public.attendance set check_out_at=ts,recorded_by=s.user_id,updated_at=ts where id=a.id returning * into a;result:='check_out';end if;
  elsif a.check_in_at is not null then result:='duplicate_scan';
  else
-  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,recorded_by)
-  select s.school_id,s.id,e.class_id,d,window_name,ts,s.user_id from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id where e.student_id=s.id and e.status='active' and y.is_current limit 1
-  on conflict(student_id,attendance_date) do update set check_in_at=excluded.check_in_at,status=excluded.status,recorded_by=excluded.recorded_by,updated_at=ts returning * into a;
+  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,late_minutes,recorded_by)
+  select s.school_id,s.id,e.class_id,d,window_name,ts,case when window_name='late' then greatest(1,floor(extract(epoch from ((ts at time zone 'America/Port-au-Prince')::time-time '07:45'))/60)::integer) else 0 end,s.user_id from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id where e.student_id=s.id and e.status='active' and y.is_current limit 1
+  on conflict(student_id,attendance_date) do update set check_in_at=excluded.check_in_at,status=excluded.status,late_minutes=excluded.late_minutes,recorded_by=excluded.recorded_by,updated_at=ts returning * into a;
   if a.id is null then return jsonb_build_object('error','current_class_required');end if;result:='check_in';
  end if;
  if result in ('check_in','check_out') then insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date) values(a.id,s.id,'KIOS',s.user_id,s.first_name||' '||s.last_name,'student',result,d);end if;

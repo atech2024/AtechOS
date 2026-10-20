@@ -187,7 +187,9 @@ begin
      where student_row.value->>'first_name'='Primary' and student_row.value->>'last_name'='Student')
  then raise exception 'Kind attendance RPC failed its roster or school-section scope';end if;
  ps_staff_labels:=public.preschool_class_staff_display('40000000-0000-0000-0000-000000000001');
- if ps_staff_labels->0->>'label'<>'Enseignante titulaire' or ps_staff_labels::text like '%sex%' then raise exception 'staff gendered label or profile privacy contract failed';end if;
+ if not exists(select 1 from jsonb_array_elements(ps_staff_labels) as staff_label(value)
+     where staff_label.value->>'id'='20000000-0000-0000-0000-000000000004' and staff_label.value->>'label'='Enseignante titulaire')
+   or ps_staff_labels::text like '%sex%' then raise exception 'staff gendered label or profile privacy contract failed';end if;
  perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','late');
  if not exists(select 1 from public.attendance_events where student_id='50000000-0000-0000-0000-000000000001' and actor_role='teacher' and action='late') then raise exception 'Kind coordinator attendance action was not attributed';end if;
  failed:=false;begin perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000006','40000000-0000-0000-0000-000000000006','present');exception when others then failed:=sqlerrm='not_authorized';end;

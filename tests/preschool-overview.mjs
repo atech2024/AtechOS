@@ -45,6 +45,7 @@ assert.match(component,/setActiveView\('reports'\)/,'report actions should open 
 assert.match(component,/ClassesPage embedded/,'class management should be embedded in the Kindergarten workspace')
 assert.match(component,/AttendancePage embedded/,'attendance actions should stay inside the Kindergarten workspace')
 assert.match(attendance,/filterPreschoolAttendanceClasses\(data\|\|\[\],gradesResult\.data\|\|\[\]\)/,'embedded Kindergarten attendance must scope its roster to preschool classes')
+assert.match(attendance,/classesLoading\|\|loading\?/,'the empty preschool attendance state must wait for both class and roster loading to finish')
 assert.match(attendance,/!embedded&&canMark&&<SchoolReleaseProtocolPanel\/>/,'Kindergarten attendance must not expose the school-wide dismissal controls')
 assert.match(attendance,/!embedded&&<HomeArrivalStaffPanel\/>/,'Kindergarten attendance must not duplicate the staff home-arrival controls')
 assert.match(component,/KindergartenPickupPage embedded/,'pickup workflow should stay inside the Kindergarten workspace')

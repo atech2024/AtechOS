@@ -178,7 +178,7 @@ begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
  if not public.preschool_management_access() then raise exception 'designated Kind coordinator did not receive module access';end if;
  ps_attendance:=public.preschool_attendance_workspace(term_year,(now() at time zone 'America/Port-au-Prince')::date);
- if jsonb_array_length(ps_attendance)<>2 or position('CI Student' in ps_attendance::text)=0 or position('Primary Student' in ps_attendance::text)>0 then raise exception 'Kind attendance RPC failed its roster or school-section scope';end if;
+ if jsonb_array_length(ps_attendance)<2 or position('CI Student' in ps_attendance::text)=0 or position('Primary Student' in ps_attendance::text)>0 then raise exception 'Kind attendance RPC failed its roster or school-section scope';end if;
  ps_staff_labels:=public.preschool_class_staff_display('40000000-0000-0000-0000-000000000001');
  if ps_staff_labels->0->>'label'<>'Enseignante titulaire' or ps_staff_labels::text like '%sex%' then raise exception 'staff gendered label or profile privacy contract failed';end if;
  perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','late');

@@ -15,7 +15,7 @@ const shell = readFileSync('src/components/app-shell.tsx', 'utf8')
 const grades = readFileSync('src/app/dashboard/grades/page.tsx', 'utf8')
 const periods = readFileSync('src/app/dashboard/grading-periods/page.tsx', 'utf8')
 const guard = readFileSync('src/app/dashboard/guard/page.tsx', 'utf8')
-const classes = readFileSync('src/app/dashboard/classes/page.tsx', 'utf8')
+const classes = readFileSync('src/components/classes-workspace.tsx', 'utf8')
 const dictionary = readFileSync('src/lib/translations.ts', 'utf8') + '\n' + readFileSync('src/lib/translations-extra.ts', 'utf8')
 const translationKeys = new Set([...dictionary.matchAll(/(?:'([^'\\]+)'|"([^"\\]+)")\s*:/g)].map(match => match[1] || match[2]))
 

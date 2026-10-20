@@ -34,7 +34,7 @@ assert.ok(migration.includes('pending_direction_insert_columns_anchor_missing')&
 const staff=readFileSync('src/components/home-arrival-panel.tsx','utf8')
 const student=readFileSync('src/components/student-home-arrival.tsx','utf8')
 const action=readFileSync('src/app/student/arrival-actions.ts','utf8')
-const attendance=readFileSync('src/app/dashboard/attendance/page.tsx','utf8')
+const attendance=readFileSync('src/components/attendance-workspace.tsx','utf8')
 const parent=readFileSync('src/app/dashboard/parent-portal/page.tsx','utf8')
 const portal=readFileSync('src/app/student/page.tsx','utf8')
 assert.ok(staff.includes("rpc('set_home_arrival_enabled'"),'staff page should expose the Director setting')

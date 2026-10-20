@@ -40,7 +40,7 @@ const workflow=readFileSync('.github/workflows/supabase-migration-check.yml','ut
 assert.ok(workflow.includes('20261005210100_school_release_protocol.sql'),'isolated Supabase CI must stage the school release migration')
 
 const ui=readFileSync('src/components/school-release-protocol.tsx','utf8')
-const page=readFileSync('src/app/dashboard/attendance/page.tsx','utf8')
+const page=readFileSync('src/components/attendance-workspace.tsx','utf8')
 assert.ok(page.includes('{canMark&&<SchoolReleaseProtocolPanel/>}'),'only staff already authorized for the attendance workspace should load the protocol panel')
 assert.ok(ui.includes("rpc('school_release_protocol_workspace')")&&ui.includes("rpc('activate_school_release_protocol'"),'UI must read and activate through scoped server RPCs')
 const kiosk=readFileSync('src/app/kiosk/page.tsx','utf8')

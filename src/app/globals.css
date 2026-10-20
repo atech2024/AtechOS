@@ -304,6 +304,21 @@ button, input { font: inherit; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
+/* Preschool hub: vivid street-art accents stay behind readable operational content. */
+.preschool-hub { --preschool-ink:#111b36; --preschool-blue:#1954df; color:var(--preschool-ink); }
+.preschool-section-nav { scrollbar-width:thin; scrollbar-color:#9aa8c4 transparent; }
+.preschool-section-nav button { white-space:nowrap; }
+.preschool-graffiti-hero { isolation:isolate; min-height:270px; background:linear-gradient(122deg,#e9f3ff 0%,#f8f1ff 44%,#fff3e7 100%); }
+.preschool-graffiti-hero::before { position:absolute; z-index:-1; inset:0; background:radial-gradient(ellipse at 84% 13%,rgba(236,72,153,.17),transparent 31%),radial-gradient(ellipse at 62% 91%,rgba(6,182,212,.18),transparent 36%); content:""; }
+.preschool-graffiti-art { position:absolute; right:0; bottom:-2px; width:min(50%,460px); height:auto; opacity:.94; pointer-events:none; }
+.preschool-graffiti-art text { paint-order:stroke fill; stroke:#fff; stroke-linejoin:round; stroke-width:3px; }
+.preschool-graffiti-stroke { stroke-dasharray:560; stroke-dashoffset:560; animation:preschool-graffiti-draw 850ms cubic-bezier(.16,1,.3,1) 120ms forwards; }
+.preschool-panel-enter { animation:preschool-panel-in 190ms cubic-bezier(.16,1,.3,1) both; }
+@keyframes preschool-graffiti-draw { to { stroke-dashoffset:0; } }
+@keyframes preschool-panel-in { from { opacity:.75; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+@media (max-width: 640px) { .preschool-graffiti-hero { min-height:0; } .preschool-graffiti-art { position:relative; right:auto; bottom:auto; order:-1; width:min(100%,360px); margin:-8px auto -16px; max-height:170px; } }
+@media (prefers-reduced-motion:reduce) { .preschool-graffiti-stroke { animation:none; stroke-dashoffset:0; } .preschool-panel-enter { animation:none; } }
+
 .landing-subpage-hero { padding: 96px 0 86px; color: #fff; background: var(--landing-ink); }
 .landing-subpage-hero h1 { max-width: 850px; margin: 10px 0 0; font-family: "Iowan Old Style", "Baskerville", Georgia, serif; font-size: clamp(44px, 6vw, 72px); font-weight: 500; line-height: 1.02; letter-spacing: -.04em; }
 .landing-subpage-eyebrow { margin: 0; color: #a9c8ff; font-size: 12px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }

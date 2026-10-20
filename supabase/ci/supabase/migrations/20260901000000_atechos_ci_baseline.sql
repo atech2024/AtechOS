@@ -211,6 +211,19 @@ create or replace function private.has_role(p_school uuid,p_roles text[]) return
 language sql stable security definer set search_path=''
 as $$ select exists(select 1 from public.school_members m where m.school_id=p_school and m.user_id=auth.uid() and m.enabled and m.role=any(p_roles)) $$;
 
+-- Minimal synthetic dashboard RPC matching the live count anchor so the late
+-- arrival migration can verify that its present total includes late students.
+create or replace function public.dashboard_summary() returns jsonb language plpgsql stable security invoker set search_path='' as $$
+declare sid uuid:=public.get_my_school_id();d date:=(now() at time zone 'America/Port-au-Prince')::date;
+begin
+ if auth.uid() is null or sid is null then raise exception 'not_authorized';end if;
+ return jsonb_build_object(
+  'present',(select count(*) from public.attendance a where a.school_id=sid and a.attendance_date=d and a.status='present'),
+  'late',(select count(*) from public.attendance a where a.school_id=sid and a.attendance_date=d and a.status='late'));
+end $$;
+revoke all on function public.dashboard_summary() from public,anon,authenticated;
+grant execute on function public.dashboard_summary() to authenticated;
+
 -- Synthetic pre-change attendance RPC: mirrors the authorization and attribution
 -- anchors that the Kind coordinator migration must safely extend.
 create or replace function public.staff_mark_attendance(p_student uuid,p_class uuid,p_status text) returns uuid language plpgsql security definer set search_path='' as $$

@@ -136,15 +136,18 @@ end $$;
 do $$
 declare src text;
  old_guard text:='not private.has_role(s.school_id,array[''school_admin'',''director'',''secretary'',''surveillant'',''censeur''])';
+ old_guard_without_censeur text:='not private.has_role(s.school_id,array[''school_admin'',''director'',''secretary'',''surveillant''])';
  new_guard text:='not (private.has_role(s.school_id,array[''school_admin'',''director'',''secretary'',''surveillant'',''censeur'']) or (private.can_manage_preschool(s.school_id) and private.is_preschool_student(s.id)))';
  old_actor text:='role in (''school_admin'',''director'',''secretary'',''surveillant'',''censeur'')';
 begin
  select pg_get_functiondef('public.staff_mark_attendance(uuid,uuid,text)'::regprocedure) into src;
- if position(old_guard in src)=0 or position(old_actor in src)=0 then raise exception 'preschool_attendance_authorization_anchor_missing';end if;
- src:=replace(src,old_guard,new_guard);
+ if (position(old_guard in src)=0 and position(old_guard_without_censeur in src)=0) or position(old_actor in src)=0 then raise exception 'preschool_attendance_authorization_anchor_missing';end if;
+ if position(old_guard in src)>0 then src:=replace(src,old_guard,new_guard);
+ else src:=replace(src,old_guard_without_censeur,new_guard);end if;
  src:=replace(src,old_actor,'role in (''school_admin'',''director'',''secretary'',''surveillant'',''censeur'',''teacher'')');
  execute src;
 end $$;
 
 revoke all on function public.preschool_management_access(),public.save_preschool_class_team(uuid,jsonb),public.preschool_class_staff_display(uuid),public.preschool_attendance_workspace(uuid,date) from public,anon,authenticated;
 grant execute on function public.preschool_management_access(),public.save_preschool_class_team(uuid,jsonb),public.preschool_class_staff_display(uuid),public.preschool_attendance_workspace(uuid,date) to authenticated;
+

@@ -11,6 +11,17 @@ import { createClient } from '@/lib/supabase/client'
 type Result = { action:string; first_name:string; last_name:string; class_name:string; check_in_at:string|null; check_out_at:string|null; guard_meeting_required?:boolean; school_release_protocol_active?:boolean; direction_only?:boolean; sanction_action?:string|null; sanction_return_at?:string|null }
 type ScanLog = { id:number; result:Result; at:string }
 type Notice = { tone:'success'|'warning'|'error'; message:string; firstName?:string; lastName?:string; className?:string; at:string; result?:Result }
+const scanHistoryStatuses:Record<string,{label:string;kind:'entry'|'exit'|'info'}> = {
+ check_in:{label:'Check-in',kind:'entry'},
+ check_out:{label:'Check-out',kind:'exit'},
+ duplicate_scan:{label:'Already checked in',kind:'info'},
+ already_complete:{label:'Attendance already complete',kind:'info'},
+ already_picked_up_by_parent:{label:'Exit already recorded',kind:'exit'}
+}
+function getScanHistoryStatus(result:Result) {
+ if(result.direction_only)return {label:'Direction only',kind:'info' as const}
+ return scanHistoryStatuses[result.action]||{label:'Attendance status',kind:'info' as const}
+}
 const messages:Record<string,string> = { check_in:'Check-in recorded.',check_out:'Check-out recorded.',duplicate_scan:'Already checked in. Check-out opens at the scheduled time.',already_complete:'Attendance already complete for today.',already_picked_up_by_parent:'This student has already been collected by a parent or authorized adult today.' }
 const scanErrors:Record<string,string> = {
  invalid_badge:'Badge not accepted. Ask the school to replace it.', kiosk_closed:'KIOS is outside the configured entry and checkout hours. Contact school staff.', check_in_required:'No check-in today. Contact school staff.', current_class_required:'Ask the school to verify your current class.',
@@ -141,8 +152,8 @@ export default function StudentKiosk() {
        {log.length===0?<div className="flex min-h-28 flex-col items-center justify-center px-5 py-7 text-center text-[#64748b]"><ScanLine size={24} className="mb-2 text-[#8ba5c2]" aria-hidden="true"/><p className="text-sm font-medium"><T text="No scans yet"/></p><p className="mt-1 text-xs"><T text="Completed scans stay in this list during the session."/></p></div>:<ol className="max-h-[420px] divide-y divide-[#edf1f6] overflow-auto" aria-labelledby="history-title">
         {log.map(({id,result,at})=><li key={id} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3 sm:px-5">
          <p className="min-w-0 truncate text-sm font-semibold text-[#081a35]">{result.first_name} {result.last_name}</p>
-         <time dateTime={at} className="row-span-2 text-right text-xs tabular-nums text-[#52637a]">{schoolTime(at)}</time>
-         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#52637a]"><span className="truncate">{result.class_name||'—'}</span><span aria-hidden="true">·</span><span className={`inline-flex items-center gap-1 font-semibold ${result.direction_only?'text-amber-800':'text-emerald-800'}`}>{result.action==='check_out'?<ArrowUpFromLine size={13} aria-hidden="true"/>:<ArrowDownToLine size={13} aria-hidden="true"/>}<T text={result.direction_only?'Direction only':result.action==='check_out'?'Check-out':'Check-in'}/></span></div>
+         {(()=>{const status=getScanHistoryStatus(result),eventAt=status.kind==='exit'?result.check_out_at||at:at;return <><time dateTime={eventAt} className="row-span-2 text-right text-xs tabular-nums text-[#52637a]">{schoolTime(eventAt)}</time>
+         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#52637a]"><span className="truncate">{result.class_name||'—'}</span><span aria-hidden="true">·</span><span className={"inline-flex items-center gap-1 font-semibold "+(status.kind==='info'?'text-amber-800':'text-emerald-800')}>{status.kind==='exit'?<ArrowUpFromLine size={13} aria-hidden="true"/>:status.kind==='entry'?<ArrowDownToLine size={13} aria-hidden="true"/>:<CheckCircle2 size={13} aria-hidden="true"/>}<T text={status.label}/></span></div></>})()}
         </li>)}
        </ol>}
       </div>}

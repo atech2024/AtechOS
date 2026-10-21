@@ -23,10 +23,11 @@ const staffPage = readFileSync(new URL('../src/app/dashboard/staff/page.tsx', im
 assert.match(staffPage, /teacher_staff_management_access/)
 assert.match(staffPage, /<InviteForm owner=\{false\} teacherOnly/)
 assert.match(staffPage, /PreschoolCoordinatorAssignment/)
-assert.match(staffPage, /context\.roles\?\.includes\('director'\)/)
+assert.match(staffPage, /getStaffPagePresentation\(Boolean\(context\.owner\), context\.roles \|\| \[\]\)/)
 
 const migration = readFileSync(new URL('../supabase/migrations/20261020170000_kind_staff_teacher_access.sql', import.meta.url), 'utf8')
 assert.ok(migration.includes("director_guard:='if not (private.has_role(sid,array[''school_admin'']) or (p_role=''parent'' and private.has_role(sid,array[''director''])))"), 'must recognize the existing Director parent-invitation grant')
 assert.ok(migration.includes("i.role=''parent'' and exists(select 1 from public.school_members m where m.school_id=i.school_id and m.user_id=i.invited_by and m.role=''director'' and m.enabled)"), 'must preserve Director parent-invitation acceptance')
 
 console.log('Kind coordinator and teacher-access checks passed.')
+

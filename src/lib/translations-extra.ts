@@ -1449,4 +1449,5 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Invitation not found or not available.':['Invitation introuvable ou indisponible.','Envitasyon an pa jwenn oswa li pa disponib.'],
  'Private invitation link':['Lien privé d’invitation','Lyen envitasyon prive'],
  'Renewed':['Renouvelée','Renouvle'],
+ 'The parent will access only their linked children and published bulletins.':['Le parent aura uniquement accès aux enfants qui lui sont associés et à leurs bulletins publiés.','Paran an ap gen aksè sèlman ak enfòmasyon timoun ki lye ak li yo ak bilten yo pibliye.'],
 }

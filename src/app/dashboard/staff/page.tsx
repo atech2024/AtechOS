@@ -5,8 +5,9 @@ import { PreschoolCoordinatorAssignment } from '@/components/preschool-coordinat
 import { InvitationAccepted, InvitationPending, StaffDirectory, type StaffDirectoryPerson } from '@/components/staff-directory'
 import { getStaffPagePresentation } from '@/lib/staff-page-presentation'
 import { getDisplayMemberRole } from '@/lib/staff-directory-sections'
+import { canRenewInvitation } from '@/lib/invitation-policy'
 import { createClient } from '@/lib/supabase/server'
-import { CancelInvitation, InviteForm } from './invite-form'
+import { CancelInvitation, InviteForm, RenewInvitation } from './invite-form'
 
 const coordinatorRoles = new Set(['teacher', 'school_admin', 'director', 'secretary'])
 const staffRoles = new Set(['school_admin', 'director', 'censeur', 'secretary', 'surveillant', 'teacher', 'accountant'])
@@ -51,7 +52,7 @@ function TeacherAccessView({ showCoordinator, options, coordinatorId, coordinato
   return <main className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6 lg:p-8">
     <PageHeading description="Manage teacher invitations and requests for your school."/>
     {showCoordinator && <PreschoolCoordinatorAssignment options={options} initialCoordinatorId={coordinatorId} initialCoordinatorName={coordinatorName}/>}
-    <InviteForm owner={false} teacherOnly parents={[]} students={[]}/>
+    <InviteForm owner={false} teacherOnly students={[]}/>
     <section className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
       <div className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-blue-800"><Clock3 aria-hidden="true" className="size-5"/></span>
@@ -76,16 +77,15 @@ export default async function StaffPage() {
   const { data: canManageTeachers, error: accessError } = await db.rpc('teacher_staff_management_access')
   if (accessError || !canManageTeachers) return <StaffPageError message="Your account does not have access to this staff workspace. Ask school administration to review your access."/>
 
-  const [members, invitations, parents, students, school, coordinatorWorkspace] = await Promise.all([
+  const [members, invitations, students, school, coordinatorWorkspace] = await Promise.all([
     db.from('school_members').select('id,user_id,role,enabled,users(full_name,email)').eq('school_id', context.school_id),
     presentation.fullDirectory ? db.from('school_invitations').select('id,email,full_name,role,status,expires_at,accepted_at').eq('school_id', context.school_id).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
-    presentation.fullDirectory ? db.from('parents').select('id,full_name,email').eq('school_id', context.school_id) : Promise.resolve({ data: [], error: null }),
     presentation.fullDirectory ? db.from('students').select('id,first_name,last_name').eq('school_id', context.school_id).eq('active', true) : Promise.resolve({ data: [], error: null }),
     presentation.fullDirectory ? db.from('schools').select('owner_user_id').eq('id', context.school_id).single() : Promise.resolve({ data: { owner_user_id: null }, error: null }),
     presentation.coordinatorAssignment ? db.rpc('preschool_coordinator_workspace') : Promise.resolve({ data: { coordinator_user_id: null }, error: null }),
   ])
   if (members.error || invitations.error) return <StaffPageError message="We could not load the staff directory or invitations. Refresh the page and try again."/>
-  if (presentation.fullDirectory && (parents.error || students.error || school.error)) return <StaffPageError message="We could not load the records needed to prepare an invitation. Refresh the page and try again."/>
+  if (presentation.fullDirectory && (students.error || school.error)) return <StaffPageError message="We could not load the records needed to prepare an invitation. Refresh the page and try again."/>
   if (presentation.coordinatorAssignment && coordinatorWorkspace.error) return <StaffPageError message="We could not load the Preschool coordinator assignment. Refresh the page and try again."/>
 
   const memberRows = members.data || []
@@ -148,7 +148,7 @@ export default async function StaffPage() {
         <span className="text-sm font-medium text-blue-800"><T text="Open or close"/></span>
       </summary>
       <div className="staff-disclosure__content border-t border-slate-200 p-4 sm:p-6">
-        <InviteForm owner={Boolean(context.owner)} parents={parents.data || []} students={students.data || []}/>
+        <InviteForm owner={Boolean(context.owner)} students={students.data || []}/>
       </div>
     </details>
 
@@ -200,7 +200,7 @@ export default async function StaffPage() {
         <div className="staff-disclosure__content pt-2">
           {historyInvitations.length ? <ul className="divide-y divide-slate-100">{historyInvitations.map(invitation => <li key={invitation.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="min-w-0 truncate text-sm font-medium text-slate-800">{invitation.full_name} <span className="font-normal text-slate-600">· {invitation.email}</span></span>
-            <span className="text-sm text-slate-600"><T text={roleLabels[invitation.role] || invitation.role}/> · <T text={invitation.status === 'pending' ? 'Expired' : invitation.status === 'cancelled' ? 'Cancelled' : invitation.status}/></span>
+            <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm text-slate-600"><T text={roleLabels[invitation.role] || invitation.role}/> · <T text={invitation.status === 'pending' ? 'Expired' : invitation.status === 'cancelled' ? 'Cancelled' : invitation.status}/></span>{canRenewInvitation(invitation.status, invitation.expires_at, now) && <RenewInvitation id={invitation.id}/>}</div>
           </li>)}</ul> : <p className="py-3 text-sm text-slate-600"><T text="No invitation history yet."/></p>}
         </div>
       </details>

@@ -23,6 +23,7 @@ export default function ParentsPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [links, setLinks] = useState<LinkRow[]>([])
   const [inviteStudentId, setInviteStudentId] = useState('')
+  const [prefilledStudentApplied, setPrefilledStudentApplied] = useState(false)
   const [linkStudentId, setLinkStudentId] = useState('')
   const [inviteStudentQuery, setInviteStudentQuery] = useState('')
   const [linkStudentQuery, setLinkStudentQuery] = useState('')
@@ -53,6 +54,12 @@ export default function ParentsPage() {
     setLoading(false)
   }
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    if (loading || prefilledStudentApplied) return
+    setPrefilledStudentApplied(true)
+    const requestedStudentId = new URLSearchParams(window.location.search).get('studentId')
+    if (requestedStudentId && students.some(student => student.id === requestedStudentId)) setInviteStudentId(requestedStudentId)
+  }, [loading, prefilledStudentApplied, students])
 
   const filterStudents = (query: string) => {
     const term = query.trim().toLowerCase()

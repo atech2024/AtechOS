@@ -4,10 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
 import { canRenewInvitation } from '@/lib/invitation-policy'
 
+type InvitationActionResult = { error?: string; url?: string; delivery?: 'email' | 'manual'; notice?: string }
+
 const roles = ['school_admin', 'director', 'censeur', 'secretary', 'teacher', 'accountant', 'surveillant', 'parent', 'student']
 function escapeHtml(value: string) { return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character] || character)) }
 
-async function deliverInvitation(origin: string, token: string, email: string, name: string, role: string) {
+async function deliverInvitation(origin: string, token: string, email: string, name: string, role: string): Promise<InvitationActionResult> {
   const url = `${origin}/invite?token=${encodeURIComponent(token)}`
   const apiKey = process.env.RESEND_API_KEY
   const from = process.env.ATECHOS_FROM_EMAIL
@@ -25,7 +27,7 @@ async function deliverInvitation(origin: string, token: string, email: string, n
   return { url, delivery: 'manual' as const, notice: 'The email was not sent. Share the private link manually.' }
 }
 
-export async function inviteMember(form: FormData) {
+export async function inviteMember(form: FormData): Promise<InvitationActionResult> {
   const email = String(form.get('email') || '').trim().toLowerCase()
   const name = String(form.get('full_name') || '').trim()
   const role = String(form.get('role') || '')
@@ -48,7 +50,7 @@ export async function inviteMember(form: FormData) {
   return deliverInvitation(origin, data.token, email, name, role)
 }
 
-export async function renewInvitation(id: string) {
+export async function renewInvitation(id: string): Promise<InvitationActionResult> {
   const origin = (await headers()).get('origin')
   if (!origin) return { error: 'Unable to create the invitation. Please try again.' }
   const supabase = await createClient()

@@ -1,0 +1,37 @@
+do $test$
+declare owner_a uuid:=gen_random_uuid(); owner_b uuid:=gen_random_uuid();teacher uuid:=gen_random_uuid();sid uuid;other_school uuid;yr uuid;cls uuid;other_cls uuid;su uuid;child uuid;other_child uuid;inv jsonb;n1 uuid;n2 uuid;payload jsonb;failed boolean;
+begin begin
+ insert into auth.users(id,email,email_confirmed_at,role,aud) select id,id::text||'@example.invalid',now(),'authenticated','authenticated' from unnest(array[owner_a,owner_b,teacher]) id;
+ perform set_config('request.jwt.claim.sub',owner_a::text,true);set local role authenticated;
+ sid:=public.create_school_onboarding('Shell school',gen_random_uuid()::text);
+ yr:=public.create_academic_year('Shell year','2026-01-01','2026-12-31',true);
+ cls:=public.create_class(yr,'Shell class','AF7');other_cls:=public.create_class(yr,'Private class','AF8');su:=public.create_subject('Shell subject','SH');
+ child:=public.save_student_record(jsonb_build_object('first_name','Shell','last_name','Allowed','class_id',cls));
+ other_child:=public.save_student_record(jsonb_build_object('first_name','Shell','last_name','Forbidden','class_id',other_cls));
+ inv:=public.create_school_invitation(teacher::text||'@example.invalid','Shell teacher','teacher');
+ perform set_config('request.jwt.claim.sub',teacher::text,true);perform public.accept_school_invitation(inv->>'token');
+ perform set_config('request.jwt.claim.sub',owner_a::text,true);perform public.assign_subject_to_class(cls,su,teacher);
+ payload:=public.school_search('Shell');if not exists(select 1 from jsonb_array_elements(payload) r where r->>'label'='Shell Allowed') then raise exception 'TEST admin search';end if;
+ if public.school_search('%_')<>'[]'::jsonb then raise exception 'TEST wildcard search expands';end if;
+ if (public.dashboard_summary()->>'students')::int<>2 then raise exception 'TEST admin student total';end if;
+ perform set_config('request.jwt.claim.sub',teacher::text,true);
+ payload:=public.school_search('Shell');
+ if not exists(select 1 from jsonb_array_elements(payload) r where r->>'label'='Shell Allowed') or exists(select 1 from jsonb_array_elements(payload) r where r->>'label'='Shell Forbidden') then raise exception 'TEST teacher search scope';end if;
+ if (public.dashboard_summary()->>'students')::int<>1 then raise exception 'TEST teacher aggregate bypass';end if;
+ reset role;
+ insert into public.notifications(school_id,recipient_id,type,title,href,event_key) values(sid,teacher,'test','Teacher fixture','/dashboard/grades','test-1') returning id into n1;
+ insert into public.notifications(school_id,recipient_id,type,title,href,event_key) values(sid,owner_a,'test','Owner fixture','/dashboard/grades','test-2') returning id into n2;
+ set local role authenticated;
+ if (select count(*) from public.notifications)<>1 then raise exception 'TEST notification isolation';end if;
+ failed:=false;begin perform public.mark_notification_read(n2);exception when others then failed:=true;end;
+ if not failed then raise exception 'TEST mark another recipient read';end if;
+ perform public.mark_notification_read(n1);
+ if not exists(select 1 from public.notifications where id=n1 and read_at is not null) then raise exception 'TEST read receipt';end if;
+ failed:=false;begin insert into public.notifications(school_id,recipient_id,type,title,href,event_key) values(sid,owner_a,'test','Forged','/dashboard/grades','forged');exception when insufficient_privilege then failed:=true;end;
+ if not failed then raise exception 'TEST forged notification';end if;
+ perform set_config('request.jwt.claim.sub',owner_b::text,true);other_school:=public.create_school_onboarding('Other shell school',gen_random_uuid()::text);
+ if public.school_search('Shell')<>'[]'::jsonb or (public.dashboard_summary()->>'students')::int<>0 then raise exception 'TEST cross school search/aggregate';end if;
+ if exists(select 1 from public.notifications) then raise exception 'TEST cross school notification';end if;
+ reset role;raise exception using errcode='ZX003',message='fixtures passed';exception when sqlstate 'ZX003' then null;end;
+end $test$;
+select 'PASS app shell: role-scoped search, literal wildcards, tenant/teacher counts, recipient isolation, read receipts, no client notification forgery' as result;

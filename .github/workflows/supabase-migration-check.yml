@@ -1,0 +1,480 @@
+name: Supabase migration checks (free local stack)
+
+on:
+  push:
+    branches:
+      - feature/finance-finalization
+      - feature/kindergarten-relocation
+      - feature/preschool-grade-labels
+      - feature/build01-navigation-shell
+      - fix/progression-points-integrity
+      - feature/sanctions-emergency-release
+      - feat/family-attendance-history
+      - feat/staff-self-service-profile
+    paths:
+      - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
+      - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
+      - "supabase/migrations/20260930123000_weekly_lateness_guard.sql"
+      - "supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql"
+      - "supabase/migrations/20260930210000_guard_meeting_access_lock.sql"
+      - "supabase/migrations/20260930220000_guard_school_day_absence.sql"
+      - "supabase/migrations/20260930213000_official_school_terms.sql"
+      - "supabase/migrations/20260930232834_kindergarten_pickup_workflow.sql"
+      - "supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql"
+      - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
+      - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
+      - "supabase/migrations/20261001144429_preschool_competency_bulletins.sql"
+      - "supabase/migrations/20261001222000_school_calendar_year_successor.sql"
+      - "supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql"
+      - "supabase/migrations/20261002100000_official_calendar_sources.sql"
+      - "supabase/migrations/20261002120000_enable_pg_net_for_calendar_sources.sql"
+      - "supabase/migrations/20261002121500_allow_secondary_calendar_source.sql"
+      - "supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql"
+      - "supabase/migrations/20261002150000_calendar_document_kinds.sql"
+      - "supabase/migrations/20261002151000_official_exam_date_proposals.sql"
+      - "supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql"
+      - "supabase/migrations/20261012160345_censeur_class_structure_management.sql"
+      - "supabase/migrations/20261012200502_censeur_student_sanctions_and_departures.sql"
+      - "supabase/migrations/20261002153945_enforce_single_current_academic_year_per_school.sql"
+      - "supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql"
+      - "supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql"
+      - "supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql"
+      - "supabase/migrations/20261002233000_guard_active_parent_membership.sql"
+      - "supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql"
+      - "supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql"
+      - "supabase/migrations/20261003023548_published_only_family_student_bulletins.sql"
+      - "supabase/migrations/20261003162629_confirm_official_exam_dates.sql"
+      - "supabase/migrations/20261004000016_finance_accounting_core.sql"
+      - "supabase/migrations/20261004010000_finance_overdue_restrictions.sql"
+      - "supabase/migrations/20261004020000_finance_overpayment_credits.sql"
+      - "supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql"
+      - "supabase/migrations/20261004220000_finance_payment_refunds.sql"
+      - "supabase/migrations/20261009170000_finance_refund_window_departure.sql"
+      - "supabase/migrations/20261010193000_finance_receipt_signature_fx_details.sql"
+      - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
+      - "supabase/migrations/20261005050000_finance_overpayments_all_fees.sql"
+      - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
+      - "supabase/migrations/20261005121811_update_brh_rate_source_url.sql"
+      - "supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql"
+      - "supabase/migrations/20261005220000_finance_payment_ledger_refund_totals.sql"
+      - "supabase/migrations/20261005153000_family_attendance_history_pagination.sql"
+      - "supabase/migrations/20261006142918_family_parent_finance_and_sanctions.sql"
+      - "supabase/migrations/20261006150000_sanction_student_badge_lookup.sql"
+      - "supabase/migrations/20261006185128_collective_sanctions_parent_meetings_20261006.sql"
+      - "supabase/migrations/20261006190617_separate_kiosk_and_student_suspensions.sql"
+      - "supabase/migrations/20261008134043_family_validated_payment_timeline.sql"
+      - "supabase/migrations/20261009100000_finance_payment_receipts_signatures.sql"
+      - "supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql"
+      - "supabase/migrations/20261014151237_lock_legacy_finance_receipt_signature.sql"
+      - "supabase/migrations/20261017154500_finance_bank_transaction_type.sql"
+      - "supabase/migrations/20261017174604_finance_receipt_refund_audit.sql"
+      - "supabase/migrations/20261018100000_staff_self_service_profiles.sql"
+      - "supabase/migrations/20261020090533_preschool_kind_workspace_and_team.sql"
+      - "supabase/migrations/20261020170000_kind_staff_teacher_access.sql"
+      - "supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql"
+      - "supabase/migrations/20261020130000_attendance_summary_late_included.sql"
+      - "supabase/migrations/20261009110000_direction_member_receipt_signatures.sql"
+      - "supabase/migrations/20261009133000_editable_receipt_signature_name.sql"
+      - "supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql"
+      - "supabase/migrations/20261014151237_lock_legacy_finance_receipt_signature.sql"
+      - "supabase/migrations/20261008171500_teacher_exam_submissions.sql"
+      - "supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql"
+      - "supabase/ci-grade-deadline/**"
+      - "supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql"
+      - "supabase/migrations/20261012050004_enforce_subject_max_score_on_grade_updates.sql"
+      - "supabase/migrations/20261008210000_section_grading_period_dates.sql"
+      - "supabase/migrations/20261019104755_student_dashboard_scope.sql"
+      - "supabase/ci-exam-submissions/**"
+      - "supabase/ci/student-followup-badge-verification.sql"
+      - "supabase/ci-parent/**"
+      - "supabase/ci-assignment-files/**"
+      - "supabase/migrations/20261016154709_parent_assignment_file_access.sql"
+      - "supabase/migrations/20261019104833_lock_family_preschool_bulletin_rpc.sql"
+      - "supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql"
+      - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
+      - "vercel.json"
+      - "supabase/ci/**"
+      - "supabase/ci-badge/**"
+      - "supabase/ci-progression/**"
+      - "supabase/migrations/20261005040000_progression_points_weighted_year_average.sql"
+      - "supabase/migrations/20261005044450_student_sanctions_emergency_release.sql"
+      - "supabase/migrations/20261005170000_student_release_kiosk_checkout.sql"
+      - "supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql"
+      - "supabase/migrations/20261005210100_school_release_protocol.sql"
+      - "supabase/migrations/20261009120000_student_release_direction_escort.sql"
+      - "supabase/migrations/20261012131356_sanction_departure_after_family_meeting_20261012.sql"
+      - ".github/workflows/supabase-migration-check.yml"
+  pull_request:
+    paths:
+      - "supabase/migrations/20260930120000_guard_cases_workflow.sql"
+      - "supabase/migrations/20260930121500_guard_deadline_processor.sql"
+      - "supabase/migrations/20260930123000_weekly_lateness_guard.sql"
+      - "supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql"
+      - "supabase/migrations/20260930210000_guard_meeting_access_lock.sql"
+      - "supabase/migrations/20260930220000_guard_school_day_absence.sql"
+      - "supabase/migrations/20260930213000_official_school_terms.sql"
+      - "supabase/migrations/20260930232834_kindergarten_pickup_workflow.sql"
+      - "supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql"
+      - "supabase/migrations/20261001001600_kindergarten_private_relocation.sql"
+      - "supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql"
+      - "supabase/migrations/20261001144429_preschool_competency_bulletins.sql"
+      - "supabase/migrations/20261001222000_school_calendar_year_successor.sql"
+      - "supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql"
+      - "supabase/migrations/20261002100000_official_calendar_sources.sql"
+      - "supabase/migrations/20261002120000_enable_pg_net_for_calendar_sources.sql"
+      - "supabase/migrations/20261002121500_allow_secondary_calendar_source.sql"
+      - "supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql"
+      - "supabase/migrations/20261002150000_calendar_document_kinds.sql"
+      - "supabase/migrations/20261002151000_official_exam_date_proposals.sql"
+      - "supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql"
+      - "supabase/migrations/20261012160345_censeur_class_structure_management.sql"
+      - "supabase/migrations/20261012200502_censeur_student_sanctions_and_departures.sql"
+      - "supabase/migrations/20261002153945_enforce_single_current_academic_year_per_school.sql"
+      - "supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql"
+      - "supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql"
+      - "supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql"
+      - "supabase/migrations/20261002233000_guard_active_parent_membership.sql"
+      - "supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql"
+      - "supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql"
+      - "supabase/migrations/20261003023548_published_only_family_student_bulletins.sql"
+      - "supabase/migrations/20261003162629_confirm_official_exam_dates.sql"
+      - "supabase/migrations/20261004000016_finance_accounting_core.sql"
+      - "supabase/migrations/20261004010000_finance_overdue_restrictions.sql"
+      - "supabase/migrations/20261004020000_finance_overpayment_credits.sql"
+      - "supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql"
+      - "supabase/migrations/20261004220000_finance_payment_refunds.sql"
+      - "supabase/migrations/20261009170000_finance_refund_window_departure.sql"
+      - "supabase/migrations/20261010193000_finance_receipt_signature_fx_details.sql"
+      - "supabase/migrations/20261014151237_lock_legacy_finance_receipt_signature.sql"
+      - "supabase/migrations/20261017154500_finance_bank_transaction_type.sql"
+      - "supabase/migrations/20261017174604_finance_receipt_refund_audit.sql"
+      - "supabase/migrations/20261018100000_staff_self_service_profiles.sql"
+      - "supabase/migrations/20261020090533_preschool_kind_workspace_and_team.sql"
+      - "supabase/migrations/20261020170000_kind_staff_teacher_access.sql"
+      - "supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql"
+      - "supabase/migrations/20261020130000_attendance_summary_late_included.sql"
+      - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
+      - "supabase/migrations/20261005050000_finance_overpayments_all_fees.sql"
+      - "supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql"
+      - "supabase/migrations/20261005121811_update_brh_rate_source_url.sql"
+      - "supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql"
+      - "supabase/migrations/20261005220000_finance_payment_ledger_refund_totals.sql"
+      - "supabase/migrations/20261005153000_family_attendance_history_pagination.sql"
+      - "supabase/migrations/20261006142918_family_parent_finance_and_sanctions.sql"
+      - "supabase/migrations/20261006150000_sanction_student_badge_lookup.sql"
+      - "supabase/migrations/20261006185128_collective_sanctions_parent_meetings_20261006.sql"
+      - "supabase/migrations/20261006190617_separate_kiosk_and_student_suspensions.sql"
+      - "supabase/migrations/20261008134043_family_validated_payment_timeline.sql"
+      - "supabase/migrations/20261009100000_finance_payment_receipts_signatures.sql"
+      - "supabase/migrations/20261008171500_teacher_exam_submissions.sql"
+      - "supabase/migrations/20261008171600_teacher_exam_submission_document_types.sql"
+      - "supabase/ci-grade-deadline/**"
+      - "supabase/migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql"
+      - "supabase/migrations/20261012050004_enforce_subject_max_score_on_grade_updates.sql"
+      - "supabase/migrations/20261008210000_section_grading_period_dates.sql"
+      - "supabase/migrations/20261019104755_student_dashboard_scope.sql"
+      - "supabase/ci-exam-submissions/**"
+      - "supabase/ci/student-followup-badge-verification.sql"
+      - "supabase/ci-parent/**"
+      - "supabase/ci-assignment-files/**"
+      - "supabase/migrations/20261016154709_parent_assignment_file_access.sql"
+      - "supabase/migrations/20261019104833_lock_family_preschool_bulletin_rpc.sql"
+      - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
+      - "vercel.json"
+      - "supabase/ci/**"
+      - "supabase/ci-badge/**"
+      - "supabase/ci-progression/**"
+      - "supabase/migrations/20261005040000_progression_points_weighted_year_average.sql"
+      - "supabase/migrations/20261005044450_student_sanctions_emergency_release.sql"
+      - "supabase/migrations/20261005170000_student_release_kiosk_checkout.sql"
+      - "supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql"
+      - "supabase/migrations/20261005210100_school_release_protocol.sql"
+      - "supabase/migrations/20261009120000_student_release_direction_escort.sql"
+      - "supabase/migrations/20261012131356_sanction_departure_after_family_meeting_20261012.sql"
+      - ".github/workflows/supabase-migration-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          # Pin the CLI so setup does not need GitHub's rate-limited latest-release lookup.
+          version: 2.119.0
+      - name: Stage selected pending migrations in an isolated local Supabase project
+        shell: bash
+        run: |
+          cp supabase/migrations/20260930120000_guard_cases_workflow.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930121500_guard_deadline_processor.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930123000_weekly_lateness_guard.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930194459_guard_school_day_deadlines_notifications.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930210000_guard_meeting_access_lock.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930220000_guard_school_day_absence.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930213000_official_school_terms.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930232834_kindergarten_pickup_workflow.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20260930233211_kindergarten_pickup_audit_source.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261001001600_kindergarten_private_relocation.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261001010212_student_kiosk_hide_student_id.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261001144429_preschool_competency_bulletins.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261019104833_lock_family_preschool_bulletin_rpc.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261001222000_school_calendar_year_successor.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261001222100_guard_meeting_reschedule_fix.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002100000_official_calendar_sources.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002120000_enable_pg_net_for_calendar_sources.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002121500_allow_secondary_calendar_source.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002125000_remove_calendar_test_pg_net.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002150000_calendar_document_kinds.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002151000_official_exam_date_proposals.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002151506_enforce_enabled_school_section_for_classes.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261012160345_censeur_class_structure_management.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261012200502_censeur_student_sanctions_and_departures.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002153945_enforce_single_current_academic_year_per_school.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002200218_preschool_active_staff_role_scope.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002210335_allow_secretary_to_publish_preschool_bulletins.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002223000_preschool_bulletin_departure_history.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002233000_guard_active_parent_membership.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261002235000_kindergarten_pickup_minimize_view_data.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261003023548_published_only_family_student_bulletins.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261003162629_confirm_official_exam_dates.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261004000016_finance_accounting_core.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261004010000_finance_overdue_restrictions.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261004020000_finance_overpayment_credits.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261004210000_finance_payment_ledger_pagination.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261004220000_finance_payment_refunds.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261009170000_finance_refund_window_departure.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261010193000_finance_receipt_signature_fx_details.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005013350_parent_finance_payment_portal.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005050000_finance_overpayments_all_fees.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005100000_finance_payment_methods_brh_rates.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005121811_update_brh_rate_source_url.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005143920_parent_usd_to_htg_fee_payments.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005220000_finance_payment_ledger_refund_totals.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005044450_student_sanctions_emergency_release.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005170000_student_release_kiosk_checkout.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261005210100_school_release_protocol.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261009120000_student_release_direction_escort.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261012131356_sanction_departure_after_family_meeting_20261012.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261006142918_family_parent_finance_and_sanctions.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261006150000_sanction_student_badge_lookup.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261006185128_collective_sanctions_parent_meetings_20261006.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261006190617_separate_kiosk_and_student_suspensions.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261008134043_family_validated_payment_timeline.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261008210000_section_grading_period_dates.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261019104755_student_dashboard_scope.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261009100000_finance_payment_receipts_signatures.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261009110000_direction_member_receipt_signatures.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261009133000_editable_receipt_signature_name.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261009140000_lock_approved_finance_receipt_signature.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261014151237_lock_legacy_finance_receipt_signature.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261017154500_finance_bank_transaction_type.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261017174604_finance_receipt_refund_audit.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261018100000_staff_self_service_profiles.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261020090533_preschool_kind_workspace_and_team.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261020170000_kind_staff_teacher_access.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261020130000_attendance_summary_late_included.sql supabase/ci/supabase/migrations/
+      - name: Start local Supabase and apply migrations
+        working-directory: supabase/ci
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Run rollback-only migration integration checks
+        working-directory: supabase/ci
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-migration-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < guard-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < school-calendar-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < official-exam-confirmation-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < class-section-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < finance-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < student-followup-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < student-followup-badge-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < staff-profile-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < kind-teacher-access-verification.sql
+      - name: Stop local Supabase
+        if: always()
+        working-directory: supabase/ci
+        run: supabase stop --no-backup
+
+  badge-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Stage the real badge lifecycle migration over a synthetic pre-lifecycle schema
+        working-directory: supabase/ci-badge
+        run: cp ../migrations/20260928004221_badge_lifecycle_history.sql supabase/migrations/
+      - name: Start isolated Supabase and apply badge lifecycle migration
+        working-directory: supabase/ci-badge
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Run rollback-only badge credential, role and KIOS checks
+        working-directory: supabase/ci-badge
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-badge-migration-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < badge-verification.sql
+      - name: Stop badge verification Supabase
+        if: always()
+        working-directory: supabase/ci-badge
+        run: supabase stop --no-backup
+
+  progression-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Stage the progression average fix over a focused synthetic schema
+        working-directory: supabase/ci-progression
+        run: cp ../migrations/20261005040000_progression_points_weighted_year_average.sql supabase/migrations/
+      - name: Start isolated Supabase and apply the progression migration
+        working-directory: supabase/ci-progression
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Verify point weighting, incomplete reports, threshold and tenant scope
+        working-directory: supabase/ci-progression
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-progression-integrity-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < progression-verification.sql
+      - name: Stop progression verification Supabase
+        if: always()
+        working-directory: supabase/ci-progression
+        run: supabase stop --no-backup
+
+  family-attendance-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Stage the attendance-history migration over a synthetic family schema
+        working-directory: supabase/ci-parent
+        run: cp ../migrations/20261005153000_family_attendance_history_pagination.sql supabase/migrations/
+      - name: Start isolated Supabase and apply attendance-history migration
+        working-directory: supabase/ci-parent
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Verify date filters, pagination, linked-family scope and grants
+        working-directory: supabase/ci-parent
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-family-attendance-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < attendance-verification.sql
+      - name: Stop family attendance verification Supabase
+        if: always()
+        working-directory: supabase/ci-parent
+        run: supabase stop --no-backup
+
+  teacher-exam-submissions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Stage the exam-submission migration over its isolated synthetic schema
+        working-directory: supabase/ci-exam-submissions
+        run: |
+          cp ../migrations/20261008171500_teacher_exam_submissions.sql supabase/migrations/
+          cp ../migrations/20261008171600_teacher_exam_submission_document_types.sql supabase/migrations/
+      - name: Start isolated Supabase and apply the exam-submission migration
+        working-directory: supabase/ci-exam-submissions
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Verify submission roles, assignment limits and register scope
+        working-directory: supabase/ci-exam-submissions
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-exam-submissions-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < teacher-exam-submissions-verification.sql
+      - name: Stop exam-submissions verification Supabase
+        if: always()
+        working-directory: supabase/ci-exam-submissions
+        run: supabase stop --no-backup
+  grade-deadline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Stage grade workflow migration over its isolated schema
+        working-directory: supabase/ci-grade-deadline
+        run: |
+          cp ../migrations/20261008231500_period_grade_entry_and_deadline_exceptions.sql supabase/migrations/
+          cp ../migrations/20261012050004_enforce_subject_max_score_on_grade_updates.sql supabase/migrations/
+      - name: Start isolated Supabase and apply grade workflow migration
+        working-directory: supabase/ci-grade-deadline
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Verify scoped deadline, role denial, subject maximum and expiry
+        working-directory: supabase/ci-grade-deadline
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-grade-deadline-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < grade-deadline-verification.sql
+      - name: Stop grade-deadline verification Supabase
+        if: always()
+        working-directory: supabase/ci-grade-deadline
+        run: supabase stop --no-backup
+
+  family-assignment-files:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Stage the parent assignment-file policy over a synthetic schema
+        working-directory: supabase/ci-assignment-files
+        run: cp ../migrations/20261016154709_parent_assignment_file_access.sql supabase/migrations/
+      - name: Start isolated Supabase and apply the assignment-file policy
+        working-directory: supabase/ci-assignment-files
+        run: |
+          supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Verify linked-parent storage isolation and current-year scope
+        working-directory: supabase/ci-assignment-files
+        shell: bash
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_atechos-family-assignment-files-check' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < assignment-files-verification.sql
+      - name: Stop assignment-file verification Supabase
+        if: always()
+        working-directory: supabase/ci-assignment-files
+        run: supabase stop --no-backup

@@ -1,0 +1,13 @@
+import { T } from '@/components/translation-provider'
+import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+export default async function TeacherRequestsPage() {
+ const db=await createClient(); const {data:context}=await db.rpc('school_context')
+ const {data:authorized,error:accessError}=await db.rpc('teacher_staff_management_access')
+ if(accessError || !context?.school_id || !authorized) redirect('/dashboard')
+ const {data:requests,error}=await db.rpc('get_teacher_requests')
+ const {data:school}=await db.from('schools').select('code').eq('id',context.school_id).single()
+ async function review(form:FormData) {'use server';const {error}=await (await createClient()).rpc('review_teacher_request',{p_request:String(form.get('id')),p_approve:form.get('decision')==='approve'});if(error)throw new Error('Could not review request. Refresh and try again.');revalidatePath('/dashboard/teacher-requests')}
+ return <main className="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8"><header className="mb-6"><h1 className="text-3xl font-bold tracking-tight text-slate-950"><T text="Teacher requests"/></h1><div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-slate-600"><T text="School code:"/><code translate="no" className="rounded-lg bg-slate-100 px-3 py-1.5 font-semibold text-slate-800">{school?.code}</code></div></header>{error?<p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><T text="Could not load teacher requests. Refresh the page."/></p>:!requests?.length?<p role="status" className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600"><T text="No pending requests."/></p>:<section className="space-y-3">{requests.map((r:{id:string;name:string;email:string})=><form key={r.id} action={review} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"><input type="hidden" name="id" value={r.id}/><span className="min-w-0 break-words font-medium text-slate-900">{r.name || r.email || <T text="Teacher request"/>}</span><div className="flex flex-wrap gap-2"><button name="decision" value="approve" className="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><T text="Approve"/></button><button name="decision" value="reject" className="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><T text="Reject"/></button></div></form>)}</section>}</main>
+}

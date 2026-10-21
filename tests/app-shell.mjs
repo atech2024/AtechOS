@@ -1,0 +1,126 @@
+import assert from 'node:assert/strict'
+import {readFileSync,existsSync} from 'node:fs'
+import {createRequire} from 'node:module'
+import vm from 'node:vm'
+import ts from 'typescript'
+import React from 'react'
+import {renderToStaticMarkup} from 'react-dom/server'
+const require=createRequire(import.meta.url)
+function compile(path,imports={}){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,URLSearchParams,require:n=>imports[n]||require(n)});return exports}
+const nav=compile('src/lib/navigation.ts')
+assert.ok(nav.navigation.every(item=>item.group),'Every destination must belong to a product domain group.')
+for(const item of nav.navigation)assert.ok(existsSync('src/app'+item.href+'/page.tsx'),item.href+' must resolve to a real page')
+const teacher=nav.permittedNavigation(['teacher']).map(x=>x.href)
+assert.ok(teacher.includes('/dashboard/grades'));assert.ok(!teacher.includes('/dashboard/staff'));assert.ok(!teacher.includes('/dashboard/badges'));assert.ok(!teacher.includes('/dashboard/publication'))
+const parent=nav.permittedNavigation(['parent']).map(x=>x.href)
+assert.ok(parent.includes('/dashboard/parent-portal'));assert.ok(!parent.includes('/dashboard/students'));assert.ok(!parent.includes('/dashboard/grades'))
+assert.ok(nav.permittedNavigation(['director']).some(x=>x.href==='/dashboard/publication'))
+assert.ok(nav.permittedNavigation(['school_admin']).some(x=>x.href==='/dashboard/settings'))
+assert.ok(nav.permittedNavigation(['director']).some(x=>x.href==='/dashboard/settings'))
+for(const role of ['school_admin','director','secretary','accountant'])assert.ok(nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/finance'),`${role} must see Finance.`)
+for(const role of ['teacher','parent','surveillant','censeur','student'])assert.ok(!nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/finance'),`${role} must not see Finance.`)
+for(const role of ['school_admin','director','secretary','accountant','censeur'])assert.ok(nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/settings'),role+' must be able to configure their personal receipt signature.')
+assert.ok(!nav.navigation.some(x=>x.href==='/dashboard/grading-settings'),'Grading rules belong under the settings center navigation.')
+const settingsPage=readFileSync('src/app/dashboard/settings/page.tsx','utf8')
+assert.ok(settingsPage.includes("['school_admin', 'director']"),'Only school admins and directors can manage school-wide settings.')
+assert.ok(settingsPage.includes("['school_admin', 'director', 'censeur', 'secretary', 'accountant']"),'Authorized staff can configure their own receipt signatures.')
+assert.match(settingsPage,/href:\s*['"]\/dashboard\/grading-settings['"]/,'Settings center must link to the existing grading rules page.')
+let academicYearContext={years:[],year:null,yearId:'',canSelect:false,setYearId:()=>{}}
+let activeShellPath='/dashboard/grades'
+const {default:AppShell}=compile('src/components/app-shell.tsx',{'next/link':{default:({children,...props})=>React.createElement('a',props,children)},'next/image':{default:({priority,...props})=>React.createElement('img',props)},'next/navigation':{usePathname:()=>activeShellPath},'@/lib/navigation':nav,'@/lib/staff-profile':{canAccessStaffProfile:roles=>roles.some(role=>['school_admin','director','secretary','censeur','teacher','accountant','surveillant'].includes(role))},'@/lib/school-date':{schoolDateTime:()=>''},'@/lib/translations':{translate:text=>text},'@/components/translation-provider':{T:({text})=>text,useLocale:()=> 'fr'},'@/components/language-selector':{default:()=>null},'@/components/academic-year-context':{useAcademicYear:()=>academicYearContext},'@/lib/supabase/client':{createClient:()=>{throw Error('render must not query')}}})
+const html=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual Fixture Teacher',school:'Fixture School',avatar:null,roles:['teacher'],owner:false,academicYear:'2025–2026'},'Fixture content'))
+assert.ok(html.includes('Actual Fixture Teacher'));assert.ok(html.includes('Teacher'));assert.ok(html.includes('title="Actual Fixture Teacher · Teacher"'),'Header identity must remain available as complete text.');
+assert.ok(html.includes('break-words text-sm font-semibold leading-5'),'Header identity must wrap readable long names on narrow screens.');
+assert.ok(html.includes('href="/dashboard/my-profile"'));assert.ok(html.includes('Fixture School'));assert.ok(html.includes('aria-current="page"'));assert.ok(html.includes('Fixture content'));assert.ok(html.includes('Logout'));assert.ok(!html.includes('Jean Admin'));assert.ok(!html.includes('href="/dashboard/staff"'))
+assert.ok(html.includes('Students &amp; families'));assert.ok(html.includes('Teaching'));assert.ok(html.includes('aria-label="Breadcrumb"'));assert.ok(html.includes('Academic year'))
+console.log('PASS app shell: real page targets, teacher/parent/director menus, active route, actual identity, logout and content.')
+academicYearContext={years:[{id:'year-1',name:'2025–2026',is_current:true}],year:{id:'year-1',name:'2025–2026',is_current:true},yearId:'year-1',canSelect:true,setYearId:()=>{}}
+const yearHtml=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual Fixture Teacher',school:'Fixture School',avatar:null,roles:['teacher'],owner:false,academicYear:'2025–2026'},'Fixture content'))
+assert.ok(yearHtml.includes('aria-label="Academic year"'),'Authorized users must get the global academic-year selector.')
+assert.ok(yearHtml.includes('href="/dashboard/grades?year=year-1"'),'Dashboard links must preserve the selected academic year.')
+console.log('PASS global year selector appears for authorized users and navigation preserves the selected year.')
+activeShellPath='/dashboard'
+const homeHtml=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual Fixture Teacher',school:'Fixture School',avatar:null,roles:['teacher'],owner:false,academicYear:'2025–2026',greeting:'Good morning'},'Fixture dashboard'))
+assert.ok(homeHtml.includes('Good morning, Actual Fixture Teacher'),'Staff dashboard should greet the signed-in person.')
+assert.ok(homeHtml.includes('Welcome to your school dashboard'),'Staff dashboard should display a welcome message.')
+assert.ok(homeHtml.includes('href="/dashboard/my-profile"'),'Staff can open the self-service profile from the dashboard.')
+console.log('PASS staff profile identity, greeting and profile shortcut render for the signed-in teacher.')
+activeShellPath='/dashboard/grades'
+const dashboardLayout=readFileSync('src/app/dashboard/layout.tsx','utf8')
+const selectorRoleList=dashboardLayout.match(/roles\.some\(role=>\[(.*?)\]\.includes\(role\)\)/)?.[1]||''
+for(const role of ['school_admin','director','secretary','teacher','surveillant','censeur','parent'])assert.ok(selectorRoleList.includes(`'${role}'`),'Academic-year selection must be available to '+role)
+console.log('PASS academic-year selector role coverage matches school administrators, teaching staff and parents.')
+
+for(const role of ['censeur','director','school_admin'])assert.ok(nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/approvals'))
+for(const role of ['teacher','parent','secretary','student'])assert.ok(!nav.permittedNavigation([role]).some(x=>x.href==='/dashboard/approvals'))
+const censeur=nav.permittedNavigation(['censeur']).map(x=>x.href)
+assert.ok(censeur.includes('/dashboard/classes'),'Censeur needs the school-class management workspace')
+assert.ok(censeur.includes('/dashboard/sanctions'),'Censeur needs the sanction and school-departure workspace')
+for(const item of nav.permittedNavigation(['surveillant']))assert.ok(censeur.includes(item.href),'Censeur must inherit '+item.href)
+for(const route of ['/dashboard/progression','/dashboard/grading-settings'])assert.ok(!censeur.includes(route),'Censeur must not gain unrelated administration '+route)
+assert.ok(censeur.includes('/dashboard/staff'),'Censeur needs the scoped teacher and Kind coordinator staff workspace')
+assert.ok(censeur.includes('/dashboard/teacher-requests'),'Censeur needs teacher request approvals')
+console.log('PASS Censeur supervision menus with scoped teacher management and no unrelated administration access.')
+
+const dashboard=readFileSync('src/app/dashboard/page.tsx','utf8')
+assert.ok(!dashboard.includes('Your modules'),'Dashboard should not repeat the entire navigation as a link-card catalog.')
+assert.ok(dashboard.includes('motion-reduce:transition-none'),'Directional quick-link motion must have a reduced-motion variant.')
+assert.ok(dashboard.includes('<span className="block transition-transform'),'The quick-link arrow motion must use a wrapper instead of animating the SVG itself.')
+const dashboardStyles=readFileSync('src/app/globals.css','utf8')
+assert.ok(dashboardStyles.includes('.atechos-skip-link:focus-visible'),'Keyboard users must be able to reveal the skip link.')
+assert.ok(dashboardStyles.includes('@media (prefers-reduced-motion: reduce)'),'The dashboard shell must respect reduced-motion preferences.')
+assert.ok(!dashboardStyles.includes('transition: all'),'Dashboard motion must list its properties explicitly.')
+console.log('PASS dashboard avoids duplicate module catalog.')
+assert.ok(dashboard.includes("roles.includes('accountant')"),'Accountants must be routed to the finance overview instead of an empty general dashboard.')
+assert.ok(dashboard.includes("redirect('/dashboard/finance')"),'The accountant landing page must open the existing finance workspace.')
+console.log('PASS accountant dashboard entry opens the finance overview.')
+
+
+assert.ok(html.includes('/landing/atechos-logo-mark.webp'),'The shared staff/parent shell must show the official AtechOS symbol.')
+assert.ok(!html.includes('/landing/atechos-logo-wordmark.webp'),'The dark sidebar must not display the white-backed wordmark slab.')
+assert.match(html, /class="[^"]*text-\[#5aa8ff\][^"]*">A<\/span>tech<span class="[^"]*text-\[#ff716b\][^"]*">OS<\/span>/, 'The menu wordmark must be live, legible text in the logo colors.')
+assert.ok(html.includes('rounded-full bg-white ring-1'),'The mark must sit in a compact circular badge instead of a wide white panel.')
+assert.ok(html.includes('atechos-skip-link'),'The shell must provide keyboard access to page content.')
+assert.ok(html.includes('id="main-content" tabindex="-1"'),'The skip link must focus the main content wrapper.')
+assert.ok(html.includes('min-h-11'),'Sidebar and header controls must meet a consistent 44px target.')
+assert.ok(html.includes('lg:hidden'),'The shared shell must keep a brand mark visible in the mobile header.')
+
+let activeRole = 'teacher'
+const dashboardDb = {
+  auth: { getUser: async () => ({ data: { user: { id: 'fixture-user' } } }) },
+  rpc: async name => name === 'school_context'
+    ? { data: { roles: [activeRole], school_name: 'Fixture School', owner: false }, error: null }
+    : { data: activeRole === 'parent'
+      ? { students: null, present: null, late: null, absent: null, date: null, school_scope: false, draft_grades: 0 }
+      : { students: 20, present: 18, late: 1, absent: 1, date: '2026-10-18', school_scope: false, draft_grades: 0 }, error: null },
+}
+const { default: DashboardPage } = compile('src/app/dashboard/page.tsx', {
+  '@/components/grade-actions': { default: () => React.createElement('div', null, 'grade-actions-fixture') },
+  'next/link': { default: ({ children, ...props }) => React.createElement('a', props, children) },
+  'next/navigation': { redirect: path => { throw new Error('Unexpected redirect: ' + path) } },
+  '@/lib/supabase/server': { createClient: async () => dashboardDb },
+  '@/lib/school-date': { schoolDate: () => '18 octobre 2026' },
+  '@/components/translation-provider': { T: ({ text }) => text },
+  'next/headers': { cookies: async () => ({ get: () => ({ value: 'fr' }) }) },
+  '@/lib/i18n': { localeFrom: () => 'fr' },
+  '@/lib/navigation': nav,
+})
+async function renderRoleDashboard(role, year = 'fixture-year') {
+  activeRole = role
+  const element = await DashboardPage({ searchParams: Promise.resolve({ year }) })
+  return renderToStaticMarkup(element)
+}
+const teacherDashboard = await renderRoleDashboard('teacher')
+assert.ok(teacherDashboard.includes('Quick actions'))
+for (const href of ['/dashboard/grades?year=fixture-year', '/dashboard/assignments?year=fixture-year', '/dashboard/exam-submissions?year=fixture-year']) assert.ok(teacherDashboard.includes('href="' + href + '"'), 'Teacher quick links must include ' + href)
+assert.ok(!teacherDashboard.includes('href="/dashboard/finance'), 'Teacher quick actions must not expose finance.')
+const censeurDashboard = await renderRoleDashboard('censeur')
+assert.ok(censeurDashboard.includes('href="/dashboard/sanctions?year=fixture-year"'))
+assert.ok(censeurDashboard.includes('href="/dashboard/classes?year=fixture-year"'))
+assert.ok(!censeurDashboard.includes('href="/dashboard/staff'), 'Censeur quick actions must not expose staff administration.')
+const parentDashboard = await renderRoleDashboard('parent')
+assert.ok(parentDashboard.includes('href="/dashboard/parent-portal?year=fixture-year"'))
+assert.ok(parentDashboard.includes('href="/dashboard/family-bulletins?year=fixture-year"'))
+assert.ok(!parentDashboard.includes('href="/dashboard/students'), 'Parent quick actions must not expose the school-wide student directory.')
+assert.ok(!parentDashboard.includes('aria-label="Dashboard totals"'), 'Parent view must not render an empty staff-only aggregate section.')
+console.log('PASS dashboard hub: official logos, year-preserving quick links, and role-filtered actions for teachers, censeurs and parents.')

@@ -1,0 +1,88 @@
+-- Isolated fixtures: the deliberate final exception rolls back this entire
+-- subtransaction. Any failed assertion propagates and aborts the migration.
+do $test$
+declare owner_a uuid:=gen_random_uuid(); owner_b uuid:=gen_random_uuid(); teacher uuid:=gen_random_uuid(); guardian uuid:=gen_random_uuid(); learner uuid:=gen_random_uuid(); outsider uuid:=gen_random_uuid();
+ assignment_id uuid; other_assignment uuid; expected text; activation text; device jsonb; payload jsonb; next_year uuid; next_class uuid; request_id uuid; a uuid; b uuid; yr uuid; cls uuid; other_cls uuid; subject uuid; child1 uuid; child2 uuid; other_child uuid; member uuid; invitation jsonb; invited jsonb; pid uuid; period uuid; n integer; rowcount integer; old_id text; failed boolean;
+begin
+ begin
+  insert into auth.users(id,email,email_confirmed_at,role,aud) select id,id::text||'@example.invalid',now(),'authenticated','authenticated' from unnest(array[owner_a,owner_b,teacher,guardian,learner,outsider])id;
+  perform set_config('request.jwt.claim.sub',owner_a::text,true);
+  set local role authenticated;
+  a:=public.create_school_onboarding('Verification A',gen_random_uuid()::text);
+  if not exists(select 1 from public.schools where id=a and owner_user_id=owner_a) then raise exception 'TEST owner creation'; end if;
+  yr:=public.create_academic_year('Verification',date '2026-01-01',date '2026-12-31',true);
+  perform public.activate_school_section(yr,'preschool');
+  perform public.activate_school_section(yr,'preschool');
+  if (select count(*) from public.classes where school_id=a and academic_year_id=yr)<>3 then raise exception 'TEST section activation duplicated classes'; end if;
+  perform public.activate_school_section(yr,'preschool',false);
+  if exists(select 1 from public.classes where school_id=a and enabled) then raise exception 'TEST section deactivation'; end if;
+  period:=public.activate_grading_period(yr,'Verification period','V1','2026-01-01','2026-03-31',array['fundamental']);
+  if public.activate_grading_period(yr,'Verification period','V1','2026-01-01','2026-03-31',array['fundamental'])<>period then raise exception 'TEST period duplicated'; end if;
+  cls:=public.create_class(yr,'Class A','AF7');
+  update public.classes set student_portal_allowed=true where id=cls;
+  other_cls:=public.create_class(yr,'Class B','AF2');
+  subject:=public.create_subject('Verification Mathematics','VERIFY');
+  child1:=public.save_student_record(jsonb_build_object('first_name','Child','last_name','One','class_id',cls,'guardian_name','Guardian','guardian_email',guardian::text||'@example.invalid'));
+  child2:=public.save_student_record(jsonb_build_object('first_name','Child','last_name','Two','class_id',cls,'guardian_name','Guardian','guardian_email',guardian::text||'@example.invalid'));
+  other_child:=public.save_student_record(jsonb_build_object('first_name','Other','last_name','Child','class_id',other_cls));
+  if (select count(*) from public.parents where school_id=a)<>1 then raise exception 'TEST guardian deduplication'; end if;
+  select atechos_id into old_id from public.students where id=child1;
+  perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',cls,'date_of_birth','2013-02-10','place_of_birth','Verification city','address','Verification address','sex','F'),child1);
+  if not exists(select 1 from public.students where id=child1 and date_of_birth='2013-02-10' and place_of_birth='Verification city' and address='Verification address' and sex='F') then raise exception 'TEST student demographics'; end if;
+  if not exists(select 1 from public.students where id=child1 and atechos_id=old_id and photo_url is null) then raise exception 'TEST stable ID and optional photo'; end if;
+  perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',other_cls),child1);
+  if not exists(select 1 from public.enrollments where student_id=child1 and class_id=cls and status='transferred') or not exists(select 1 from public.enrollments where student_id=child1 and class_id=other_cls and status='active') then raise exception 'TEST transfer did not move active class'; end if;
+  perform public.save_student_record(jsonb_build_object('first_name','Corrected','last_name','One','class_id',cls,'date_of_birth','2013-02-10','place_of_birth','Verification city','address','Verification address','sex','F'),child1);
+  if not exists(select 1 from public.students where id=child1 and date_of_birth='2013-02-10' and place_of_birth='Verification city' and address='Verification address' and sex='F') then raise exception 'TEST student demographics'; end if;
+  if (select count(*) from public.enrollments where student_id=child1 and status='active')<>1 then raise exception 'TEST duplicate active class'; end if;
+  if not exists(select 1 from public.get_student_records(child1) r where r ? 'nis') then raise exception 'TEST admin NIS access'; end if;
+
+  assignment_id:=public.create_assignment(cls,subject,'Task',null,now()+interval '1 day',null,null,null);
+  other_assignment:=public.create_assignment(other_cls,subject,'Other task',null,now()+interval '1 day',null,null,null);
+  perform public.set_assignment_online(assignment_id,true);
+  activation:=public.issue_student_activation(child1);
+  set local role anon;
+  device:=public.student_device_login(old_id,'Corrected One',activation,'648239');
+  payload:=public.student_device_data(device->>'token');
+  if not exists(select 1 from jsonb_array_elements(payload->'assignments') v where v->>'id'=assignment_id::text and v->>'subject'='Verification Mathematics') then raise exception 'TEST assignment subject missing';end if;
+  if public.submit_student_assignment('invalid',assignment_id,'Answer')->>'error' is distinct from 'not_authorized' then raise exception 'TEST forged session';end if;
+  if public.submit_student_assignment(device->>'token',other_assignment,'Answer')->>'error' is distinct from 'not_authorized' then raise exception 'TEST assignment cross class';end if;
+  if public.submit_student_assignment(device->>'token',assignment_id,'Answer')->>'success' is distinct from 'true' then raise exception 'TEST submit';end if;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub',owner_a::text,true);
+  payload:=public.assignment_roster(assignment_id);
+  if not exists(select 1 from jsonb_array_elements(payload) v where v->>'id'=child1::text and v->>'response'='Answer' and v->>'source'='online') then raise exception 'TEST teacher sees submission';end if;
+  perform public.mark_assignment_received(assignment_id,child2,true);
+  perform public.mark_assignment_received(assignment_id,child2,false);
+  reset role;
+  update public.assignments set due_at=now()-interval '1 minute' where id=assignment_id;
+  set local role authenticated;
+  payload:=public.assignment_roster(assignment_id);
+  if not exists(select 1 from jsonb_array_elements(payload) v where v->>'id'=child2::text and v->>'status'='missing') then raise exception 'TEST missing after deadline';end if;
+  set local role anon;
+  if public.submit_student_assignment(device->>'token',assignment_id,'Late answer')->>'error' is distinct from 'deadline_passed' then raise exception 'TEST late submission';end if;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub',owner_b::text,true);
+  failed:=false;begin perform public.assignment_roster(assignment_id);exception when others then failed:=true;end;
+  if not failed then raise exception 'TEST stranger roster';end if;
+  perform set_config('request.jwt.claim.sub',owner_a::text,true);
+  perform public.staff_mark_attendance(child1,cls,'present');
+  if not exists(select 1 from public.attendance_events where student_id=child1 and actor_id=owner_a and actor_role='school_admin' and source='STAFF') then raise exception 'TEST staff attribution';end if;
+  failed:=false;begin delete from public.attendance_events where student_id=child1;exception when insufficient_privilege then failed:=true;end;
+  if not failed then raise exception 'TEST audit deletion';end if;
+  reset role;
+  if private.kiosk_window('00:00')<>'present' or private.kiosk_window('07:45:59')<>'present' or private.kiosk_window('07:46')<>'late' or private.kiosk_window('08:00:59')<>'late' or private.kiosk_window('08:01')<>'blocked' or private.kiosk_window('12:59:59')<>'blocked' or private.kiosk_window('13:00')<>'checkout' or private.kiosk_window('23:59:59')<>'checkout' then raise exception 'TEST schedule boundaries';end if;
+  expected:=private.kiosk_window((now() at time zone 'America/Port-au-Prince')::time);
+  set local role anon;
+  payload:=public.student_kiosk_scan(old_id,'648239');
+  if expected='blocked' and payload->>'error' is distinct from 'kiosk_closed' then raise exception 'TEST blocked window';end if;
+  if expected in ('present','late') and payload->>'action' is distinct from 'duplicate_scan' then raise exception 'TEST duplicate toggled';end if;
+  if expected='checkout' then
+   if payload->>'action' is distinct from 'check_out' then raise exception 'TEST scheduled checkout';end if;
+   if public.student_kiosk_scan(old_id,'648239')->>'action' is distinct from 'already_complete' then raise exception 'TEST duplicate checkout';end if;
+  end if;
+  reset role;
+  raise exception using errcode='ZX001',message='Fixture rollback';
+ exception when sqlstate 'ZX001' then null;
+ end;
+end $test$;

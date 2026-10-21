@@ -9,9 +9,9 @@ export default function ParentInvite({ studentId }: { studentId: string }) {
   const [message, setMessage] = useState('')
   const [url, setUrl] = useState('')
   async function submit(event: FormEvent<HTMLFormElement>) {
+    let parentSaved = false
     event.preventDefault(); setBusy(true); setMessage(''); setUrl('')
     const form = new FormData(event.currentTarget)
-    let parentSaved = false
     try {
       const { data, error } = await createClient().rpc('save_parent_for_student', {
         p_student: studentId, p_name: String(form.get('full_name')), p_email: String(form.get('email')), p_phone: String(form.get('phone') || '')

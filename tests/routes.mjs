@@ -1,0 +1,128 @@
+import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
+import { once } from 'node:events'
+import { setTimeout as delay } from 'node:timers/promises'
+
+const port = 3217
+const origin = `http://localhost:${port}`
+// This suite intentionally verifies safe behavior without deployment secrets.
+const env = { ...process.env, NEXT_PUBLIC_SUPABASE_URL: '', NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: '' }
+const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-p', String(port), '-H', 'localhost'], { env, stdio: ['ignore', 'pipe', 'pipe'] })
+let output = ''
+server.stdout.on('data', data => { output += data })
+server.stderr.on('data', data => { output += data })
+let checks = 0
+try {
+  let ready = false
+  for (let i = 0; i < 90; i++) {
+    if (server.exitCode !== null) throw new Error(output)
+    try { if ((await fetch(origin)).ok) { ready = true; break } } catch {}
+    await delay(500)
+  }
+  assert.ok(ready, output)
+  for (const [locale,label] of [['en','Confirm check-in / check-out'],['fr','Confirmer entrée / sortie'],['ht','Konfime antre / sòti']]) {
+    const response=await fetch(origin+'/kiosk',{headers:{cookie:`atechos_locale=${locale}`}})
+    assert.equal(response.status,200)
+    const html=await response.text();assert.ok(html.includes(label));assert.ok(html.includes('type="password"'));assert.ok(!html.slice(html.indexOf('<form'),html.indexOf('</form>')).includes('<select'));checks++
+  }
+  for (const [path, heading, form] of [['/', 'Your whole school,', false], ['/fonctionnalites', 'School operations, connected in one view.', false], ['/solutions', 'A workspace for each responsibility.', false], ['/signup', 'Create your account', true], ['/login', 'Sign in', true], ['/auth/error', 'Unable to complete email confirmation', false], ['/invitation', 'School invitation', true]]) {
+    const response = await fetch(origin + path, {headers:{cookie:"atechos_locale=en"}})
+    assert.equal(response.status, 200, path)
+    const html = await response.text()
+    assert.ok(html.includes(heading), path)
+    assert.equal(html.includes('<form'), form, path)
+    checks++
+  }
+  for (const [path, destination] of [['/signin', '/login'], ['/onboarding', '/login'], ['/onboarding/create-school', '/login'], ['/dashboard', '/login'], ['/dashboard/publication', '/login'], ['/dashboard/approvals', '/login'], ['/dashboard/calendar', '/login'], ['/dashboard/classes', '/login'], ['/dashboard/subjects', '/login'], ['/dashboard/grades', '/login'], ['/dashboard/guard', '/login'], ['/dashboard/students', '/login'], ['/dashboard/assignments', '/login'], ['/dashboard/finance', '/login'], ['/dashboard/family-bulletins','/login'], ['/dashboard/preschool','/login'], ['/dashboard/progression','/login'], ['/dashboard/teacher-requests','/login'], ['/student','/student/login'], ['/auth/callback', '/auth/error'], ['/auth/callback?code=invalid&next=https://example.com', '/auth/error'], ['/auth/callback?code=invalid&next=/reset-password', '/auth/error']]) {
+    const response = await fetch(origin + path, { redirect: 'manual' })
+    assert.equal(response.status, 307, path)
+    assert.equal(new URL(response.headers.get('location'), origin).pathname, destination, path)
+    assert.equal(new URL(response.headers.get('location'), origin).origin, origin, path)
+    checks++
+  }
+  for (const [path, heading, form] of [
+    ['/forgot-password', 'Password recovery', true],
+    ['/reset-password', 'Choose a new password', true],
+    ['/terms', 'Terms of use', false],
+    ['/privacy', 'Privacy notice', false],
+  ]) {
+    const response = await fetch(origin + path, { headers: { cookie: 'atechos_locale=en' } })
+    assert.equal(response.status, 200, path)
+    const html = await response.text()
+    assert.ok(html.includes(heading), path)
+    assert.equal(html.includes('<form'), form, path)
+    if (path === '/terms' || path === '/privacy') {
+      assert.ok(html.includes('Draft for review'), path + ' must be clearly marked as a draft')
+      assert.ok(html.includes('href="/terms"') && html.includes('href="/privacy"'), path + ' must retain navigation to both legal drafts')
+    }
+    checks++
+  }
+  for (const [locale, recoveryTitle, resetTitle, termsTitle, privacyTitle] of [
+    ['fr', 'Récupérer votre mot de passe', 'Choisir un nouveau mot de passe', 'Conditions d’utilisation', 'Avis de confidentialité'],
+    ['ht', 'Rekipere modpas ou', 'Chwazi yon nouvo modpas', 'Kondisyon itilizasyon', 'Avi sou vi prive'],
+  ]) {
+    const paths = [
+      ['/forgot-password', recoveryTitle],
+      ['/reset-password', resetTitle],
+      ['/terms', termsTitle],
+      ['/privacy', privacyTitle],
+    ]
+    for (const [path, heading] of paths) {
+      const response = await fetch(origin + path, { headers: { cookie: `atechos_locale=${locale}` } })
+      assert.equal(response.status, 200, path + ':' + locale)
+      assert.ok((await response.text()).includes(heading), path + ' translation: ' + locale)
+      checks++
+    }
+  }
+  for (const [locale,loginLabel,signupLabel,createLabel] of [
+    ['fr','Se connecter','Créer votre compte','Créer un compte'],
+    ['ht','Konekte','Kreye kont ou','Kreye kont'],
+  ]) {
+    const loginHtml=await (await fetch(origin+'/login',{headers:{cookie:`atechos_locale=${locale}`}})).text()
+    assert.ok(loginHtml.includes(loginLabel),`login translation: ${locale}`)
+    assert.ok(loginHtml.includes(createLabel),`signup link translation: ${locale}`)
+    assert.ok(loginHtml.includes('atechos-logo-mark.webp'),`brand mark: ${locale}`)
+    assert.ok(loginHtml.includes('href="/forgot-password"'),`password recovery link: ${locale}`)
+    assert.ok(loginHtml.includes('href="/terms"') && loginHtml.includes('href="/privacy"'),`legal links: ${locale}`)
+    const signupHtml=await (await fetch(origin+'/signup',{headers:{cookie:`atechos_locale=${locale}`}})).text()
+    assert.ok(signupHtml.includes(signupLabel),`signup heading translation: ${locale}`)
+    assert.ok(signupHtml.includes('type="password"'),`signup password input: ${locale}`)
+    assert.ok(signupHtml.includes('href="/terms"') && signupHtml.includes('href="/privacy"'),`signup legal links: ${locale}`)
+    const expectedNameHint=locale==='fr'?'Votre nom complet':'Non konplè ou'
+    const expectedPasswordHint=locale==='fr'?'8 caractères minimum':'Omwen 8 karaktè'
+    assert.ok(signupHtml.includes(`placeholder="${expectedNameHint}"`),`localized name hint: ${locale}`)
+    assert.ok(signupHtml.includes(`placeholder="${expectedPasswordHint}"`),`localized password hint: ${locale}`)
+    checks += 2
+  }
+  const student=await fetch(origin+'/student/login',{headers:{cookie:'atechos_locale=ht'}})
+  assert.equal(student.status,200);assert.ok((await student.text()).includes('Pòtal elèv'));checks++
+  assert.equal((await fetch(origin+'/student/attachment/invalid')).status,401);checks++
+  assert.equal((await fetch(origin+'/student/photo')).status,401);checks++
+  assert.equal((await fetch(origin+'/api/cron/official-calendar-sources')).status,401,'scheduled calendar source check must reject unauthenticated requests');checks++
+  const home = await (await fetch(origin)).text()
+  assert.ok(!home.includes('Get started'), 'Marketing cards must not send every role to signup')
+  checks++
+  const token = 'ab'.repeat(32)
+  const invite = await fetch(`${origin}/invite?token=${token}`, { redirect: 'manual' })
+  assert.equal(invite.status, 307)
+  assert.equal(new URL(invite.headers.get('location')).pathname, '/invitation')
+  assert.ok(invite.headers.get('set-cookie').includes(`atechos_invitation=${token}`))
+  assert.match(invite.headers.get('set-cookie'), /HttpOnly/i)
+  assert.match(invite.headers.get('set-cookie'), /SameSite=lax/i)
+  assert.equal(invite.headers.get('referrer-policy'), 'no-referrer')
+  assert.match(invite.headers.get('cache-control'), /no-store/)
+  checks++
+  const invalid = await fetch(`${origin}/invite?token=not-a-token`, { redirect: 'manual' })
+  assert.match(invalid.headers.get('set-cookie'), /atechos_invitation=;/)
+  checks++
+  for (const [cookie, destination] of [['', '/onboarding'], [`atechos_invitation=${token}`, '/invitation']]) {
+    const response = await fetch(`${origin}/auth/continue?next=https://example.com`, { redirect: 'manual', headers: { cookie } })
+    assert.equal(new URL(response.headers.get('location')).pathname, destination)
+    assert.equal(new URL(response.headers.get('location')).origin, origin)
+    checks++
+  }
+  console.log(`PASS: ${checks} production HTTP checks (public forms, redirects, missing configuration, invitation cookies, invalid confirmation).`)
+} finally {
+  server.kill()
+  if (server.exitCode === null) await once(server, 'exit')
+}

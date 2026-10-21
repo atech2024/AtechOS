@@ -1,0 +1,19 @@
+project_id = "atechos-family-attendance-check"
+
+[api]
+enabled = true
+port = 54441
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54442
+shadow_port = 54440
+major_version = 17
+
+[studio]
+enabled = false
+
+[local_smtp]
+enabled = false

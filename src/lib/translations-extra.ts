@@ -1458,4 +1458,5 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Link copied.':['Lien copié.','Lyen an kopye.'],
  'Select and copy the link above.':['Sélectionnez et copiez le lien ci-dessus.','Chwazi epi kopye lyen ki anlè a.'],
  'Save and invite parent':['Enregistrer et inviter le parent','Anrejistre epi envite paran an'],
+ 'Manage family record':['Gérer le dossier familial','Jere dosye fanmi an'],
 }

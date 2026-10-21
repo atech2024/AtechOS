@@ -4,6 +4,7 @@ import { T } from '@/components/translation-provider'
 import { PreschoolCoordinatorAssignment } from '@/components/preschool-coordinator-assignment'
 import { InvitationAccepted, InvitationPending, StaffDirectory, type StaffDirectoryPerson } from '@/components/staff-directory'
 import { getStaffPagePresentation } from '@/lib/staff-page-presentation'
+import { getDisplayMemberRole } from '@/lib/staff-directory-sections'
 import { createClient } from '@/lib/supabase/server'
 import { CancelInvitation, InviteForm } from './invite-form'
 
@@ -115,7 +116,7 @@ export default async function StaffPage() {
     const group: StaffDirectoryPerson = peopleById.get(member.user_id) || { id: member.user_id, name: displayName, email: person?.email || '', access: [] }
     group.access.push({
       id: member.id,
-      role: member.user_id === school.data?.owner_user_id ? 'owner' : member.role,
+      role: getDisplayMemberRole(member.role, member.user_id === school.data?.owner_user_id),
       enabled: member.enabled,
       protectedMember: member.user_id === school.data?.owner_user_id || member.user_id === context.user_id || (!context.owner && member.role === 'school_admin'),
       schoolOwner: member.user_id === school.data?.owner_user_id,

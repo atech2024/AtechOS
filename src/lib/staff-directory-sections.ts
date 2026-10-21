@@ -11,3 +11,7 @@ export function getDirectorySections(access: readonly DirectoryRole[]): StaffDir
   if (access.some(item => item.role === 'student')) sections.push('students')
   return sections
 }
+
+export function getDisplayMemberRole(role: string, isSchoolOwner: boolean): string {
+  return isSchoolOwner && role === 'school_admin' ? 'owner' : role
+}

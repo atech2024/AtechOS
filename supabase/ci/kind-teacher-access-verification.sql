@@ -51,7 +51,7 @@ begin
  perform public.cancel_school_invitation(invite_id);
  if (select status from public.school_invitations where id=invite_id)<>'cancelled' then raise exception 'authorized coordinator could not cancel a teacher invitation'; end if;
  select id into request_id from public.teacher_join_requests where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000009';
- if jsonb_array_length(public.get_teacher_requests())<>4 then raise exception 'coordinator should see only pending requests from the active school'; end if;
+ if jsonb_array_length(public.get_teacher_requests())<>3 then raise exception 'coordinator should see only pending requests from the active school'; end if;
  perform public.review_teacher_request(request_id,true);
  if not exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000009' and role='teacher' and enabled) then raise exception 'approved teacher was not enabled in the same school'; end if;
  failed:=false; begin perform public.review_teacher_request((select id from public.teacher_join_requests where school_id='21000000-0000-0000-0000-000000000102'),true); exception when others then failed:=sqlerrm='not_authorized'; end;

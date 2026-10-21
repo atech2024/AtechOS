@@ -232,6 +232,40 @@ create or replace function private.has_role(p_school uuid,p_roles text[]) return
 language sql stable security definer set search_path=''
 as $$ select exists(select 1 from public.school_members m where m.school_id=p_school and m.user_id=auth.uid() and m.enabled and m.role=any(p_roles)) $$;
 
+-- Minimal teacher access/invitation contracts for the Kindergarten staff-access migration checks.
+create type public.school_role as enum ('school_admin','director','censeur','secretary','surveillant','teacher','accountant','parent','student');
+create table public.teacher_join_requests (
+ id uuid primary key default gen_random_uuid(),school_id uuid not null references public.schools(id),user_id uuid not null references public.users(id),
+ status text not null default 'pending' check(status in ('pending','approved','rejected')),created_at timestamptz not null default now(),reviewed_at timestamptz,reviewed_by uuid references public.users(id),unique(school_id,user_id)
+);
+alter table public.teacher_join_requests enable row level security;
+grant select on public.teacher_join_requests to authenticated;
+create policy join_requests_read on public.teacher_join_requests for select to authenticated using(user_id=auth.uid() or private.has_role(school_id,array['school_admin','director']));
+create table public.school_invitations (
+ id uuid primary key default gen_random_uuid(),school_id uuid not null references public.schools(id),email text not null,full_name text not null,role public.school_role not null,
+ status text not null default 'pending',expires_at timestamptz not null default now()+interval '7 days',token_hash text not null,invited_by uuid not null references public.users(id),student_id uuid,parent_id uuid
+);
+create function public.create_school_invitation(p_email text,p_full_name text,p_role public.school_role,p_student_id uuid default null,p_parent_id uuid default null)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare sid uuid:=public.get_my_school_id(); token text:=replace(gen_random_uuid()::text,'-',''); iid uuid;
+begin
+ if not (private.has_role(sid,array['school_admin']) or (p_role='parent' and private.has_role(sid,array['director']))) then raise exception 'not_authorized'; end if;
+ insert into public.school_invitations(school_id,email,full_name,role,token_hash,invited_by,student_id,parent_id)
+ values(sid,lower(trim(p_email)),trim(p_full_name),p_role,token,auth.uid(),p_student_id,p_parent_id) returning id into iid;
+ return jsonb_build_object('id',iid,'token',token);
+end $$;
+create function public.cancel_school_invitation(p_id uuid) returns void language plpgsql security definer set search_path='' as $$ begin
+ update public.school_invitations set status='cancelled' where id=p_id and status='pending' and private.has_role(school_id,array['school_admin']); if not found then raise exception 'not_authorized'; end if;
+end $$;
+create function public.accept_school_invitation(p_token text) returns uuid language plpgsql security definer set search_path='' as $$
+declare i public.school_invitations; uid uuid:=auth.uid(); begin
+ select * into i from public.school_invitations where token_hash=p_token for update;
+ if i.id is null or i.status<>'pending' or i.expires_at<=now() then raise exception 'invitation_invalid_or_expired'; end if;
+  if not exists(select 1 from public.schools s where s.id=i.school_id and s.owner_user_id=i.invited_by) and not exists(select 1 from public.school_members m where m.school_id=i.school_id and m.user_id=i.invited_by and (m.role='school_admin' or (i.role='parent' and m.role='director')) and m.enabled) then raise exception 'invitation_invalid_or_expired'; end if;
+ insert into public.school_members(school_id,user_id,role,enabled) values(i.school_id,uid,i.role::text,true) on conflict(school_id,user_id,role) do update set enabled=true;
+ update public.school_invitations set status='accepted' where id=i.id;return i.school_id;
+end $$;
+
 -- Minimal synthetic dashboard RPC matching the live count anchor so the late
 -- arrival migration can verify that its present total includes late students.
 create or replace function public.dashboard_summary() returns jsonb language plpgsql stable security invoker set search_path='' as $$

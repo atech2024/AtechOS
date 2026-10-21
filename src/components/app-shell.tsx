@@ -64,7 +64,8 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
   const {years,year,yearId,canSelect:canSelectYear,setYearId}=useAcademicYear()
   const t = (text: string) => translate(text, locale)
   const path = usePathname()
-  const items = permittedNavigation(roles, owner)
+  const [teacherManager,setTeacherManager]=useState(false)
+  const items = permittedNavigation(roles, owner, teacherManager)
   const dashboard = items.find(item => item.href === '/dashboard')
   const groups = groupOrder.map(group => ({ group, items: items.filter(item => item.group === group) })).filter(section => section.items.length)
   const activeItem = [...items].sort((a, b) => b.href.length - a.href.length).find(item => path === item.href || path.startsWith(item.href + '/'))
@@ -80,6 +81,19 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
   const [noticeError, setNoticeError] = useState(false)
   const [busy, setBusy] = useState(false)
   const [logoutError, setLogoutError] = useState(false)
+
+  useEffect(() => {
+    if (roles.some(role => ['school_admin','director','censeur'].includes(role))) { setTeacherManager(true); return }
+    let current = true
+    async function loadTeacherManager() {
+      try {
+        const { data, error } = await createClient().rpc('teacher_staff_management_access')
+        if (current) setTeacherManager(!error && Boolean(data))
+      } catch { if (current) setTeacherManager(false) }
+    }
+    void loadTeacherManager()
+    return () => { current = false }
+  }, [roles])
 
   function withYear(href:string){
     if(!canSelectYear||!yearId||!href.startsWith('/dashboard'))return href

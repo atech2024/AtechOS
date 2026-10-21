@@ -70,6 +70,7 @@ on:
       - "supabase/migrations/20261017174604_finance_receipt_refund_audit.sql"
       - "supabase/migrations/20261018100000_staff_self_service_profiles.sql"
       - "supabase/migrations/20261020090533_preschool_kind_workspace_and_team.sql"
+      - "supabase/migrations/20261020170000_kind_staff_teacher_access.sql"
       - "supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql"
       - "supabase/migrations/20261020130000_attendance_summary_late_included.sql"
       - "supabase/migrations/20261009110000_direction_member_receipt_signatures.sql"
@@ -149,6 +150,7 @@ on:
       - "supabase/migrations/20261017174604_finance_receipt_refund_audit.sql"
       - "supabase/migrations/20261018100000_staff_self_service_profiles.sql"
       - "supabase/migrations/20261020090533_preschool_kind_workspace_and_team.sql"
+      - "supabase/migrations/20261020170000_kind_staff_teacher_access.sql"
       - "supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql"
       - "supabase/migrations/20261020130000_attendance_summary_late_included.sql"
       - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
@@ -277,6 +279,7 @@ jobs:
           cp supabase/migrations/20261017174604_finance_receipt_refund_audit.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261018100000_staff_self_service_profiles.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261020090533_preschool_kind_workspace_and_team.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261020170000_kind_staff_teacher_access.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261020130000_attendance_summary_late_included.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations
@@ -299,6 +302,7 @@ jobs:
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < student-followup-verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < student-followup-badge-verification.sql
           docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < staff-profile-verification.sql
+          docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < kind-teacher-access-verification.sql
       - name: Stop local Supabase
         if: always()
         working-directory: supabase/ci

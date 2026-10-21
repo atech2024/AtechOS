@@ -23,8 +23,8 @@ export const navigation:NavigationItem[]=[
  {label:'Finance & Accounting',href:'/dashboard/finance',icon:'finance',roles:['school_admin','director','secretary','accountant'],group:'finance'},
  {label:'Payments',href:'/dashboard/finance/payments',icon:'finance',roles:['school_admin','director','secretary','accountant'],group:'finance'},
  {label:'Access approvals',href:'/dashboard/approvals',icon:'requests',roles:['school_admin','director','censeur'],group:'followup'},
- {label:'Teacher requests',href:'/dashboard/teacher-requests',icon:'requests',roles:['school_admin','director'],group:'followup'},
- {label:'Users & staff',href:'/dashboard/staff',icon:'users',roles:['school_admin'],group:'administration'},
+ {label:'Teacher requests',href:'/dashboard/teacher-requests',icon:'requests',roles:['school_admin','director','censeur'],group:'followup'},
+ {label:'Users & staff',href:'/dashboard/staff',icon:'users',roles:['school_admin','director','censeur'],group:'administration'},
  {label:'Settings center',href:'/dashboard/settings',icon:'settings',roles:['school_admin','director','censeur','secretary','accountant'],group:'administration'},
  {label:'Student follow-up cases',href:'/dashboard/guard',icon:'requests',roles:[...administration,'surveillant','parent'],group:'followup'},
  {label:'Sanctions and departures',href:'/dashboard/sanctions',icon:'requests',roles:[...administration,'censeur'],group:'followup'},
@@ -32,4 +32,4 @@ export const navigation:NavigationItem[]=[
  {label:'Parent Portal',href:'/dashboard/parent-portal',icon:'parents',roles:['parent'],group:'family_portals'},
  {label:'Family bulletins',href:'/dashboard/family-bulletins',icon:'reports',roles:['parent'],group:'family_portals'},
 ]
-export function permittedNavigation(roles:string[],owner=false){const capabilities=roles.includes('censeur')?[...roles,'surveillant']:roles;return navigation.filter(n=>n.roles.includes('*')||n.roles.some(r=>capabilities.includes(r))||(owner&&!n.roles.includes('parent')))}
+export function permittedNavigation(roles:string[],owner=false,teacherManager=false){const capabilities=roles.includes('censeur')?[...roles,'surveillant']:roles;return navigation.filter(n=>n.roles.includes('*')||n.roles.some(r=>capabilities.includes(r))||(owner&&!n.roles.includes('parent'))||(teacherManager&&['/dashboard/staff','/dashboard/teacher-requests'].includes(n.href)))}

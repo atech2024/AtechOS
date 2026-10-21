@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Clock3, UsersRound } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Clock3, UsersRound } from 'lucide-react'
 import { T } from '@/components/translation-provider'
 import { PreschoolCoordinatorAssignment } from '@/components/preschool-coordinator-assignment'
 import { InvitationAccepted, InvitationPending, StaffDirectory, type StaffDirectoryPerson } from '@/components/staff-directory'

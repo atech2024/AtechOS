@@ -168,6 +168,12 @@ export const translations:Record<string,[string,string]> = {
  "Set the school currency, proof rules, restrictions and payment destinations.":["Définissez la devise, les exigences de justificatif, les restrictions et les coordonnées de paiement.","Chwazi lajan lekòl la, règ pou prèv, restriksyon ak kote pou resevwa peman."],
  "Fees and installments":["Frais et échéances","Frè ak vèsman"],
  "Set each class fee, number of installments, amounts and due dates.":["Définissez les frais de chaque classe, le nombre de versements, les montants et les dates d’échéance.","Fikse frè chak klas, kantite vèsman, montan yo ak dat limit yo."],
+ "Student dossier":["Dossier de l’élève","Dosye elèv la"],
+ "Show all students":["Afficher tous les élèves","Montre tout elèv yo"],
+ "Open attendance for this student":["Ouvrir les présences de cet élève","Louvri prezans elèv sa a"],
+ "Open grades for this student":["Ouvrir les notes de cet élève","Louvri nòt elèv sa a"],
+ "Open follow-up for this student":["Ouvrir le suivi de cet élève","Louvri swivi elèv sa a"],
+ "Loading student context...":["Chargement du dossier de l’élève…","Dosye elèv la ap chaje…"],
  "Open settings":["Ouvrir les paramètres","Ouvri paramèt yo"],
 }
 export function translate(text:string,locale:Locale){const value=translations[text.trim()];return locale==='en'||!value?text:value[locale==='fr'?0:1]}

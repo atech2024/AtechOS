@@ -20,6 +20,7 @@ export type StaffDirectoryPerson = {
   name: string
   email: string
   access: StaffDirectoryAccess[]
+  preschoolCoordinator?: boolean
 }
 
 const roleLabels: Record<string, string> = {
@@ -77,7 +78,7 @@ export function StaffDirectory({ people }: { people: StaffDirectoryPerson[] }) {
   const [query, setQuery] = useState('')
   const [selectedSection, setSelectedSection] = useState<StaffDirectorySection>('staff')
   const locale = useLocale()
-  const sectionPeople = useMemo(() => people.filter(person => getDirectorySections(person.access).includes(selectedSection)), [people, selectedSection])
+  const sectionPeople = useMemo(() => people.filter(person => getDirectorySections(person.access, person.preschoolCoordinator).includes(selectedSection)), [people, selectedSection])
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase()
     if (!normalized) return sectionPeople
@@ -100,7 +101,7 @@ export function StaffDirectory({ people }: { people: StaffDirectoryPerson[] }) {
 
     <div role="group" aria-label={locale === 'fr' ? 'Sections du répertoire' : locale === 'ht' ? 'Seksyon lis la' : 'Directory sections'} className="grid grid-cols-2 gap-2 border-b border-slate-200 pb-4 sm:grid-cols-4">
       {sectionConfig.map(({ key, label, Icon }) => {
-        const count = people.filter(person => getDirectorySections(person.access).includes(key)).length
+        const count = people.filter(person => getDirectorySections(person.access, person.preschoolCoordinator).includes(key)).length
         const active = selectedSection === key
         return <button key={key} type="button" aria-pressed={active} onClick={() => setSelectedSection(key)} className={active ? 'inline-flex min-h-11 items-center justify-between gap-2 rounded-xl border border-blue-300 bg-blue-50 px-3 py-2 text-left text-sm font-semibold text-blue-950 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700' : 'inline-flex min-h-11 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700'}>
           <span className="inline-flex min-w-0 items-center gap-2"><Icon aria-hidden="true" className="size-4 shrink-0"/><span className="truncate"><T text={label}/></span></span>
@@ -124,6 +125,7 @@ export function StaffDirectory({ people }: { people: StaffDirectoryPerson[] }) {
           <div className="min-w-0">
             <h4 className="truncate font-semibold text-slate-950">{person.name}</h4>
             <p className="truncate text-sm text-slate-600">{person.email || <T text="No email address"/>}</p>
+            {person.preschoolCoordinator && <span className="mt-1 inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800"><T text="Preschool coordinator"/></span>}
           </div>
         </div>
         <ul className="mt-3 divide-y divide-slate-100 sm:ml-14">

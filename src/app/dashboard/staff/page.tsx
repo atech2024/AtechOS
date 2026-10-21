@@ -123,6 +123,8 @@ export default async function StaffPage() {
     })
     peopleById.set(member.user_id, group)
   }
+  const coordinatorDirectoryPerson = coordinatorId ? peopleById.get(coordinatorId) : null
+  if (coordinatorDirectoryPerson) coordinatorDirectoryPerson.preschoolCoordinator = true
   const people = [...peopleById.values()].sort((a, b) => a.name.localeCompare(b.name))
   const activeStaffCount = new Set(memberRows.filter(member => member.enabled && staffRoles.has(member.role)).map(member => member.user_id)).size
   const now = Date.now()

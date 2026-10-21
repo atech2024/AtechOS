@@ -83,7 +83,8 @@ assert.ok(!inviteForm.includes("'surveillant', 'parent', 'student'"), 'generic s
 const studentList = readFileSync(new URL('../src/app/dashboard/students/page.tsx', import.meta.url), 'utf8')
 const studentProfile = readFileSync(new URL('../src/app/dashboard/students/[id]/page.tsx', import.meta.url), 'utf8')
 const parentsPage = readFileSync(new URL('../src/app/dashboard/parents/page.tsx', import.meta.url), 'utf8')
-assert.ok(studentList.includes('/dashboard/parents?studentId=') && studentProfile.includes('/dashboard/parents?studentId='), 'student shortcuts must open the canonical parent workflow with the child selected')
+const dossierNavigation = readFileSync(new URL('../src/lib/student-dossier-navigation.ts', import.meta.url), 'utf8')
+assert.ok(studentList.includes('/dashboard/parents?studentId=') && studentProfile.includes('buildStudentFamilyHref(id)') && dossierNavigation.includes('/dashboard/parents?studentId='), 'student shortcuts must open the canonical parent workflow with the child selected')
 assert.equal((parentsPage.match(/<ParentInvite\b/g) || []).length, 1, 'Parents must expose one canonical invite form')
 assert.ok(parentsPage.includes("new URLSearchParams(window.location.search).get('studentId')"), 'the canonical Parents workflow must restore the selected student')
 

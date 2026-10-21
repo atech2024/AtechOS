@@ -5,6 +5,7 @@ import { translate } from '@/lib/translations'
 import { useEffect, useState } from 'react'
 import ParentInvite from '@/components/parent-invite'
 import { createClient } from '@/lib/supabase/client'
+import { resolveStudentDossierId } from '@/lib/student-dossier-navigation'
 
 type Parent = { id: string; full_name: string | null; email: string | null; relationship: string | null; user_id: string | null }
 type Student = { id: string; first_name: string; last_name: string; student_code: string | null }
@@ -23,6 +24,7 @@ export default function ParentsPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [links, setLinks] = useState<LinkRow[]>([])
   const [inviteStudentId, setInviteStudentId] = useState('')
+  const [prefilledStudentApplied, setPrefilledStudentApplied] = useState(false)
   const [linkStudentId, setLinkStudentId] = useState('')
   const [inviteStudentQuery, setInviteStudentQuery] = useState('')
   const [linkStudentQuery, setLinkStudentQuery] = useState('')
@@ -53,6 +55,16 @@ export default function ParentsPage() {
     setLoading(false)
   }
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    if (loading || prefilledStudentApplied) return
+    setPrefilledStudentApplied(true)
+    const requestedStudentId = new URLSearchParams(window.location.search).get('studentId')
+    const selectedStudentId = resolveStudentDossierId(requestedStudentId, students.map(student => student.id))
+    if (selectedStudentId) {
+      setInviteStudentId(selectedStudentId)
+      setLinkStudentId(selectedStudentId)
+    }
+  }, [loading, prefilledStudentApplied, students])
 
   const filterStudents = (query: string) => {
     const term = query.trim().toLowerCase()
@@ -86,7 +98,7 @@ export default function ParentsPage() {
     {error && <p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><T text={error}/></p>}
     {message && <p role="status" className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><T text={message}/></p>}
 
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><h2 className="font-semibold text-slate-900"><T text="Select student to invite a parent"/></h2><div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><input type="search" aria-label={translate('Search students by name',locale)} placeholder={translate('Search students by name',locale)} value={inviteStudentQuery} onChange={e=>setInviteStudentQuery(e.target.value)} className="min-h-11 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" /><select value={inviteStudentId} onChange={e=>setInviteStudentId(e.target.value)} className="min-h-11 rounded-xl border border-slate-300 px-4 py-3"><option value=""><T text="Select student"/></option>{matchingInviteStudents.map(s=><option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}</select></div>{inviteStudentId && <div className="mt-4 border-t border-slate-100 pt-4"><ParentInvite key={inviteStudentId} studentId={inviteStudentId} /></div>}</section>
+    <section id="family-relationships" className="scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><h2 className="font-semibold text-slate-900"><T text="Select student to invite a parent"/></h2><div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><input type="search" aria-label={translate('Search students by name',locale)} placeholder={translate('Search students by name',locale)} value={inviteStudentQuery} onChange={e=>setInviteStudentQuery(e.target.value)} className="min-h-11 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" /><select value={inviteStudentId} onChange={e=>setInviteStudentId(e.target.value)} className="min-h-11 rounded-xl border border-slate-300 px-4 py-3"><option value=""><T text="Select student"/></option>{matchingInviteStudents.map(s=><option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}</select></div>{inviteStudentId && <div className="mt-4 border-t border-slate-100 pt-4"><ParentInvite key={inviteStudentId} studentId={inviteStudentId} /></div>}</section>
     {!loading && parents.length > 0 && students.length > 0 && <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><h2 className="font-semibold text-slate-900"><T text="Link a parent to a student"/></h2><div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <label className="text-sm font-medium"><T text="Student"/><input type="search" aria-label={translate('Search students by name',locale)} placeholder={translate('Search students by name',locale)} value={linkStudentQuery} onChange={e=>setLinkStudentQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3" /><select value={linkStudentId} onChange={e=>setLinkStudentId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value=""><T text="Select student"/></option>{matchingLinkStudents.map(s=><option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}</select></label>
       <label className="text-sm font-medium"><T text="Parent"/><input type="search" aria-label={translate('Search parents by name or email',locale)} placeholder={translate('Search parents by name or email',locale)} value={parentQuery} onChange={e=>setParentQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3" /><select value={parentId} onChange={e=>setParentId(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"><option value=""><T text="Select parent"/></option>{matchingParents.map(p=><option key={p.id} value={p.id}>{parentLabel(p)}</option>)}</select></label>

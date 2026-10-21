@@ -4,7 +4,7 @@ import { T } from '@/components/translation-provider'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Copy, LoaderCircle, ShieldCheck, ShieldOff } from 'lucide-react'
-import { inviteMember, cancelInvitation, changeMember } from './actions'
+import { inviteMember, cancelInvitation, changeMember, renewInvitation } from './actions'
 
 const roleLabels: Record<string, string> = {
   school_admin: 'School administrator',
@@ -18,7 +18,7 @@ const roleLabels: Record<string, string> = {
   student: 'Student',
 }
 
-export function InviteForm({ owner, parents, students, teacherOnly = false }: { owner: boolean; parents: { id: string; full_name: string; email: string }[]; students: { id: string; first_name: string; last_name: string }[]; teacherOnly?: boolean }) {
+export function InviteForm({ owner, students, teacherOnly = false }: { owner: boolean; students: { id: string; first_name: string; last_name: string }[]; teacherOnly?: boolean }) {
   const [role, setRole] = useState('teacher')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -41,11 +41,10 @@ export function InviteForm({ owner, parents, students, teacherOnly = false }: { 
     <label className="block text-sm font-medium text-slate-800"><T text="Full name"/><input className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none transition focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-100" name="full_name" required maxLength={150} autoComplete="name" /></label>
     <label className="block text-sm font-medium text-slate-800"><T text="Email"/><input className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none transition focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-100" name="email" type="email" required maxLength={254} autoComplete="email" /></label>
     {teacherOnly ? <input type="hidden" name="role" value="teacher"/> : <label className="block text-sm font-medium text-slate-800"><T text="Role"/><select name="role" value={role} onChange={e => setRole(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none transition focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-100">
-      {(owner ? ['school_admin', 'director', 'censeur', 'secretary', 'teacher', 'accountant', 'surveillant', 'parent', 'student'] : ['director', 'censeur', 'secretary', 'teacher', 'accountant', 'surveillant', 'parent', 'student']).map(r => <option key={r} value={r}><T text={roleLabels[r] || r}/></option>)}
+      {(owner ? ['school_admin', 'director', 'censeur', 'secretary', 'teacher', 'accountant', 'surveillant', 'student'] : ['director', 'censeur', 'secretary', 'teacher', 'accountant', 'surveillant', 'student']).map(r => <option key={r} value={r}><T text={roleLabels[r] || r}/></option>)}
     </select></label>}
-    {!teacherOnly && role === 'parent' && <label className="block text-sm font-medium text-slate-800"><T text="Guardian record"/><select name="parent_id" required className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-100"><option value=""><T text="Choose guardian"/></option>{parents.map(p => <option key={p.id} value={p.id}>{p.full_name} — {p.email}</option>)}</select></label>}
     {!teacherOnly && role === 'student' && <label className="block text-sm font-medium text-slate-800"><T text="Student record"/><select name="student_id" required className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-100"><option value=""><T text="Choose student"/></option>{students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}</select></label>}
-    {!teacherOnly && <p className="text-sm leading-6 text-slate-600 sm:col-span-2"><T text="If a verified sender is configured, AtechOS emails the invitation. Otherwise, copy and share the private link. It expires in 7 days; a replacement cancels the pending invitation for the same role and record."/></p>}
+    {!teacherOnly && <><p className="text-sm leading-6 text-slate-600 sm:col-span-2"><T text="If a verified sender is configured, AtechOS emails the invitation. Otherwise, copy and share the private link. It expires in 7 days; a replacement cancels the pending invitation for the same role and record."/></p><p className="text-sm leading-6 text-slate-700 sm:col-span-2"><T text="For parent invitations, choose the student in the Parents workspace so the family relationship is recorded at the same time."/> <Link href="/dashboard/parents" className="font-semibold text-blue-800 underline underline-offset-2"><T text="Open Parents workspace"/></Link></p></>}
     <button type="submit" disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-wait disabled:opacity-60 sm:col-span-2 sm:justify-self-start">
       {busy ? <LoaderCircle aria-hidden="true" className="size-4 motion-safe:animate-spin"/> : null}<T text={busy ? 'Creating…' : 'Create invitation link'}/>
     </button>
@@ -70,6 +69,11 @@ export function MemberAction({ id, enabled, role, owner, compact = false }: { id
     {selected==='parent'&&<p className="max-w-sm text-sm text-slate-600"><T text="After changing to parent, link their children in Parents. No unrelated student is linked automatically."/></p>}
     {error && <p role="alert" className="text-sm text-red-800">{error}</p>}
   </div>
+}
+
+export function RenewInvitation({ id }: { id: string }) {
+  const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [url, setUrl] = useState(''); const [busy, setBusy] = useState(false); const [copied, setCopied] = useState(false); const [renewed, setRenewed] = useState(false); const router = useRouter()
+  return <div className="space-y-2"><button type="button" disabled={busy || renewed} className="inline-flex min-h-10 items-center rounded-lg border border-blue-200 px-3 font-semibold text-blue-800 transition hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700 disabled:cursor-wait disabled:opacity-50" onClick={async () => { setBusy(true); setError(''); setMessage(''); setUrl(''); setCopied(false); try { const result = await renewInvitation(id); if (result.error) setError(result.error); else { setUrl(result.url || ''); setMessage(result.notice || (result.delivery === 'email' ? 'Replacement invitation sent by email. The previous link is no longer valid.' : 'New private link created. The previous invitation link is no longer valid.')); setRenewed(true); router.refresh() } } catch { setError('Unable to renew invitation.') } finally { setBusy(false) } }}><T text={busy ? 'Renewing…' : renewed ? 'Renewed' : 'Renew invitation'}/></button>{message && <p role="status" className="max-w-md text-sm text-emerald-800"><T text={message}/></p>}{url && <div className="flex flex-wrap items-center gap-2"><label className="min-w-0 flex-1 text-sm font-medium text-slate-800"><T text="Private invitation link"/><input readOnly value={url} onFocus={e => e.target.select()} className="mt-1 min-h-10 w-full rounded-lg border border-emerald-300 bg-white px-3 text-sm text-slate-800"/></label><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(url); setCopied(true) } catch { setError('Select and copy the link manually.') } }} className="min-h-10 rounded-lg border border-emerald-300 px-3 text-sm font-semibold text-emerald-900 hover:bg-emerald-50"><T text={copied ? 'Copied' : 'Copy link'}/></button></div>}{error && <p role="alert" className="text-sm text-red-800"><T text={error}/></p>}</div>
 }
 
 export function CancelInvitation({ id }: { id: string }) {

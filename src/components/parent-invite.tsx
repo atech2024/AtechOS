@@ -9,6 +9,7 @@ export default function ParentInvite({ studentId }: { studentId: string }) {
   const [message, setMessage] = useState('')
   const [url, setUrl] = useState('')
   async function submit(event: FormEvent<HTMLFormElement>) {
+    let parentSaved = false
     event.preventDefault(); setBusy(true); setMessage(''); setUrl('')
     const form = new FormData(event.currentTarget)
     try {
@@ -16,15 +17,16 @@ export default function ParentInvite({ studentId }: { studentId: string }) {
         p_student: studentId, p_name: String(form.get('full_name')), p_email: String(form.get('email')), p_phone: String(form.get('phone') || '')
       })
       if (error) throw error
+      parentSaved = true
       const context = await createClient().rpc('school_context')
       if (!context.data?.owner && !context.data?.roles?.some((r: string) => ['school_admin','director'].includes(r))) { setMessage('Parent saved and linked. Ask the director to send the invitation.'); return }
       form.set('parent_id', data); form.set('role', 'parent')
       const result = await inviteMember(form)
-      if (result.error) throw new Error(`Parent saved. ${result.error}`)
+      if (result.error) throw new Error('Parent was linked, but the invitation could not be created. Verify the family record before retrying.')
       setUrl(result.url || '')
       setMessage(result.delivery === 'email' ? 'Invitation sent by email.' : 'Parent linked. Share this private invitation link with this parent only.')
-    } catch (error) { setMessage(error instanceof Error ? error.message : String((error as {message?: string})?.message || 'Could not create invitation.')) }
+    } catch { setMessage(parentSaved ? 'Parent was linked, but the invitation could not be created. Verify the family record before retrying.' : 'Could not save parent details. Check the fields and try again.') }
     finally { setBusy(false) }
   }
-  return <section className="my-5 rounded-xl border bg-white p-5"><h2 className="text-lg font-semibold"><T text="Add / invite parent"/></h2><p className="my-2 text-sm text-slate-600">The parent will access only their linked children and published bulletins.</p><form onSubmit={submit} className="grid gap-3 md:grid-cols-2"><label><T text="Parent full name"/><input name="full_name" required className="block w-full rounded border p-3" /></label><label><T text="Email"/><input name="email" type="email" required className="block w-full rounded border p-3" /></label><label><T text="Phone (optional)"/><input name="phone" type="tel" className="block w-full rounded border p-3" /></label><button disabled={busy} className="rounded bg-blue-600 p-3 text-white disabled:opacity-50">{busy ? 'Saving…' : 'Save and invite parent'}</button></form>{message && <p role="status" className="mt-3">{message}</p>}{url && <label className="mt-3 block"><T text="Private invitation link"/><input readOnly value={url} onFocus={e => e.target.select()} className="block w-full rounded border p-3" /><button onClick={async () => { try { await navigator.clipboard.writeText(url); setMessage('Link copied.') } catch { setMessage('Select and copy the link above.') } }} className="mt-2 rounded border p-2"><T text="Copy link"/></button></label>}</section>
+  return <section className="my-5 rounded-xl border bg-white p-5"><h2 className="text-lg font-semibold"><T text="Add / invite parent"/></h2><p className="my-2 text-sm text-slate-600"><T text="The parent will access only their linked children and published bulletins."/></p><form onSubmit={submit} className="grid gap-3 md:grid-cols-2"><label><T text="Parent full name"/><input name="full_name" required className="block w-full rounded border p-3" /></label><label><T text="Email"/><input name="email" type="email" required className="block w-full rounded border p-3" /></label><label><T text="Phone (optional)"/><input name="phone" type="tel" className="block w-full rounded border p-3" /></label><button disabled={busy} className="rounded bg-blue-600 p-3 text-white disabled:opacity-50"><T text={busy ? 'Saving…' : 'Save and invite parent'}/></button></form>{message && <p role="status" className="mt-3"><T text={message}/></p>}{url && <label className="mt-3 block"><T text="Private invitation link"/><input readOnly value={url} onFocus={e => e.target.select()} className="block w-full rounded border p-3" /><button onClick={async () => { try { await navigator.clipboard.writeText(url); setMessage('Link copied.') } catch { setMessage('Select and copy the link above.') } }} className="mt-2 rounded border p-2"><T text="Copy link"/></button></label>}</section>
 }

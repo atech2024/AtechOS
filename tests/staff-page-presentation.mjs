@@ -18,3 +18,22 @@ assert.deepEqual(JSON.parse(JSON.stringify(present(false, ['teacher', 'director'
 
 console.log('Staff page role presentation checks passed.')
 
+
+const sectionsSource = readFileSync(new URL('../src/lib/staff-directory-sections.ts', import.meta.url), 'utf8')
+const sectionsCompiled = ts.transpileModule(sectionsSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
+const sectionExports = {}
+vm.runInNewContext(sectionsCompiled, { exports: sectionExports })
+const getDirectorySections = sectionExports.getDirectorySections
+
+assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'school_admin' }]))), ['staff'])
+assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'accountant' }]))), ['staff'])
+assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'teacher' }]))), ['teachers'])
+assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'parent' }]))), ['parents'])
+assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'student' }]))), ['students'])
+assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'unknown' }]))), [])
+assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'director' }, { role: 'teacher' }]))), ['staff', 'teachers'])
+assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'parent' }, { role: 'student' }]))), ['parents', 'students'])
+
+console.log('Staff directory section checks passed.')
+
+

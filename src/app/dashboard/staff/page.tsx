@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ArrowRight, Clock3, UsersRound } from 'lucide-react'
 import { T } from '@/components/translation-provider'
 import { PreschoolCoordinatorAssignment } from '@/components/preschool-coordinator-assignment'
-import { StaffDirectory, type StaffDirectoryPerson } from '@/components/staff-directory'
+import { InvitationAccepted, InvitationPending, StaffDirectory, type StaffDirectoryPerson } from '@/components/staff-directory'
 import { getStaffPagePresentation } from '@/lib/staff-page-presentation'
 import { createClient } from '@/lib/supabase/server'
 import { CancelInvitation, InviteForm } from './invite-form'
@@ -77,7 +77,7 @@ export default async function StaffPage() {
 
   const [members, invitations, parents, students, school, coordinatorWorkspace] = await Promise.all([
     db.from('school_members').select('id,user_id,role,enabled,users(full_name,email)').eq('school_id', context.school_id),
-    presentation.fullDirectory ? db.from('school_invitations').select('id,email,full_name,role,status,expires_at').eq('school_id', context.school_id).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
+    presentation.fullDirectory ? db.from('school_invitations').select('id,email,full_name,role,status,expires_at,accepted_at').eq('school_id', context.school_id).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
     presentation.fullDirectory ? db.from('parents').select('id,full_name,email').eq('school_id', context.school_id) : Promise.resolve({ data: [], error: null }),
     presentation.fullDirectory ? db.from('students').select('id,first_name,last_name').eq('school_id', context.school_id).eq('active', true) : Promise.resolve({ data: [], error: null }),
     presentation.fullDirectory ? db.from('schools').select('owner_user_id').eq('id', context.school_id).single() : Promise.resolve({ data: { owner_user_id: null }, error: null }),
@@ -126,7 +126,8 @@ export default async function StaffPage() {
   const activeStaffCount = new Set(memberRows.filter(member => member.enabled && staffRoles.has(member.role)).map(member => member.user_id)).size
   const now = Date.now()
   const pendingInvitations = (invitations.data || []).filter(invitation => invitation.status === 'pending' && new Date(invitation.expires_at).getTime() > now)
-  const historyInvitations = (invitations.data || []).filter(invitation => invitation.status !== 'pending' || new Date(invitation.expires_at).getTime() <= now)
+  const acceptedInvitations = (invitations.data || []).filter(invitation => invitation.status === 'accepted')
+  const historyInvitations = (invitations.data || []).filter(invitation => invitation.status !== 'accepted' && (invitation.status !== 'pending' || new Date(invitation.expires_at).getTime() <= now))
 
   return <main className="staff-page mx-auto max-w-6xl space-y-6 p-4 sm:p-6 lg:p-8">
     <PageHeading description="Manage school access, invitations, and the person responsible for Preschool / Kindergarten."/>
@@ -153,27 +154,50 @@ export default async function StaffPage() {
     <section className="staff-panel space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-xl font-semibold text-slate-950"><T text="Pending invitations"/></h2>
-          <p className="mt-1 text-sm text-slate-600"><T text="Private links expire after seven days. Cancel an active invitation if it should no longer be used."/></p>
+          <h2 className="text-xl font-semibold text-slate-950"><T text="Invitation tracking"/></h2>
+          <p className="mt-1 text-sm text-slate-600"><T text="Create an invitation, let the recipient accept it, then find their account in the matching directory section."/></p>
         </div>
-        <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-900">{pendingInvitations.length}</span>
+        <div className="flex flex-wrap gap-2 text-sm">
+          <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-amber-50 px-3 font-semibold text-amber-900"><Clock3 aria-hidden="true" className="size-4"/>{pendingInvitations.length} <T text="Pending"/></span>
+          <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-emerald-50 px-3 font-semibold text-emerald-900"><CheckCircle2 aria-hidden="true" className="size-4"/>{acceptedInvitations.length} <T text="Accepted"/></span>
+        </div>
       </div>
-      {pendingInvitations.length ? <ul className="divide-y divide-slate-100">{pendingInvitations.map(invitation => {
-        const expired = new Date(invitation.expires_at).getTime() < Date.now()
-        return <li key={invitation.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <ol className="grid gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-700 sm:grid-cols-3 sm:p-4">
+        <li><strong className="text-slate-950">1.</strong> <T text="Create the invitation"/></li>
+        <li><strong className="text-slate-950">2.</strong> <T text="The recipient accepts the private link"/></li>
+        <li><strong className="text-slate-950">3.</strong> <T text="Their account appears in its section"/></li>
+      </ol>
+      <div>
+        <h3 className="font-semibold text-slate-900"><T text="Pending invitations"/> <span className="ml-1 tabular-nums text-slate-600">({pendingInvitations.length})</span></h3>
+        <p className="mt-1 text-sm text-slate-600"><T text="Private links expire after seven days. Cancel an active invitation if it should no longer be used."/></p>
+      </div>
+      {pendingInvitations.length ? <ul className="divide-y divide-slate-100">{pendingInvitations.map(invitation => <li key={invitation.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-slate-900">{invitation.full_name} <span className="font-normal text-slate-600">· {invitation.email}</span></p>
+          <p className="text-sm text-slate-600"><T text={roleLabels[invitation.role] || invitation.role}/></p>
+          <InvitationPending expiresAt={invitation.expires_at}/>
+        </div>
+        <CancelInvitation id={invitation.id}/>
+      </li>)}</ul> : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700"><T text="No pending invitations."/></p>}
+      <section aria-labelledby="accepted-invitations-title" className="space-y-3 border-t border-slate-200 pt-4">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 aria-hidden="true" className="size-5 text-emerald-700"/>
+          <h3 id="accepted-invitations-title" className="font-semibold text-slate-950"><T text="Accepted invitations"/> <span className="ml-1 tabular-nums text-slate-600">({acceptedInvitations.length})</span></h3>
+        </div>
+        {acceptedInvitations.length ? <ul className="divide-y divide-emerald-100 rounded-xl border border-emerald-200 bg-emerald-50/50 px-3 sm:px-4">{acceptedInvitations.map(invitation => <li key={invitation.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="truncate font-semibold text-slate-900">{invitation.full_name} <span className="font-normal text-slate-600">· {invitation.email}</span></p>
-            <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600"><T text={roleLabels[invitation.role] || invitation.role}/><span aria-hidden="true">·</span><T text={expired ? 'Expired' : 'Pending'}/></p>
+            <p className="text-sm text-slate-600"><T text={roleLabels[invitation.role] || invitation.role}/></p>
           </div>
-          {!expired && <CancelInvitation id={invitation.id}/>}
-        </li>
-      })}</ul> : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700"><T text="No pending invitations."/></p>}
+          <InvitationAccepted acceptedAt={invitation.accepted_at}/>
+        </li>)}</ul> : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700"><T text="No accepted invitations yet."/></p>}
+      </section>
       <details className="staff-disclosure border-t border-slate-200 pt-3">
-        <summary className="min-h-11 cursor-pointer rounded-lg py-2 font-medium text-blue-800 outline-none focus-visible:ring-2 focus-visible:ring-blue-700"><T text="Invitation history"/> <span className="ml-1 text-sm text-slate-600">({historyInvitations.length})</span></summary>
+        <summary className="min-h-11 cursor-pointer rounded-lg py-2 font-medium text-blue-800 outline-none focus-visible:ring-2 focus-visible:ring-blue-700"><T text="Expired and cancelled invitations"/> <span className="ml-1 text-sm text-slate-600">({historyInvitations.length})</span></summary>
         <div className="staff-disclosure__content pt-2">
           {historyInvitations.length ? <ul className="divide-y divide-slate-100">{historyInvitations.map(invitation => <li key={invitation.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="min-w-0 truncate text-sm font-medium text-slate-800">{invitation.full_name} <span className="font-normal text-slate-600">· {invitation.email}</span></span>
-            <span className="text-sm text-slate-600"><T text={roleLabels[invitation.role] || invitation.role}/> · <T text={invitation.status === 'pending' ? 'Expired' : invitation.status === 'accepted' ? 'Accepted' : invitation.status === 'cancelled' ? 'Cancelled' : invitation.status}/></span>
+            <span className="text-sm text-slate-600"><T text={roleLabels[invitation.role] || invitation.role}/> · <T text={invitation.status === 'pending' ? 'Expired' : invitation.status === 'cancelled' ? 'Cancelled' : invitation.status}/></span>
           </li>)}</ul> : <p className="py-3 text-sm text-slate-600"><T text="No invitation history yet."/></p>}
         </div>
       </details>

@@ -45,4 +45,13 @@ assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'parent
 
 console.log('Staff directory section checks passed.')
 
+const inviteActions = readFileSync(new URL('../src/app/dashboard/staff/actions.ts', import.meta.url), 'utf8')
+const originPreflight = inviteActions.indexOf("const origin = (await headers()).get('origin')")
+const invitationWrite = inviteActions.indexOf("supabase.rpc('create_school_invitation'")
+assert.ok(originPreflight >= 0 && originPreflight < invitationWrite, 'must validate the link origin before creating a pending invitation')
+assert.ok(!inviteActions.includes('Invitation created. Open the application directly and create a replacement link.'), 'missing origin must not leave an unshareable invitation behind')
+
+console.log('Invitation origin preflight checks passed.')
+
+
 

@@ -13,6 +13,10 @@ export async function inviteMember(form: FormData) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !name || !roles.includes(role)) {
     return { error: 'Verify the name, email and role.' }
   }
+  // Check the link origin before writing an invitation. Otherwise a missing
+  // Origin would leave an unshareable pending row in the database.
+  const origin = (await headers()).get('origin')
+  if (!origin) return { error: 'Unable to create the invitation. Please try again.' }
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Please sign in again.' }
@@ -22,9 +26,7 @@ export async function inviteMember(form: FormData) {
     p_parent_id: String(form.get('parent_id') || '') || null,
   })
   if (error) return { error: error.message }
-  // Next.js server actions validate the request origin. Tokens never enter logs or email providers.
-  const origin = (await headers()).get('origin')
-  if (!origin) return { error: 'Invitation created. Open the application directly and create a replacement link.' }
+  // Tokens never enter logs or email providers.
   const url = `${origin}/invite?token=${encodeURIComponent(data.token)}`
   const apiKey = process.env.RESEND_API_KEY
   const from = process.env.ATECHOS_FROM_EMAIL

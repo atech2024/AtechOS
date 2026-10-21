@@ -1450,4 +1450,12 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Private invitation link':['Lien privé d’invitation','Lyen envitasyon prive'],
  'Renewed':['Renouvelée','Renouvle'],
  'The parent will access only their linked children and published bulletins.':['Le parent aura uniquement accès aux enfants qui lui sont associés et à leurs bulletins publiés.','Paran an ap gen aksè sèlman ak enfòmasyon timoun ki lye ak li yo ak bilten yo pibliye.'],
+ 'Save and invite parent':['Enregistrer et inviter le parent','Anrejistre epi envite paran an'],
+ 'Parent saved and linked. Ask the director to send the invitation.':['Parent enregistré et associé. Demandez à la direction d’envoyer l’invitation.','Paran an anrejistre epi li asosye. Mande direksyon an voye envitasyon an.'],
+ 'Invitation sent by email.':['Invitation envoyée par courriel.','Envitasyon an voye pa imèl.'],
+ 'Parent linked. Share this private invitation link with this parent only.':['Parent associé. Partagez ce lien privé uniquement avec ce parent.','Paran an asosye. Pataje lyen prive sa a ak paran sa a sèlman.'],
+ 'Parent was linked, but the invitation could not be created. Verify the family record before retrying.':['Le parent a été associé, mais l’invitation n’a pas pu être créée. Vérifiez le lien familial avant de réessayer.','Paran an asosye, men envitasyon an pa t ka kreye. Verifye lyen fanmi an anvan ou eseye ankò.'],
+ 'Could not save parent details. Check the fields and try again.':['Impossible d’enregistrer les informations du parent. Vérifiez les champs et réessayez.','Nou pa t kapab anrejistre enfòmasyon paran an. Verifye chan yo epi eseye ankò.'],
+ 'Link copied.':['Lien copié.','Lyen an kopye.'],
+ 'Select and copy the link above.':['Sélectionnez et copiez le lien ci-dessus.','Chwazi epi kopye lyen ki anwo a.'],
 }

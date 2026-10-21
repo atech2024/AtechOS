@@ -137,7 +137,6 @@ export default async function StaffPage() {
 
     <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-700">
       <span className="inline-flex items-center gap-2"><UsersRound aria-hidden="true" className="size-4 text-blue-700"/><strong className="tabular-nums">{activeStaffCount}</strong><T text="Active staff"/></span>
-      <span className="inline-flex items-center gap-2"><Clock3 aria-hidden="true" className="size-4 text-amber-700"/><strong className="tabular-nums">{pendingInvitations.length}</strong><T text="Pending invitations"/></span>
     </div>
 
     {presentation.coordinatorAssignment && <PreschoolCoordinatorAssignment options={coordinatorOptions} initialCoordinatorId={coordinatorId} initialCoordinatorName={coordinatorPerson?.full_name || null}/>}
@@ -159,10 +158,6 @@ export default async function StaffPage() {
         <div>
           <h2 className="text-xl font-semibold text-slate-950"><T text="Invitation tracking"/></h2>
           <p className="mt-1 text-sm text-slate-600"><T text="Create an invitation, let the recipient accept it, then find their account in the matching directory section."/></p>
-        </div>
-        <div className="flex flex-wrap gap-2 text-sm">
-          <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-amber-50 px-3 font-semibold text-amber-900"><Clock3 aria-hidden="true" className="size-4"/>{pendingInvitations.length} <T text="Pending"/></span>
-          <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-emerald-50 px-3 font-semibold text-emerald-900"><CheckCircle2 aria-hidden="true" className="size-4"/>{acceptedInvitations.length} <T text="Accepted"/></span>
         </div>
       </div>
       <ol className="grid gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-700 sm:grid-cols-3 sm:p-4">

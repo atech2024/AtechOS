@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 export default async function TeacherRequestsPage() {
  const db=await createClient(); const {data:context}=await db.rpc('school_context')
- if(!context?.owner && !context?.roles?.some((r:string)=>['school_admin','director'].includes(r))) redirect('/dashboard')
+ const {data:authorized,error:accessError}=await db.rpc('teacher_staff_management_access')
+ if(accessError || !context?.school_id || !authorized) redirect('/dashboard')
  const {data:requests,error}=await db.rpc('get_teacher_requests')
  const {data:school}=await db.from('schools').select('code').eq('id',context.school_id).single()
  async function review(form:FormData) {'use server';const {error}=await (await createClient()).rpc('review_teacher_request',{p_request:String(form.get('id')),p_approve:form.get('decision')==='approve'});if(error)throw new Error('Could not review request. Refresh and try again.');revalidatePath('/dashboard/teacher-requests')}

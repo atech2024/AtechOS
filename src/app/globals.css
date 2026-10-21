@@ -732,3 +732,12 @@ html.landing-motion-ready [data-landing-reveal]:focus-within {
 @media (prefers-reduced-motion:reduce) {
  .kiosk-page :where(button,summary) { scroll-behavior:auto; transition-duration:0ms; }
 }
+
+/* Staff tools use one restrained reveal for expandable controls, with a quiet reduced-motion fallback. */
+.staff-disclosure > summary::-webkit-details-marker { display:none; }
+.staff-disclosure > summary::marker { content:""; }
+.staff-disclosure[open] > .staff-disclosure__content { animation:staff-disclosure-reveal .18s ease-out both; }
+.staff-page :where(button,a,input,select,summary):focus-visible { outline:2px solid #056cd3; outline-offset:3px; }
+@keyframes staff-disclosure-reveal { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion:reduce) { .staff-disclosure[open] > .staff-disclosure__content { animation:none; } }
+

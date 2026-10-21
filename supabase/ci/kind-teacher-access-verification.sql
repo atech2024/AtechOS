@@ -71,6 +71,7 @@ begin
  perform public.review_teacher_request((select id from public.teacher_join_requests where user_id='21000000-0000-0000-0000-000000000014'),true);
  perform public.create_school_invitation('director-parent@example.invalid','Director Parent','parent');
  perform public.save_preschool_coordinator('21000000-0000-0000-0000-000000000010');
+ perform set_config('request.jwt.claim.sub','21000000-0000-0000-0000-000000000004',true);
  if public.teacher_staff_management_access() then raise exception 'former coordinator retained access after replacement'; end if;
 
  perform set_config('request.jwt.claim.sub','21000000-0000-0000-0000-000000000010',true);
@@ -106,3 +107,4 @@ end
 $rls$;
 
 rollback;
+

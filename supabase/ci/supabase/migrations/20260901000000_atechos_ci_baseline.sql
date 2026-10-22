@@ -153,6 +153,7 @@ create table public.student_parents (
  primary key(student_id,parent_id)
 );
 create table public.school_members (
+ id uuid not null unique default gen_random_uuid(),
  school_id uuid not null references public.schools(id),
  user_id uuid not null references public.users(id),
  role text not null,

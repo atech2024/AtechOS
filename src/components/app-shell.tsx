@@ -48,7 +48,7 @@ const icons: Record<string, typeof Users> = {
 const roleLabels: Record<string, string> = {
   school_admin: 'Administrator', director: 'Director', secretary: 'Secretary', teacher: 'Teacher',
   accountant: 'Accountant', surveillant: 'Attendance supervisor', parent: 'Parent', student: 'Student',
-  censeur: 'Academic reviewer',
+  censeur: 'Academic reviewer', preschool_coordinator: 'Preschool coordinator',
 }
 const groupLabels: Record<NavigationGroup, string> = {
   overview: 'Dashboard', people: 'Students & families', preschool: 'Preschool', school_life: 'School life',

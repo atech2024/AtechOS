@@ -9,10 +9,11 @@ import { createClient } from '@/lib/supabase/server'
 import { CancelInvitation, InviteForm, RenewInvitation } from './invite-form'
 
 const coordinatorRoles = new Set(['teacher', 'school_admin', 'director', 'secretary'])
-const staffRoles = new Set(['school_admin', 'director', 'censeur', 'secretary', 'surveillant', 'teacher', 'accountant'])
+const staffRoles = new Set(['school_admin', 'director', 'censeur', 'secretary', 'surveillant', 'teacher', 'accountant', 'preschool_coordinator'])
 const roleLabels: Record<string, string> = {
   owner: 'School owner',
   school_admin: 'School administrator',
+  preschool_coordinator: 'Preschool coordinator',
   director: 'Director',
   censeur: 'Academic reviewer',
   secretary: 'Secretary',
@@ -110,7 +111,7 @@ export default async function StaffPage() {
       id: member.id,
       role: getDisplayMemberRole(member.role, member.user_id === school.data?.owner_user_id),
       enabled: member.enabled,
-      protectedMember: !presentation.fullDirectory || member.user_id === school.data?.owner_user_id || member.user_id === context.user_id || (!context.owner && member.role === 'school_admin'),
+      protectedMember: !presentation.fullDirectory || member.role === 'preschool_coordinator' || member.user_id === school.data?.owner_user_id || member.user_id === context.user_id || (!context.owner && member.role === 'school_admin'),
       schoolOwner: member.user_id === school.data?.owner_user_id,
     })
     peopleById.set(member.user_id, group)
@@ -153,7 +154,7 @@ export default async function StaffPage() {
       </div>
     </details>
 
-    <StaffDirectory people={people} coordinatorOptions={coordinatorOptions} initialCoordinatorId={coordinatorId} initialCoordinatorName={coordinatorPerson?.full_name || null}/>
+    <StaffDirectory people={people} coordinatorOptions={coordinatorOptions} initialCoordinatorId={coordinatorId} initialCoordinatorName={coordinatorPerson?.full_name || null} canManageCoordinator={presentation.fullDirectory}/>
 
     <section className="staff-panel space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-2">

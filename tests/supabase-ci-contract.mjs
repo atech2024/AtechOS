@@ -141,7 +141,7 @@ assert.match(censeurStructureMigration,/classes_censeur_structure_read/);
 assert.match(censeurStructureMigration,/academic_years_censeur_read/);
 assert.match(censeurStructureMigration,/create or replace function public\.create_class\([\s\S]*?m\.role = any\(array\['school_admin', 'director', 'secretary', 'censeur'\]\)/);
 assert.match(preschoolRoleMigration, /private\.can_edit_preschool_class\(p_class uuid\)[\s\S]*?select private\.can_access_preschool_class\(p_class\)/);
-for(const assertion of ['preschool coordinator retained access after role change','preschool coordinator retained edit access after role change','preschool homeroom teacher retained access after role change','active homeroom teacher lost Preschool access']) assert.ok(verification.includes(assertion), `Preschool stale-role fixture must check: ${assertion}`);
+for(const assertion of ['former Kind coordinator retained management access','coordinator removal changed the teacher classroom access','disabled homeroom teacher retained access','active homeroom teacher lost Preschool access']) assert.ok(verification.includes(assertion), `Preschool stale-role fixture must check: ${assertion}`);
 assert.match(preschoolDepartureMigration,/preschool_cards[\s\S]*?s\.departure_year_id is null or y\.start_date<=\(select start_date from public\.academic_years where id=s\.departure_year_id\)/,'Preschool report-card history must respect the student departure year');
 assert.ok(verification.includes('post-departure Preschool bulletin'),'the SQL fixture must prove that a future Preschool bulletin is excluded after departure');
 assert.match(publishedOnlyMigration, /create function private\.published_student_report_cards\(p_student uuid\)/);

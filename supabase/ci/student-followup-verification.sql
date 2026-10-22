@@ -158,6 +158,11 @@ begin
 
  -- student_release_kiosk_ci_window: isolate the exact 08:01-12:59 denial deterministically.
  create or replace function private.kiosk_window(p_time time) returns text language sql immutable set search_path='' as $window$ select 'blocked'::text; $window$;
+ -- The schedule-aware recorder no longer consults kiosk_window() for enrolled students.
+ -- Stub its policy helper too, so the 08:01-12:59 denial stays deterministic in CI.
+ create or replace function private.kiosk_window_for_student(p_student uuid,p_time time,p_date date,p_check_in_at timestamptz,p_check_out_at timestamptz)
+ returns text language sql stable security definer set search_path=''
+ as $window$ select 'blocked'::text; $window$;
  kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');
  if kiosk->>'error'<>'kiosk_closed' then raise exception 'unreleased student bypassed the blocked KIOS window'; end if;
  kiosk:=private.record_student_kiosk('fb400000-0000-0000-0000-000000000002');

@@ -27,6 +27,7 @@ export type StaffDirectoryPerson = {
 const roleLabels: Record<string, string> = {
   owner: 'School owner',
   school_admin: 'School administrator',
+  preschool_coordinator: 'Preschool coordinator',
   director: 'Director',
   censeur: 'Academic reviewer',
   secretary: 'Secretary',
@@ -75,9 +76,10 @@ export function InvitationPending({ expiresAt }: { expiresAt: string }) {
   </p>
 }
 
-export function StaffDirectory({ people, readOnly = false, coordinatorOptions, initialCoordinatorId, initialCoordinatorName }: {
+export function StaffDirectory({ people, readOnly = false, coordinatorOptions, initialCoordinatorId, initialCoordinatorName, canManageCoordinator = false }: {
   people: StaffDirectoryPerson[]
   readOnly?: boolean
+  canManageCoordinator?: boolean
   coordinatorOptions?: { id: string; name: string }[]
   initialCoordinatorId?: string | null
   initialCoordinatorName?: string | null
@@ -151,7 +153,7 @@ export function StaffDirectory({ people, readOnly = false, coordinatorOptions, i
               <span className="font-medium text-slate-800"><T text={roleLabels[access.role] || access.role}/></span>
               <span className={access.enabled ? 'inline-flex min-h-7 items-center rounded-full bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-800' : 'inline-flex min-h-7 items-center rounded-full bg-slate-100 px-2.5 text-xs font-semibold text-slate-700'}><T text={access.enabled ? 'Active' : 'Disabled'}/></span>
             </div>
-            {readOnly || access.protectedMember ? <span className="inline-flex min-h-10 items-center rounded-lg bg-slate-50 px-3 text-sm font-medium text-slate-600"><T text={access.role === 'owner' ? 'School owner' : 'Protected'}/></span> : <MemberAction id={access.id} enabled={access.enabled} role={access.role} owner={access.schoolOwner} compact/>}
+            {readOnly || access.protectedMember ? <span className="inline-flex min-h-10 items-center rounded-lg bg-slate-50 px-3 text-sm font-medium text-slate-600"><T text={access.role === 'owner' ? 'School owner' : access.role === 'preschool_coordinator' ? 'Change this role from the coordinator assignment above.' : 'Protected'}/></span> : <MemberAction id={access.id} enabled={access.enabled} role={access.role} owner={access.schoolOwner} canManageCoordinator={canManageCoordinator} compact/>}
           </li>)}
         </ul>
       </li>)}

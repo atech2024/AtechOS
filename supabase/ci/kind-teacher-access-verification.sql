@@ -36,14 +36,20 @@ insert into public.teacher_join_requests(school_id,user_id) values
  ('21000000-0000-0000-0000-000000000102','21000000-0000-0000-0000-000000000012');
 
 do $test$
-declare invited jsonb; invite_id uuid; request_id uuid; failed boolean;
+declare invited jsonb; invite_id uuid; request_id uuid; member_id uuid; failed boolean;
 begin
  perform set_config('request.jwt.claim.sub','21000000-0000-0000-0000-000000000004',true);
  if not public.teacher_staff_management_access() then raise exception 'designated Kind coordinator should get the narrow teacher-management access'; end if;
  if private.can_manage_teacher_access('21000000-0000-0000-0000-000000000102',auth.uid()) then raise exception 'coordinator access leaked to another school'; end if;
  perform public.save_preschool_settings('21000000-0000-0000-0000-000000000004',true,false,false);
+ if not exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id=auth.uid() and role='preschool_coordinator' and enabled) then raise exception 'legacy coordinator designation was not synced to an access role'; end if;
+ if not exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id=auth.uid() and role='teacher' and enabled) then raise exception 'coordinator assignment replaced the existing staff role'; end if;
  failed:=false; begin perform public.save_preschool_coordinator('21000000-0000-0000-0000-000000000010'); exception when others then failed:=sqlerrm='not_authorized'; end;
  if not failed then raise exception 'coordinator must not be able to appoint or replace the coordinator'; end if;
+ select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='teacher';
+ failed:=false; begin perform public.assign_preschool_coordinator(member_id); exception when others then failed:=sqlerrm='not_authorized'; end;
+ if not failed then raise exception 'coordinator used the admin assignment RPC'; end if;
+ if private.can_manage_preschool('21000000-0000-0000-0000-000000000102') then raise exception 'Kind access leaked to another school'; end if;
  invited:=public.create_school_invitation('new-teacher@example.invalid','Invited Teacher','teacher');
  invite_id:=(invited->>'id')::uuid;
  failed:=false; begin perform public.create_school_invitation('new-parent@example.invalid','Invited Parent','parent'); exception when others then failed:=sqlerrm='not_authorized'; end;
@@ -61,6 +67,9 @@ begin
  if not public.teacher_staff_management_access() then raise exception 'Censeur should have teacher-management access'; end if;
  failed:=false; begin perform public.save_preschool_coordinator('21000000-0000-0000-0000-000000000010'); exception when others then failed:=sqlerrm='not_authorized'; end;
  if not failed then raise exception 'Censeur must not assign or replace the Preschool coordinator'; end if;
+ select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='teacher';
+ failed:=false; begin perform public.assign_preschool_coordinator(member_id); exception when others then failed:=sqlerrm='not_authorized'; end;
+ if not failed then raise exception 'Censeur used the admin coordinator assignment RPC'; end if;
  perform public.create_school_invitation('censeur-teacher@example.invalid','Censeur Teacher','teacher');
  failed:=false; begin perform public.create_school_invitation('censeur-parent@example.invalid','Censeur Parent','parent'); exception when others then failed:=sqlerrm='not_authorized'; end;
  if not failed then raise exception 'Censeur must not invite non-teacher roles through this access'; end if;
@@ -70,7 +79,11 @@ begin
  perform public.create_school_invitation('director-teacher@example.invalid','Director Teacher','teacher');
  perform public.review_teacher_request((select id from public.teacher_join_requests where user_id='21000000-0000-0000-0000-000000000014'),true);
  perform public.create_school_invitation('director-parent@example.invalid','Director Parent','parent');
- perform public.save_preschool_coordinator('21000000-0000-0000-0000-000000000010');
+ select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='teacher';
+ perform public.assign_preschool_coordinator(member_id);
+ if not exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='preschool_coordinator' and enabled) then raise exception 'director assignment did not grant the role'; end if;
+ if not exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='teacher' and enabled) then raise exception 'director assignment replaced the base role'; end if;
+ if (select count(*) from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and role='preschool_coordinator' and enabled)<>1 then raise exception 'more than one coordinator role is active'; end if;
  perform set_config('request.jwt.claim.sub','21000000-0000-0000-0000-000000000004',true);
  if public.teacher_staff_management_access() then raise exception 'former coordinator retained access after replacement'; end if;
 
@@ -79,6 +92,17 @@ begin
  perform public.create_school_invitation('next-coordinator-teacher@example.invalid','New Coordinator Teacher','teacher');
 
  perform set_config('request.jwt.claim.sub','21000000-0000-0000-0000-000000000008',true);
+ select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000102' and user_id='21000000-0000-0000-0000-000000000011' and role='school_admin';
+ failed:=false; begin perform public.assign_preschool_coordinator(member_id); exception when others then failed:=sqlerrm='staff_member_not_found'; end;
+ if not failed then raise exception 'cross-school coordinator assignment was not rejected'; end if;
+ select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='preschool_coordinator';
+ failed:=false; begin perform public.manage_school_member(member_id,'disable',null); exception when others then failed:=sqlerrm='use_preschool_coordinator_assignment'; end;
+ if not failed then raise exception 'generic member action changed the coordinator role'; end if;
+ select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='teacher';
+ failed:=false; begin perform public.manage_school_member(member_id,'role','preschool_coordinator'); exception when others then failed:=sqlerrm='use_preschool_coordinator_assignment'; end;
+ if not failed then raise exception 'generic role change granted coordinator access'; end if;
+ failed:=false; begin perform public.create_school_invitation('coordinator-invite@example.invalid','Coordinator Invite','preschool_coordinator'); exception when others then failed:=sqlerrm='coordinator_must_be_assigned_to_existing_staff'; end;
+ if not failed then raise exception 'coordinator invitations were not rejected'; end if;
  perform public.save_preschool_coordinator('21000000-0000-0000-0000-000000000004');
  if not public.teacher_staff_management_access() then raise exception 'school administrator should be able to restore the designated coordinator'; end if;
  perform set_config('request.jwt.claim.sub','21000000-0000-0000-0000-000000000010',true);

@@ -49,9 +49,10 @@ assert.ok(migration.includes("director_guard:='if not (private.has_role(sid,arra
 assert.ok(migration.includes("i.role=''parent'' and exists(select 1 from public.school_members m where m.school_id=i.school_id and m.user_id=i.invited_by and m.role=''director'' and m.enabled)"), 'must preserve Director parent-invitation acceptance')
 
 const roleForm = readFileSync(new URL('../src/app/dashboard/staff/invite-form.tsx', import.meta.url), 'utf8')
-assert.match(roleForm, /assign_preschool_coordinator/)
 assert.match(roleForm, /existing staff role was kept/i)
 assert.match(roleForm, /\['teacher','school_admin','director','secretary'\]\.includes\(role\)/)
+const staffActions = readFileSync(new URL('../src/app/dashboard/staff/actions.ts', import.meta.url), 'utf8')
+assert.match(staffActions, /assign_preschool_coordinator/)
 const invitationRoles = roleForm.match(/\(owner \? (\[[^\]]+\]) : (\[[^\]]+\])\)/)
 assert.ok(invitationRoles, 'staff invitations should use the existing role lists')
 assert.ok(!invitationRoles[1].includes('preschool_coordinator') && !invitationRoles[2].includes('preschool_coordinator'), 'coordinator must not be offered as a direct invitation role')

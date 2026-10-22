@@ -1369,7 +1369,7 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Save coordinator':['Enregistrer la coordination','Anrejistre kowòdinatè a'],
  'Preschool coordinator updated.':['La coordination du préscolaire a été mise à jour.','Kowòdinasyon preskolè a ajou.'],
  'Unable to assign the Preschool coordinator. Refresh and try again.':['Impossible d’affecter la coordination du préscolaire. Actualisez la page et réessayez.','Nou pa ka afekte kowòdinatè preskolè a. Rafrechi paj la epi eseye ankò.'],
- 'Add or activate a teacher or staff member first.':['Ajoutez ou activez d’abord un membre du personnel.','Ajoute oswa aktive yon anseyan oswa yon manm pèsonèl anvan.'],
+ 'Add or activate a staff member first.':['Ajoutez ou activez d’abord un membre du personnel.','Ajoute oswa aktive yon manm pèsonèl anvan.'],
  'Invite a teacher':['Inviter un enseignant','Envite yon anseyan'],
  'Invite a person':['Inviter une personne','Envite yon moun'],
  'This access is limited to inviting teachers. Other staff and family roles remain managed by school administration.':['Cette autorisation permet uniquement d’inviter des enseignants. Les autres membres du personnel et les familles restent gérés par l’administration.','Aksè sa a sèvi pou envite anseyan sèlman. Administrasyon lekòl la ap kontinye jere lòt pèsonèl ak fanmi yo.'],

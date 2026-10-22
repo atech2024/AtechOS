@@ -293,3 +293,5 @@ Bulletin publication boundary follow-up: the existing calculated report is still
 - The migration has not yet run in isolated Supabase SQL CI. The authenticated student walkthrough, selected-year role verification, and responsive visual review also remain pending. No Production database change or deployment has been performed for this phase; keep IN PROGRESS.
 
 \n
+
+- 2026-10-22 Coordinator eligibility correction: expanded coordinator assignment to any enabled same-school staff role (including Censeur, surveillant, and accountant), kept parent/student and cross-school assignment blocked, and added regression coverage plus a new migration. Code and migration checks are pending; no Production migration or deployment has been performed. BUILD 05 remains IN PROGRESS.

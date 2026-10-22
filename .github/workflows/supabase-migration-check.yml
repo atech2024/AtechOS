@@ -73,6 +73,7 @@ on:
       - "supabase/migrations/20261020170000_kind_staff_teacher_access.sql"
       - "supabase/migrations/20261022180000_add_preschool_coordinator_school_role.sql"
       - "supabase/migrations/20261022180100_preschool_coordinator_access_role.sql"
+      - "supabase/migrations/20261022221707_preschool_coordinator_any_active_staff.sql"
       - "supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql"
       - "supabase/migrations/20261020130000_attendance_summary_late_included.sql"
       - "supabase/migrations/20261009110000_direction_member_receipt_signatures.sql"
@@ -155,6 +156,7 @@ on:
       - "supabase/migrations/20261020170000_kind_staff_teacher_access.sql"
       - "supabase/migrations/20261022180000_add_preschool_coordinator_school_role.sql"
       - "supabase/migrations/20261022180100_preschool_coordinator_access_role.sql"
+      - "supabase/migrations/20261022221707_preschool_coordinator_any_active_staff.sql"
       - "supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql"
       - "supabase/migrations/20261020130000_attendance_summary_late_included.sql"
       - "supabase/migrations/20261005013350_parent_finance_payment_portal.sql"
@@ -286,6 +288,7 @@ jobs:
           cp supabase/migrations/20261020170000_kind_staff_teacher_access.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261022180000_add_preschool_coordinator_school_role.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261022180100_preschool_coordinator_access_role.sql supabase/ci/supabase/migrations/
+          cp supabase/migrations/20261022221707_preschool_coordinator_any_active_staff.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql supabase/ci/supabase/migrations/
           cp supabase/migrations/20261020130000_attendance_summary_late_included.sql supabase/ci/supabase/migrations/
       - name: Start local Supabase and apply migrations

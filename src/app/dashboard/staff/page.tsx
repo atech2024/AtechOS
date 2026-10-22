@@ -5,10 +5,10 @@ import { InvitationAccepted, InvitationPending, StaffDirectory, type StaffDirect
 import { getStaffPagePresentation } from '@/lib/staff-page-presentation'
 import { getDisplayMemberRole } from '@/lib/staff-directory-sections'
 import { canRenewInvitation } from '@/lib/invitation-policy'
+import { isPreschoolCoordinatorEligibleStaffRole } from '@/lib/preschool-coordinator-policy'
 import { createClient } from '@/lib/supabase/server'
 import { CancelInvitation, InviteForm, RenewInvitation } from './invite-form'
 
-const coordinatorRoles = new Set(['teacher', 'school_admin', 'director', 'secretary'])
 const staffRoles = new Set(['school_admin', 'director', 'censeur', 'secretary', 'surveillant', 'teacher', 'accountant', 'preschool_coordinator'])
 const roleLabels: Record<string, string> = {
   owner: 'School owner',
@@ -95,7 +95,7 @@ export default async function StaffPage() {
   const coordinatorPerson = coordinator ? (Array.isArray(coordinator.users) ? coordinator.users[0] : coordinator.users as { full_name: string; email: string } | null) : null
   const byStaffId = new Map<string, { id: string; name: string }>()
   for (const member of memberRows) {
-    if (!member.enabled || !coordinatorRoles.has(member.role) || byStaffId.has(member.user_id)) continue
+    if (!member.enabled || !isPreschoolCoordinatorEligibleStaffRole(member.role) || byStaffId.has(member.user_id)) continue
     const person = Array.isArray(member.users) ? member.users[0] : member.users as { full_name: string; email: string } | null
     const name = person?.full_name || person?.email
     if (name) byStaffId.set(member.user_id, { id: member.user_id, name })

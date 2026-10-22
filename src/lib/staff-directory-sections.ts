@@ -1,7 +1,7 @@
 export type StaffDirectorySection = 'staff' | 'teachers' | 'parents' | 'students'
 export type DirectoryRole = { role: string }
 
-const staffRoles = new Set(['owner', 'school_admin', 'director', 'censeur', 'secretary', 'surveillant', 'accountant'])
+const staffRoles = new Set(['owner', 'school_admin', 'director', 'censeur', 'secretary', 'surveillant', 'teacher', 'accountant'])
 
 export function getDirectorySections(access: readonly DirectoryRole[], isPreschoolCoordinator = false): StaffDirectorySection[] {
   const sections: StaffDirectorySection[] = []

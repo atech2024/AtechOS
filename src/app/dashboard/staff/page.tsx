@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { ArrowRight, CheckCircle2, Clock3, UsersRound } from 'lucide-react'
 import { T } from '@/components/translation-provider'
-import { PreschoolCoordinatorAssignment } from '@/components/preschool-coordinator-assignment'
 import { InvitationAccepted, InvitationPending, StaffDirectory, type StaffDirectoryPerson } from '@/components/staff-directory'
 import { getStaffPagePresentation } from '@/lib/staff-page-presentation'
 import { getDisplayMemberRole } from '@/lib/staff-directory-sections'
@@ -43,15 +42,13 @@ function PageHeading({ description }: { description: string }) {
   </header>
 }
 
-function TeacherAccessView({ showCoordinator, options, coordinatorId, coordinatorName }: {
-  showCoordinator: boolean
-  options: { id: string; name: string }[]
-  coordinatorId: string | null
-  coordinatorName: string | null
+function TeacherAccessView({ showDirectory, people }: {
+  showDirectory: boolean
+  people: StaffDirectoryPerson[]
 }) {
   return <main className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6 lg:p-8">
     <PageHeading description="Manage teacher invitations and requests for your school."/>
-    {showCoordinator && <PreschoolCoordinatorAssignment options={options} initialCoordinatorId={coordinatorId} initialCoordinatorName={coordinatorName}/>}
+    {showDirectory && <StaffDirectory people={people} readOnly/>}
     <InviteForm owner={false} teacherOnly students={[]}/>
     <section className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
       <div className="flex items-start gap-3">
@@ -90,27 +87,10 @@ export default async function StaffPage() {
 
   const memberRows = members.data || []
   const coordinatorId = coordinatorWorkspace.data?.coordinator_user_id || null
-  const coordinator = memberRows.find(member => member.user_id === coordinatorId)
-  const coordinatorPerson = coordinator ? (Array.isArray(coordinator.users) ? coordinator.users[0] : coordinator.users as { full_name: string; email: string } | null) : null
-  const byStaffId = new Map<string, { id: string; name: string }>()
-  for (const member of memberRows) {
-    if (!member.enabled || !coordinatorRoles.has(member.role) || byStaffId.has(member.user_id)) continue
-    const person = Array.isArray(member.users) ? member.users[0] : member.users as { full_name: string; email: string } | null
-    if (person?.full_name) byStaffId.set(member.user_id, { id: member.user_id, name: person.full_name })
-  }
-  const coordinatorOptions = [...byStaffId.values()].sort((a, b) => a.name.localeCompare(b.name))
-
-  if (!presentation.fullDirectory) {
-    return <TeacherAccessView
-      showCoordinator={presentation.coordinatorAssignment}
-      options={coordinatorOptions}
-      coordinatorId={coordinatorId}
-      coordinatorName={coordinatorPerson?.full_name || null}
-    />
-  }
-
+  const coordinatorEligibleUserIds = new Set(memberRows.filter(member => member.enabled && coordinatorRoles.has(member.role)).map(member => member.user_id))
   const peopleById = new Map<string, StaffDirectoryPerson>()
   for (const member of memberRows) {
+    if (!presentation.fullDirectory && !staffRoles.has(member.role)) continue
     const person = Array.isArray(member.users) ? member.users[0] : member.users as { full_name: string; email: string } | null
     const displayName = person?.full_name || person?.email || '—'
     const group: StaffDirectoryPerson = peopleById.get(member.user_id) || { id: member.user_id, name: displayName, email: person?.email || '', access: [] }
@@ -118,14 +98,25 @@ export default async function StaffPage() {
       id: member.id,
       role: getDisplayMemberRole(member.role, member.user_id === school.data?.owner_user_id),
       enabled: member.enabled,
-      protectedMember: member.user_id === school.data?.owner_user_id || member.user_id === context.user_id || (!context.owner && member.role === 'school_admin'),
+      protectedMember: !presentation.fullDirectory || member.user_id === school.data?.owner_user_id || member.user_id === context.user_id || (!context.owner && member.role === 'school_admin'),
       schoolOwner: member.user_id === school.data?.owner_user_id,
     })
     peopleById.set(member.user_id, group)
   }
-  const coordinatorDirectoryPerson = coordinatorId ? peopleById.get(coordinatorId) : null
-  if (coordinatorDirectoryPerson) coordinatorDirectoryPerson.preschoolCoordinator = true
-  const people = [...peopleById.values()].sort((a, b) => a.name.localeCompare(b.name))
+  const people = [...peopleById.values()].map(person => {
+    person.preschoolCoordinator = person.id === coordinatorId
+    person.preschoolCoordinatorEligible = coordinatorEligibleUserIds.has(person.id)
+    person.canManagePreschoolCoordinator = presentation.coordinatorAssignment
+    return person
+  }).sort((a, b) => a.name.localeCompare(b.name))
+
+  if (!presentation.fullDirectory) {
+    return <TeacherAccessView
+      showDirectory={presentation.coordinatorAssignment}
+      people={people}
+    />
+  }
+
   const activeStaffCount = new Set(memberRows.filter(member => member.enabled && staffRoles.has(member.role)).map(member => member.user_id)).size
   const now = Date.now()
   const pendingInvitations = (invitations.data || []).filter(invitation => invitation.status === 'pending' && new Date(invitation.expires_at).getTime() > now)
@@ -138,8 +129,6 @@ export default async function StaffPage() {
     <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-700">
       <span className="inline-flex items-center gap-2"><UsersRound aria-hidden="true" className="size-4 text-blue-700"/><strong className="tabular-nums">{activeStaffCount}</strong><T text="Active staff"/></span>
     </div>
-
-    {presentation.coordinatorAssignment && <PreschoolCoordinatorAssignment options={coordinatorOptions} initialCoordinatorId={coordinatorId} initialCoordinatorName={coordinatorPerson?.full_name || null}/>}
 
     <details className="staff-disclosure rounded-2xl border border-slate-200 bg-white shadow-sm">
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 font-semibold text-slate-900 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700 sm:px-6">

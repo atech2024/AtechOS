@@ -22,8 +22,12 @@ assert.ok(!coordinatorLinks.includes('/dashboard/parents'), 'coordinator capabil
 const staffPage = readFileSync(new URL('../src/app/dashboard/staff/page.tsx', import.meta.url), 'utf8')
 assert.match(staffPage, /teacher_staff_management_access/)
 assert.match(staffPage, /<InviteForm owner=\{false\} teacherOnly/)
-assert.match(staffPage, /PreschoolCoordinatorAssignment/)
+assert.ok(!staffPage.includes('PreschoolCoordinatorAssignment'), 'coordinator assignment should not be rendered as a standalone panel')
+const staffDirectory = readFileSync(new URL('../src/components/staff-directory.tsx', import.meta.url), 'utf8')
+assert.match(staffDirectory, /PreschoolCoordinatorAssignment userId=\{person\.id\}/, 'coordinator action should appear on the person row')
+assert.match(staffPage, /<StaffDirectory people=\{people\} readOnly/,'Director should see a read-only staff directory without family or student records')
 assert.match(staffPage, /getStaffPagePresentation\(Boolean\(context\.owner\), context\.roles \|\| \[\]\)/)
+assert.match(staffPage, /if \(!presentation\.fullDirectory && !staffRoles\.has\(member\.role\)\) continue/, 'Director directory data must exclude parents and students')
 
 const migration = readFileSync(new URL('../supabase/migrations/20261020170000_kind_staff_teacher_access.sql', import.meta.url), 'utf8')
 assert.ok(migration.includes("director_guard:='if not (private.has_role(sid,array[''school_admin'']) or (p_role=''parent'' and private.has_role(sid,array[''director''])))"), 'must recognize the existing Director parent-invitation grant')

@@ -1,5 +1,8 @@
 export const extraTranslations:Record<string,[string,string]> = {
  'Preschool / Kindergarten':['Préscolaire / Maternelle','Preskolè / Jadendanfan'],
+ 'Assign as Preschool coordinator':['Nommer comme responsable du préscolaire','Nonmen kòm responsab preskolè'],
+ 'Remove Preschool coordinator role':['Retirer la responsabilité du préscolaire','Retire responsablite preskolè a'],
+ 'Unable to update the Preschool coordinator. Refresh and try again.':['Impossible de modifier le responsable du préscolaire. Actualisez la page et réessayez.','Pa kapab mete responsab preskolè a ajou. Rafrechi paj la epi eseye ankò.'],
  'Kindergarten workspace':['Espace préscolaire / maternelle','Espas preskolè / matènèl'],
  'A clear, caring place for the first steps of every child.':['Un espace clair et bienveillant pour accompagner les premiers pas de chaque enfant.','Yon espas klè ak byenveyan pou akonpaye premye pa chak timoun.'],
  'Levels PS1–PS3':['Niveaux PS1–PS3','Nivo PS1–PS3'],

@@ -35,7 +35,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([
 
 assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'school_admin' }]))), ['staff'])
 assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'accountant' }]))), ['staff'])
-assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'teacher' }]))), ['teachers'])
+assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'teacher' }]))), ['staff', 'teachers'])
 assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'teacher' }], true))), ['staff', 'teachers'])
 assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'parent' }]))), ['parents'])
 assert.deepEqual(JSON.parse(JSON.stringify(getDirectorySections([{ role: 'student' }]))), ['students'])

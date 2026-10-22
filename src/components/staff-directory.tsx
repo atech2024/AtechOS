@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { BriefcaseBusiness, Clock3, GraduationCap, HeartHandshake, Search, UsersRound } from 'lucide-react'
 import { T, useLocale } from '@/components/translation-provider'
 import { MemberAction } from '@/app/dashboard/staff/invite-form'
+import { PreschoolCoordinatorAssignment } from '@/components/preschool-coordinator-assignment'
 import type { Locale } from '@/lib/i18n'
 import { getDirectorySections, type StaffDirectorySection } from '@/lib/staff-directory-sections'
 
@@ -21,6 +22,8 @@ export type StaffDirectoryPerson = {
   email: string
   access: StaffDirectoryAccess[]
   preschoolCoordinator?: boolean
+  preschoolCoordinatorEligible?: boolean
+  canManagePreschoolCoordinator?: boolean
 }
 
 const roleLabels: Record<string, string> = {
@@ -74,7 +77,7 @@ export function InvitationPending({ expiresAt }: { expiresAt: string }) {
   </p>
 }
 
-export function StaffDirectory({ people }: { people: StaffDirectoryPerson[] }) {
+export function StaffDirectory({ people, readOnly = false }: { people: StaffDirectoryPerson[]; readOnly?: boolean }) {
   const [query, setQuery] = useState('')
   const [selectedSection, setSelectedSection] = useState<StaffDirectorySection>('staff')
   const locale = useLocale()
@@ -120,12 +123,15 @@ export function StaffDirectory({ people }: { people: StaffDirectoryPerson[] }) {
 
     {filtered.length ? <ul className="divide-y divide-slate-100">
       {filtered.map(person => <li key={person.id} className="py-4 first:pt-0 last:pb-0">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-start gap-3">
           <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-blue-50 text-sm font-bold text-blue-800">{initials(person.name)}</span>
-          <div className="min-w-0">
-            <h4 className="truncate font-semibold text-slate-950">{person.name}</h4>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="truncate font-semibold text-slate-950">{person.name}</h4>
+              {person.preschoolCoordinator && <span className="inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800"><T text="Preschool coordinator"/></span>}
+            </div>
             <p className="truncate text-sm text-slate-600">{person.email || <T text="No email address"/>}</p>
-            {person.preschoolCoordinator && <span className="mt-1 inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800"><T text="Preschool coordinator"/></span>}
+            {person.canManagePreschoolCoordinator && (person.preschoolCoordinatorEligible || person.preschoolCoordinator) && <div className="mt-2"><PreschoolCoordinatorAssignment userId={person.id} assigned={Boolean(person.preschoolCoordinator)}/></div>}
           </div>
         </div>
         <ul className="mt-3 divide-y divide-slate-100 sm:ml-14">
@@ -134,7 +140,7 @@ export function StaffDirectory({ people }: { people: StaffDirectoryPerson[] }) {
               <span className="font-medium text-slate-800"><T text={roleLabels[access.role] || access.role}/></span>
               <span className={access.enabled ? 'inline-flex min-h-7 items-center rounded-full bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-800' : 'inline-flex min-h-7 items-center rounded-full bg-slate-100 px-2.5 text-xs font-semibold text-slate-700'}><T text={access.enabled ? 'Active' : 'Disabled'}/></span>
             </div>
-            {access.protectedMember ? <span className="inline-flex min-h-10 items-center rounded-lg bg-slate-50 px-3 text-sm font-medium text-slate-600"><T text={access.role === 'owner' ? 'School owner' : 'Protected'}/></span> : <MemberAction id={access.id} enabled={access.enabled} role={access.role} owner={access.schoolOwner} compact/>}
+            {readOnly || access.protectedMember ? <span className="inline-flex min-h-10 items-center rounded-lg bg-slate-50 px-3 text-sm font-medium text-slate-600"><T text={access.role === 'owner' ? 'School owner' : 'Protected'}/></span> : <MemberAction id={access.id} enabled={access.enabled} role={access.role} owner={access.schoolOwner} compact/>}
           </li>)}
         </ul>
       </li>)}

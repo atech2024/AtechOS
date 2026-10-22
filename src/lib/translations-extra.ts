@@ -1361,6 +1361,8 @@ export const extraTranslations:Record<string,[string,string]> = {
  'The school-release protocol is active today. Checked-in non-Preschool students may check out from the selected time.':['Le protocole de sortie est actif aujourd’hui. Les élèves déjà entrés hors Préscolaire pourront sortir à partir de l’heure choisie.','Pwotokòl sòti a aktif jodi a. Elèv ki deja antre, sof Matènèl, ap ka sòti depi lè yo chwazi a.'],
  'I confirm that school Direction is dismissing all students except Preschool, who keep their own schedule and pickup workflow. Finance and GUARD restrictions remain in effect.':['Je confirme que la Direction libère les élèves hors Préscolaire, qui conserve ses horaires et sa procédure de récupération. Les restrictions financières et GUARD restent actives.','Mwen konfime Direksyon ap lage tout elèv sof Matènèl, ki kenbe pwòp orè ak pwosedi pou vin chèche timoun. Règ finans ak GUARD yo rete aktif.'],
  'Preschool coordinator':['Coordonnatrice ou coordonnateur du préscolaire','Kowòdonatris oswa kowòdonatè preskolè'],
+ 'Coordinator access added. The existing staff role was kept.':['L’accès de coordination a été ajouté. Le rôle du membre du personnel a été conservé.','Nou ajoute dwa kowòdonatè a. Wòl staff moun nan rete menm jan an.'],
+ 'Change this role from the coordinator assignment above.':['Modifiez ce rôle depuis l’affectation de coordination ci-dessus.','Chanje wòl sa a nan afektasyon kowòdonatè a ki anlè a.'],
  'Coordinator':['Coordonnatrice ou coordonnateur','Kowòdonatris oswa kowòdonatè'],
  'Choose the active staff member responsible for the Preschool / Kindergarten space. This assignment grants access to that space only.':['Choisissez le membre actif de l’équipe responsable de l’espace préscolaire / maternelle. Cette affectation donne accès à cet espace uniquement.','Chwazi manm pèsonèl aktif ki responsab espas preskolè / matènèl la. Afektasyon sa a bay aksè nan espas sa a sèlman.'],
  'No coordinator assigned':['Aucune coordination affectée','Pa gen kowòdonatè ki afekte'],
@@ -1465,4 +1467,7 @@ export const extraTranslations:Record<string,[string,string]> = {
  'Select and copy the link above.':['Sélectionnez et copiez le lien ci-dessus.','Chwazi epi kopye lyen ki anlè a.'],
  'Save and invite parent':['Enregistrer et inviter le parent','Anrejistre epi envite paran an'],
  'Manage family record':['Gérer le dossier familial','Jere dosye fanmi an'],
+ 'use_preschool_coordinator_assignment':['Utilisez l’affectation du coordinateur dans le répertoire du personnel.','Sèvi ak afektasyon kowòdonatè a nan lis pèsonèl la.'],
+ 'staff_member_not_found':['Membre du personnel introuvable ou inactif.','Manm pèsonèl la pa jwenn oswa li pa aktif.'],
+ 'coordinator_assignment_requires_administration':['Seule l’administration ou la direction peut modifier cette affectation.','Se administrasyon oswa direksyon ki ka chanje afektasyon sa a.'],
 }

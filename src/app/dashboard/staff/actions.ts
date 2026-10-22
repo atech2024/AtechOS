@@ -73,6 +73,10 @@ export async function renewInvitation(id: string): Promise<InvitationActionResul
 
 export async function changeMember(id: string, action: string, role?: string) {
   const supabase = await createClient()
+  if (action === 'role' && role === 'preschool_coordinator') {
+    const { error } = await supabase.rpc('assign_preschool_coordinator', { p_member_id: id })
+    return { error: error?.message }
+  }
   const { error } = await supabase.rpc('manage_school_member', { p_member_id: id, p_action: action, p_role: role || null })
   return { error: error?.message }
 }

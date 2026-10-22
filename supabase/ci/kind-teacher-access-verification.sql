@@ -95,7 +95,7 @@ begin
  select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000102' and user_id='21000000-0000-0000-0000-000000000011' and role='school_admin';
  failed:=false; begin perform public.assign_preschool_coordinator(member_id); exception when others then failed:=sqlerrm='staff_member_not_found'; end;
  if not failed then raise exception 'cross-school coordinator assignment was not rejected'; end if;
- select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000004' and role='preschool_coordinator';
+ select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='preschool_coordinator';
  failed:=false; begin perform public.manage_school_member(member_id,'disable',null); exception when others then failed:=sqlerrm='use_preschool_coordinator_assignment'; end;
  if not failed then raise exception 'generic member action changed the coordinator role'; end if;
  select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='teacher';

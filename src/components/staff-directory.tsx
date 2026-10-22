@@ -22,8 +22,6 @@ export type StaffDirectoryPerson = {
   email: string
   access: StaffDirectoryAccess[]
   preschoolCoordinator?: boolean
-  preschoolCoordinatorEligible?: boolean
-  canManagePreschoolCoordinator?: boolean
 }
 
 const roleLabels: Record<string, string> = {
@@ -77,11 +75,19 @@ export function InvitationPending({ expiresAt }: { expiresAt: string }) {
   </p>
 }
 
-export function StaffDirectory({ people, readOnly = false }: { people: StaffDirectoryPerson[]; readOnly?: boolean }) {
+export function StaffDirectory({ people, readOnly = false, coordinatorOptions, initialCoordinatorId, initialCoordinatorName }: {
+  people: StaffDirectoryPerson[]
+  readOnly?: boolean
+  coordinatorOptions?: { id: string; name: string }[]
+  initialCoordinatorId?: string | null
+  initialCoordinatorName?: string | null
+}) {
   const [query, setQuery] = useState('')
   const [selectedSection, setSelectedSection] = useState<StaffDirectorySection>('staff')
   const locale = useLocale()
-  const sectionPeople = useMemo(() => people.filter(person => getDirectorySections(person.access, person.preschoolCoordinator).includes(selectedSection)), [people, selectedSection])
+  const sectionPeople = useMemo(() => people
+    .filter(person => getDirectorySections(person.access, person.preschoolCoordinator).includes(selectedSection))
+    .sort((a, b) => Number(Boolean(b.preschoolCoordinator)) - Number(Boolean(a.preschoolCoordinator)) || a.name.localeCompare(b.name)), [people, selectedSection])
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase()
     if (!normalized) return sectionPeople
@@ -101,6 +107,12 @@ export function StaffDirectory({ people, readOnly = false }: { people: StaffDire
         <input value={query} onChange={event => setQuery(event.target.value)} type="search" className="min-h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-sm outline-none transition focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-100"/>
       </label>
     </div>
+
+    {coordinatorOptions && <PreschoolCoordinatorAssignment
+      options={coordinatorOptions}
+      initialCoordinatorId={initialCoordinatorId || null}
+      initialCoordinatorName={initialCoordinatorName || null}
+    />}
 
     <div role="group" aria-label={locale === 'fr' ? 'Sections du répertoire' : locale === 'ht' ? 'Seksyon lis la' : 'Directory sections'} className="grid grid-cols-2 gap-2 border-b border-slate-200 pb-4 sm:grid-cols-4">
       {sectionConfig.map(({ key, label, Icon }) => {
@@ -131,7 +143,6 @@ export function StaffDirectory({ people, readOnly = false }: { people: StaffDire
               {person.preschoolCoordinator && <span className="inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800"><T text="Preschool coordinator"/></span>}
             </div>
             <p className="truncate text-sm text-slate-600">{person.email || <T text="No email address"/>}</p>
-            {person.canManagePreschoolCoordinator && (person.preschoolCoordinatorEligible || person.preschoolCoordinator) && <div className="mt-2"><PreschoolCoordinatorAssignment userId={person.id} assigned={Boolean(person.preschoolCoordinator)}/></div>}
           </div>
         </div>
         <ul className="mt-3 divide-y divide-slate-100 sm:ml-14">

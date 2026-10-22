@@ -1,5 +1,8 @@
 export const extraTranslations:Record<string,[string,string]> = {
  'Preschool / Kindergarten':['Préscolaire / Maternelle','Preskolè / Jadendanfan'],
+ 'Choose a coordinator':['Choisir une personne responsable','Chwazi yon kowòdonatè'],
+ 'Assigned staff member':['Membre du personnel affecté','Manm pèsonèl ki afekte a'],
+ 'The current coordinator is no longer an active team member. Choose an active staff member to replace them.':['La personne responsable actuelle ne fait plus partie du personnel actif. Choisissez un membre actif pour la remplacer.','Kowòdonatè aktyèl la pa yon manm pèsonèl aktif ankò. Chwazi yon manm pèsonèl aktif pou ranplase li.'],
  'Assign as Preschool coordinator':['Nommer comme responsable du préscolaire','Nonmen kòm responsab preskolè'],
  'Remove Preschool coordinator role':['Retirer la responsabilité du préscolaire','Retire responsablite preskolè a'],
  'Unable to update the Preschool coordinator. Refresh and try again.':['Impossible de modifier le responsable du préscolaire. Actualisez la page et réessayez.','Pa kapab mete responsab preskolè a ajou. Rafrechi paj la epi eseye ankò.'],

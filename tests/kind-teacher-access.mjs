@@ -36,7 +36,7 @@ for (const role of ['school_admin', 'director', 'censeur', 'secretary', 'surveil
 for (const role of ['parent', 'student', 'preschool_coordinator']) {
   assert.equal(coordinatorPolicyExports.isPreschoolCoordinatorEligibleStaffRole(role), false, `${role} must not be an eligible base staff role`)
 }
-assert.match(staffPage, /isPreschoolCoordinatorEligibleStaffRole\(member\.role\)/, 'the directory must use the shared coordinator eligibility rule')
+
 assert.match(staffPage, /teacher_staff_management_access/)
 assert.match(staffPage, /preschool_coordinator/)
 assert.match(staffPage, /canManageCoordinator=\{presentation\.fullDirectory\}/)

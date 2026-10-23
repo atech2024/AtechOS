@@ -5,7 +5,6 @@ import { InvitationAccepted, InvitationPending, StaffDirectory, type StaffDirect
 import { getStaffPagePresentation } from '@/lib/staff-page-presentation'
 import { getDisplayMemberRole } from '@/lib/staff-directory-sections'
 import { canRenewInvitation } from '@/lib/invitation-policy'
-import { isPreschoolCoordinatorEligibleStaffRole } from '@/lib/preschool-coordinator-policy'
 import { createClient } from '@/lib/supabase/server'
 import { CancelInvitation, InviteForm, RenewInvitation } from './invite-form'
 
@@ -43,16 +42,13 @@ function PageHeading({ description }: { description: string }) {
   </header>
 }
 
-function TeacherAccessView({ showDirectory, people, coordinatorOptions, coordinatorId, coordinatorName }: {
+function TeacherAccessView({ showDirectory, people }: {
   showDirectory: boolean
   people: StaffDirectoryPerson[]
-  coordinatorOptions: { id: string; name: string }[]
-  coordinatorId: string | null
-  coordinatorName: string | null
 }) {
   return <main className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6 lg:p-8">
     <PageHeading description="Manage teacher invitations and requests for your school."/>
-    {showDirectory && <StaffDirectory people={people} readOnly coordinatorOptions={coordinatorOptions} initialCoordinatorId={coordinatorId} initialCoordinatorName={coordinatorName}/>}
+    {showDirectory && <StaffDirectory people={people} readOnly/>}
     <InviteForm owner={false} teacherOnly students={[]}/>
     <section className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
       <div className="flex items-start gap-3">
@@ -91,16 +87,6 @@ export default async function StaffPage() {
 
   const memberRows = members.data || []
   const coordinatorId = coordinatorWorkspace.data?.coordinator_user_id || null
-  const coordinator = memberRows.find(member => member.user_id === coordinatorId)
-  const coordinatorPerson = coordinator ? (Array.isArray(coordinator.users) ? coordinator.users[0] : coordinator.users as { full_name: string; email: string } | null) : null
-  const byStaffId = new Map<string, { id: string; name: string }>()
-  for (const member of memberRows) {
-    if (!member.enabled || !isPreschoolCoordinatorEligibleStaffRole(member.role) || byStaffId.has(member.user_id)) continue
-    const person = Array.isArray(member.users) ? member.users[0] : member.users as { full_name: string; email: string } | null
-    const name = person?.full_name || person?.email
-    if (name) byStaffId.set(member.user_id, { id: member.user_id, name })
-  }
-  const coordinatorOptions = [...byStaffId.values()].sort((a, b) => a.name.localeCompare(b.name))
   const peopleById = new Map<string, StaffDirectoryPerson>()
   for (const member of memberRows) {
     if (!presentation.fullDirectory && !staffRoles.has(member.role)) continue
@@ -125,9 +111,6 @@ export default async function StaffPage() {
     return <TeacherAccessView
       showDirectory={presentation.coordinatorAssignment}
       people={people}
-      coordinatorOptions={coordinatorOptions}
-      coordinatorId={coordinatorId}
-      coordinatorName={coordinatorPerson?.full_name || null}
     />
   }
 
@@ -154,7 +137,7 @@ export default async function StaffPage() {
       </div>
     </details>
 
-    <StaffDirectory people={people} coordinatorOptions={coordinatorOptions} initialCoordinatorId={coordinatorId} initialCoordinatorName={coordinatorPerson?.full_name || null} canManageCoordinator={presentation.fullDirectory}/>
+    <StaffDirectory people={people} canManageCoordinator={presentation.fullDirectory}/>
 
     <section className="staff-panel space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-2">

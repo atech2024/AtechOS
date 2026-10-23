@@ -293,3 +293,5 @@ Bulletin publication boundary follow-up: the existing calculated report is still
 - The migration has not yet run in isolated Supabase SQL CI. The authenticated student walkthrough, selected-year role verification, and responsive visual review also remain pending. No Production database change or deployment has been performed for this phase; keep IN PROGRESS.
 
 \n
+
+- 2026-10-22 Coordinator eligibility correction: PR #164 expands assignment to enabled same-school staff roles while excluding parents, students, and cross-school members, and preserves each person's base staff role. Its GitHub application and isolated Supabase migration workflows passed, and Vercel marked the Preview Ready. A follow-up invitation-guidance UI fix is local only; its targeted regression test and translation audit pass, while full CI/build and authenticated Preview review for that follow-up are pending. No Production migration or deployment has been performed. BUILD 05 remains IN PROGRESS.

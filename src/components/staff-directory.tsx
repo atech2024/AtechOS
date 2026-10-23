@@ -97,7 +97,7 @@ export function StaffDirectory({ people, readOnly = false, coordinatorOptions, i
   }, [sectionPeople, query])
   const selected = sectionConfig.find(section => section.key === selectedSection)!
 
-  return <section className="staff-panel space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+  return <section id="staff-directory" className="staff-panel space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h2 className="text-xl font-semibold text-slate-950"><T text="Staff directory"/></h2>

@@ -66,7 +66,7 @@ export function PreschoolCoordinatorAssignment({
         </select>
       </label>
       {missingCurrent && <p role="status" className="text-xs text-amber-900"><T text="The current coordinator is no longer an active team member. Choose an active staff member to replace them."/></p>}
-      {!options.length && !initialCoordinatorId && <p className="text-xs text-slate-600"><T text="Add or activate a teacher or staff member first."/></p>}
+      {!options.length && !initialCoordinatorId && <p className="text-xs text-slate-600"><T text="Add or activate a staff member first."/></p>}
       {error && <p role="alert" className="text-sm text-red-700"><T text={error}/></p>}
       {saved && <p role="status" className="text-sm text-emerald-700"><T text="Preschool coordinator updated."/></p>}
     </div>

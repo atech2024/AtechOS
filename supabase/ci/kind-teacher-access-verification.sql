@@ -12,7 +12,8 @@ insert into public.users(id,full_name,email) values
  ('21000000-0000-0000-0000-000000000012','Other School Applicant','other-applicant@example.invalid'),
  ('21000000-0000-0000-0000-000000000013','Censeur Applicant','censeur-applicant@example.invalid'),
  ('21000000-0000-0000-0000-000000000014','Director Applicant','director-applicant@example.invalid'),
- ('21000000-0000-0000-0000-000000000015','Admin Applicant','admin-applicant@example.invalid');
+ ('21000000-0000-0000-0000-000000000015','Admin Applicant','admin-applicant@example.invalid'),
+ ('21000000-0000-0000-0000-000000000016','Kind Parent','parent@example.invalid');
 insert into public.schools(id,owner_user_id) values
  ('21000000-0000-0000-0000-000000000101','21000000-0000-0000-0000-000000000008'),
  ('21000000-0000-0000-0000-000000000102','21000000-0000-0000-0000-000000000011');
@@ -25,7 +26,8 @@ insert into public.school_members(school_id,user_id,role,enabled) values
  ('21000000-0000-0000-0000-000000000101','21000000-0000-0000-0000-000000000009','parent',true),
  ('21000000-0000-0000-0000-000000000101','21000000-0000-0000-0000-000000000010','teacher',true),
  ('21000000-0000-0000-0000-000000000102','21000000-0000-0000-0000-000000000011','school_admin',true),
- ('21000000-0000-0000-0000-000000000102','21000000-0000-0000-0000-000000000012','parent',true);
+ ('21000000-0000-0000-0000-000000000102','21000000-0000-0000-0000-000000000012','parent',true),
+ ('21000000-0000-0000-0000-000000000101','21000000-0000-0000-0000-000000000016','parent',true);
 insert into public.preschool_program_settings(school_id,coordinator_user_id)
 values('21000000-0000-0000-0000-000000000101','21000000-0000-0000-0000-000000000004');
 insert into public.teacher_join_requests(school_id,user_id) values
@@ -84,6 +86,17 @@ begin
  if not exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='preschool_coordinator' and enabled) then raise exception 'director assignment did not grant the role'; end if;
  if not exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='teacher' and enabled) then raise exception 'director assignment replaced the base role'; end if;
  if (select count(*) from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and role='preschool_coordinator' and enabled)<>1 then raise exception 'more than one coordinator role is active'; end if;
+ select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000016' and role='parent';
+ failed:=false; begin perform public.assign_preschool_coordinator(member_id); exception when others then failed:=sqlerrm='staff_member_not_found'; end;
+ if not failed then raise exception 'parent membership must not qualify as Preschool coordinator staff'; end if;
+ select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000006' and role='censeur';
+ perform public.assign_preschool_coordinator(member_id);
+ if not exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000006' and role='preschool_coordinator' and enabled) then raise exception 'an active Censeur could not be assigned as coordinator'; end if;
+ if not exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000006' and role='censeur' and enabled) then raise exception 'coordinator assignment replaced the Censeur staff role'; end if;
+ select id into member_id from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000010' and role='teacher';
+ perform public.assign_preschool_coordinator(member_id);
+ if exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000006' and role='preschool_coordinator' and enabled) then raise exception 'replaced Censeur retained the coordinator role'; end if;
+ if not exists(select 1 from public.school_members where school_id='21000000-0000-0000-0000-000000000101' and user_id='21000000-0000-0000-0000-000000000006' and role='censeur' and enabled) then raise exception 'replacing coordinator removed the Censeur staff role'; end if;
  perform set_config('request.jwt.claim.sub','21000000-0000-0000-0000-000000000004',true);
  if public.teacher_staff_management_access() then raise exception 'former coordinator retained access after replacement'; end if;
 

@@ -26,6 +26,17 @@ assert.ok(standaloneCoordinatorLinks.includes('/dashboard/teacher-requests'), 'c
 assert.ok(!standaloneCoordinatorLinks.includes('/dashboard/finance'), 'coordinator role must not grant finance access')
 
 const staffPage = readFileSync(new URL('../src/app/dashboard/staff/page.tsx', import.meta.url), 'utf8')
+const coordinatorPolicySource = readFileSync(new URL('../src/lib/preschool-coordinator-policy.ts', import.meta.url), 'utf8')
+const coordinatorPolicyCompiled = ts.transpileModule(coordinatorPolicySource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
+const coordinatorPolicyExports = {}
+vm.runInNewContext(coordinatorPolicyCompiled, { exports: coordinatorPolicyExports })
+for (const role of ['school_admin', 'director', 'censeur', 'secretary', 'surveillant', 'teacher', 'accountant']) {
+  assert.equal(coordinatorPolicyExports.isPreschoolCoordinatorEligibleStaffRole(role), true, `${role} staff should be eligible for coordinator assignment`)
+}
+for (const role of ['parent', 'student', 'preschool_coordinator']) {
+  assert.equal(coordinatorPolicyExports.isPreschoolCoordinatorEligibleStaffRole(role), false, `${role} must not be an eligible base staff role`)
+}
+assert.match(staffPage, /isPreschoolCoordinatorEligibleStaffRole\(member\.role\)/, 'the directory must use the shared coordinator eligibility rule')
 assert.match(staffPage, /teacher_staff_management_access/)
 assert.match(staffPage, /preschool_coordinator/)
 assert.match(staffPage, /canManageCoordinator=\{presentation\.fullDirectory\}/)
@@ -50,7 +61,7 @@ assert.ok(migration.includes("i.role=''parent'' and exists(select 1 from public.
 
 const roleForm = readFileSync(new URL('../src/app/dashboard/staff/invite-form.tsx', import.meta.url), 'utf8')
 assert.match(roleForm, /existing staff role was kept/i)
-assert.match(roleForm, /\['teacher','school_admin','director','secretary'\]\.includes\(role\)/)
+assert.match(roleForm, /isPreschoolCoordinatorEligibleStaffRole\(role\)/, 'staff role actions must use the shared coordinator eligibility rule')
 const staffActions = readFileSync(new URL('../src/app/dashboard/staff/actions.ts', import.meta.url), 'utf8')
 assert.match(staffActions, /assign_preschool_coordinator/)
 const invitationRoles = roleForm.match(/\(owner \? (\[[^\]]+\]) : (\[[^\]]+\])\)/)
@@ -62,5 +73,11 @@ assert.match(roleMigration, /add value if not exists 'preschool_coordinator'/)
 assert.match(coordinatorMigration, /assign_preschool_coordinator/)
 assert.match(coordinatorMigration, /use_preschool_coordinator_assignment/)
 assert.match(coordinatorMigration, /coordinator_must_be_assigned_to_existing_staff/)
+const eligibilityMigration = readFileSync(new URL('../supabase/migrations/20261022221707_preschool_coordinator_any_active_staff.sql', import.meta.url), 'utf8')
+for (const role of ['school_admin', 'director', 'censeur', 'secretary', 'surveillant', 'teacher', 'accountant']) {
+  assert.ok(eligibilityMigration.includes(`'${role}'`), `${role} should be eligible in the SQL authorization rule`)
+}
+assert.match(eligibilityMigration, /where school_id=p_school and user_id=p_coordinator and enabled[\s\S]*staff_member_not_found/)
+assert.match(eligibilityMigration, /where id=p_member_id and school_id=sid and enabled[\s\S]*staff_member_not_found/)
 console.log('Kind coordinator and teacher-access checks passed.')
 

@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import { BriefcaseBusiness, Clock3, GraduationCap, HeartHandshake, Search, UsersRound } from 'lucide-react'
 import { T, useLocale } from '@/components/translation-provider'
 import { MemberAction } from '@/app/dashboard/staff/invite-form'
-import { PreschoolCoordinatorAssignment } from '@/components/preschool-coordinator-assignment'
 import type { Locale } from '@/lib/i18n'
 import { getDirectorySections, type StaffDirectorySection } from '@/lib/staff-directory-sections'
 
@@ -76,13 +75,10 @@ export function InvitationPending({ expiresAt }: { expiresAt: string }) {
   </p>
 }
 
-export function StaffDirectory({ people, readOnly = false, coordinatorOptions, initialCoordinatorId, initialCoordinatorName, canManageCoordinator = false }: {
+export function StaffDirectory({ people, readOnly = false, canManageCoordinator = false }: {
   people: StaffDirectoryPerson[]
   readOnly?: boolean
   canManageCoordinator?: boolean
-  coordinatorOptions?: { id: string; name: string }[]
-  initialCoordinatorId?: string | null
-  initialCoordinatorName?: string | null
 }) {
   const [query, setQuery] = useState('')
   const [selectedSection, setSelectedSection] = useState<StaffDirectorySection>('staff')
@@ -109,12 +105,6 @@ export function StaffDirectory({ people, readOnly = false, coordinatorOptions, i
         <input value={query} onChange={event => setQuery(event.target.value)} type="search" className="min-h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-sm outline-none transition focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-100"/>
       </label>
     </div>
-
-    {coordinatorOptions && <PreschoolCoordinatorAssignment
-      options={coordinatorOptions}
-      initialCoordinatorId={initialCoordinatorId || null}
-      initialCoordinatorName={initialCoordinatorName || null}
-    />}
 
     <div role="group" aria-label={locale === 'fr' ? 'Sections du répertoire' : locale === 'ht' ? 'Seksyon lis la' : 'Directory sections'} className="grid grid-cols-2 gap-2 border-b border-slate-200 pb-4 sm:grid-cols-4">
       {sectionConfig.map(({ key, label, Icon }) => {
@@ -153,7 +143,7 @@ export function StaffDirectory({ people, readOnly = false, coordinatorOptions, i
               <span className="font-medium text-slate-800"><T text={roleLabels[access.role] || access.role}/></span>
               <span className={access.enabled ? 'inline-flex min-h-7 items-center rounded-full bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-800' : 'inline-flex min-h-7 items-center rounded-full bg-slate-100 px-2.5 text-xs font-semibold text-slate-700'}><T text={access.enabled ? 'Active' : 'Disabled'}/></span>
             </div>
-            {readOnly || access.protectedMember ? <span className="inline-flex min-h-10 items-center rounded-lg bg-slate-50 px-3 text-sm font-medium text-slate-600"><T text={access.role === 'owner' ? 'School owner' : access.role === 'preschool_coordinator' ? 'Change this role from the coordinator assignment above.' : 'Protected'}/></span> : <MemberAction id={access.id} enabled={access.enabled} role={access.role} owner={access.schoolOwner} canManageCoordinator={canManageCoordinator} compact/>}
+            {readOnly || access.protectedMember ? <span className="inline-flex min-h-10 items-center rounded-lg bg-slate-50 px-3 text-sm font-medium text-slate-600"><T text={access.role === 'owner' ? 'School owner' : 'Protected'}/></span> : <MemberAction id={access.id} enabled={access.enabled} role={access.role} owner={access.schoolOwner} canManageCoordinator={canManageCoordinator} compact/>}
           </li>)}
         </ul>
       </li>)}

@@ -37,6 +37,10 @@ create table public.notifications(
 );
 create table private.badge_ci_scans(student_id uuid primary key references public.students(id), scans integer not null default 0);
 
+create or replace function public.get_my_school_id() returns uuid
+language sql stable security definer set search_path=''
+as $ select school_id from public.school_members where user_id=auth.uid() and enabled order by school_id limit 1 $;
+
 create or replace function private.has_role(p_school uuid,p_roles text[])
 returns boolean language sql stable security definer set search_path=''
 as $$ select exists(select 1 from public.school_members m where m.school_id=p_school and m.user_id=auth.uid() and m.enabled and m.role=any(p_roles)) $$;
@@ -67,5 +71,14 @@ begin
  select 'AOSQ1.'||token from private.student_badge_credentials where student_id=s.id into token;
  return jsonb_build_object('badge_qr',token);
 end $$;
+create function public.student_kiosk_scan(p_code text,p_pin text) returns jsonb
+language plpgsql security definer set search_path=''
+as $
+declare s public.students;
+begin
+ select * into s from public.students where atechos_id=p_code and active and portal_enabled and school_status='active' limit 1;
+ if s.id is null then return jsonb_build_object('error','invalid_credentials');end if;
+ return private.record_student_kiosk(s.id);
+end $;
 create function public.student_kiosk_badge(p_qr text) returns jsonb
 language sql security definer set search_path='' as $$ select '{}'::jsonb $$;

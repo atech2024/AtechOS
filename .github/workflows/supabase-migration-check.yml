@@ -95,6 +95,7 @@ on:
       - "supabase/migrations/20261019104833_lock_family_preschool_bulletin_rpc.sql"
       - "supabase/migrations/20261004195614_kiosk_guard_scan_reasons.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
+      - "supabase/migrations/20261102120000_kiosk_staff_session_required.sql"
       - "vercel.json"
       - "supabase/ci/**"
       - "supabase/ci-badge/**"
@@ -186,6 +187,7 @@ on:
       - "supabase/migrations/20261016154709_parent_assignment_file_access.sql"
       - "supabase/migrations/20261019104833_lock_family_preschool_bulletin_rpc.sql"
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
+      - "supabase/migrations/20261102120000_kiosk_staff_session_required.sql"
       - "vercel.json"
       - "supabase/ci/**"
       - "supabase/ci-badge/**"
@@ -328,6 +330,7 @@ jobs:
       - name: Stage the real badge lifecycle migration over a synthetic pre-lifecycle schema
         working-directory: supabase/ci-badge
         run: cp ../migrations/20260928004221_badge_lifecycle_history.sql supabase/migrations/
+          cp ../migrations/20261102120000_kiosk_staff_session_required.sql supabase/migrations/
       - name: Start isolated Supabase and apply badge lifecycle migration
         working-directory: supabase/ci-badge
         run: |

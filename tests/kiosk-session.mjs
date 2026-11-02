@@ -1,10 +1,24 @@
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 
-const kiosk=readFileSync('src/app/kiosk/page.tsx','utf8')
+const kiosk=readFileSync('src/app/kiosk/kiosk-client.tsx','utf8')
+const kioskRoute=readFileSync('src/app/kiosk/page.tsx','utf8')
+const kioskAuthorization=readFileSync('supabase/migrations/20261102120000_kiosk_staff_session_required.sql','utf8')
 const scanner=readFileSync('src/components/qr-scanner.tsx','utf8')
 const translations=readFileSync('src/lib/translations-extra.ts','utf8')
 const styles=readFileSync('src/app/globals.css','utf8')
+
+assert.match(kioskRoute,/school_context/,'KIOS staff roles are checked before rendering the scan interface')
+assert.match(kioskRoute,/auth\.getUser\(\)[\s\S]*?if \(!user\) redirect\('\/login\?next=%2Fkiosk'\)/,'KIOS redirects signed-out users through the staff sign-in flow')
+assert.match(kioskRoute,/context\?\.owner \|\| context\?\.roles\?\.some/,'the KIOS page is limited to authorized school staff roles')
+assert.match(kioskAuthorization,/private\.kiosk_device_authorized\(s\.school_id,p_device_token\)/,'manual ID/PIN scans require an enrolled device and a KIOS-authorized role in the student school')
+assert.match(kioskAuthorization,/private\.kiosk_device_authorized\(b\.school_id,p_device_token\)/,'badge QR scans require an enrolled device and KIOS-authorized role in the badge school')
+assert.match(kioskAuthorization,/create table private\.kiosk_devices[\s\S]*?device_token_hash[\s\S]*?revoked_at/,'each paired kiosk device has a revocable hashed token')
+assert.match(kioskAuthorization,/pairing_expires_at[\s\S]*?interval '10 minutes'/,'pairing codes expire after ten minutes')
+assert.match(kioskAuthorization,/pairing_code_hash=null[\s\S]*?paired_by=auth\.uid\(\)/,'pairing codes are consumed when device tokens are issued')
+assert.match(kioskAuthorization,/revoke_kiosk_device[\s\S]*?revoked_at=coalesce\(revoked_at,now\(\)\)/,'staff can revoke a paired kiosk device')
+
+assert.match(kioskAuthorization,/revoke all on function public\.student_kiosk_scan\(text,text\),public\.student_kiosk_badge\(text\) from public,anon,authenticated;[\s\S]*?grant execute on function public\.student_kiosk_scan\(text,text,text\),public\.student_kiosk_badge\(text,text\) to authenticated;/,'anonymous and legacy scan callers are revoked; authenticated app callers use device-bound RPC signatures')
 
 assert.match(kiosk,/<QRScanner keepActive/,'KIOS badge scans keep the camera stream active')
 assert.match(scanner,/if\(!keepActive\)[\s\S]*?control\.stop\(\)/,'continuous scanning stops only when the camera is not configured to stay active')
@@ -37,4 +51,5 @@ assert.match(kiosk,/already_picked_up_by_parent:\{label:'Exit already recorded',
 assert.match(kiosk,/status\.kind==='exit'\?result\.check_out_at\|\|at:at/,'an existing exit uses the recorded check-out time')
 assert.match(kiosk,/status\.kind==='exit'\?<ArrowUpFromLine[\s\S]*?status\.kind==='entry'\?<ArrowDownToLine[\s\S]*?<T text=\{status\.label\}/,'history icons and labels follow the recorded action')
 for(const key of ['Exit already recorded','Already checked in','Attendance status']) { assert.ok(translations.includes("'"+key+"':["),key+' has French and Haitian Creole translations') }
+for(const key of ['Authorize this KIOS device','Authorized KIOS devices','One-time pairing code · expires in 10 minutes','Revoke device']) assert.ok(translations.includes("'"+key+"':")||translations.includes('"'+key+'":'),key+' has French and Haitian Creole translations')
 console.log('PASS KIOS session UX: persistent camera, front/back switch, collapsible responsive history, compact Haiti hours, camera-first feedback, localization and reduced motion.')

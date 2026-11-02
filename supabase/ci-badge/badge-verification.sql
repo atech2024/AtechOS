@@ -98,7 +98,7 @@ begin
  if result->>'action'<>'duplicate_scan' then raise exception 'duplicate scan must not toggle checkout';end if;
  result:=public.student_kiosk_scan('AOS-CI-5001','123456',device_token);
  if result->>'action'<>'duplicate_scan' then raise exception 'authorized manual scan should preserve existing attendance behavior';end if;
- perform public.revoke_kiosk_device(pairing_result->>'device_id');
+ perform public.revoke_kiosk_device((pairing_result->>'device_id')::uuid);
  result:=public.student_kiosk_badge(replacement,device_token);
  if result->>'error'<>'invalid_badge' then raise exception 'revoked KIOS device must lose scan access immediately';end if;
  reset role;

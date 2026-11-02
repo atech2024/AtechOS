@@ -62,7 +62,7 @@ assert.match(guardPage,/if\(error\.message==='case_not_reviewable'\)await load\(
 assert.match(guardPage,/if\(error\.message==='case_not_waiting_for_reason'\)await load\(\);setError\(guardError\(error\.message,'Unable to submit the family reason\.'/,'stale family reason submissions refresh the list and use a friendly message')
 const guardTranslations=readFileSync('src/lib/translations-extra.ts','utf8')
 for(const text of ['You are not authorized to access this GUARD case.','Enter a reason before submitting it.','The reason deadline has passed. Contact school staff for help.','This GUARD case is no longer waiting for a family reason. Refresh the list and check its current status.'])assert.ok(guardTranslations.includes(`'${text}':[`),`${text} needs French and Haitian Creole translations`)
-const kioskPage=readFileSync('src/app/kiosk/page.tsx','utf8')
+const kioskPage=readFileSync('src/app/kiosk/kiosk-client.tsx','utf8')
 assert.match(kioskPage,/financial_restriction:'Access refused: an overdue school fee still has a balance/,'KIOS explains an overdue fee refusal')
 assert.match(kioskPage,/guard_three_unexcused_absences:'Access refused: three school-day absences/,'KIOS explains the three-absence refusal')
 for(const text of ['Access refused: an overdue school fee still has a balance. Contact the school administration.','Access refused: three school-day absences have no accepted reason. Go to the Director with your parent or guardian.'])assert.ok(guardTranslations.includes(`"${text}":[`),`${text} needs French and Haitian Creole translations`)

@@ -329,7 +329,8 @@ jobs:
           version: 2.119.0
       - name: Stage the real badge lifecycle migration over a synthetic pre-lifecycle schema
         working-directory: supabase/ci-badge
-        run: cp ../migrations/20260928004221_badge_lifecycle_history.sql supabase/migrations/
+        run: |
+          cp ../migrations/20260928004221_badge_lifecycle_history.sql supabase/migrations/
           cp ../migrations/20261102120000_kiosk_staff_session_required.sql supabase/migrations/
       - name: Start isolated Supabase and apply badge lifecycle migration
         working-directory: supabase/ci-badge

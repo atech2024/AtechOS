@@ -20,10 +20,13 @@ try {
     await delay(500)
   }
   assert.ok(ready, output)
-  for (const [locale,label] of [['en','Confirm check-in / check-out'],['fr','Confirmer entrée / sortie'],['ht','Konfime antre / sòti']]) {
-    const response=await fetch(origin+'/kiosk',{headers:{cookie:`atechos_locale=${locale}`}})
-    assert.equal(response.status,200)
-    const html=await response.text();assert.ok(html.includes(label));assert.ok(html.includes('type="password"'));assert.ok(!html.slice(html.indexOf('<form'),html.indexOf('</form>')).includes('<select'));checks++
+  for (const locale of ['en','fr','ht']) {
+    const response=await fetch(origin+'/kiosk',{redirect:'manual',headers:{cookie:`atechos_locale=${locale}`}})
+    assert.equal(response.status,307)
+    const destination=new URL(response.headers.get('location'),origin)
+    assert.equal(destination.pathname,'/login')
+    assert.equal(destination.searchParams.get('next'),'/kiosk')
+    checks++
   }
   for (const [path, heading, form] of [['/', 'Your whole school,', false], ['/fonctionnalites', 'School operations, connected in one view.', false], ['/solutions', 'A workspace for each responsibility.', false], ['/signup', 'Create your account', true], ['/login', 'Sign in', true], ['/auth/error', 'Unable to complete email confirmation', false], ['/invitation', 'School invitation', true]]) {
     const response = await fetch(origin + path, {headers:{cookie:"atechos_locale=en"}})

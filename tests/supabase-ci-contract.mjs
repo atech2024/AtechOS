@@ -160,7 +160,7 @@ assert.match(badgeLifecycleMigration, /create or replace function public\.studen
 assert.match(badgeLifecycleMigration, /create function public\.report_badge_lost\(p_student uuid,p_reason text\)/i);
 assert.match(badgeVerification.trim(), /^begin;/i);
 assert.match(badgeVerification, /rollback;\s*$/i);
-for(const assertion of ['active badge QR must be stable for physical reprint','parent received private operational QR','lost badge QR must stop working immediately','unrelated parent accessed badge workspace','teacher accessed badge workspace','replacement must rotate private QR','old QR accepted after replacement','duplicate scan toggled a KIOS checkout','direct badge reactivation bypassed lifecycle RPC']) assert.ok(badgeVerification.includes(assertion), `badge lifecycle SQL fixture must check: ${assertion}`);
+for(const assertion of ['active badge QR must be stable for physical reprint','parent received private operational QR','lost badge QR must stop working on an enrolled device','unrelated parent accessed badge workspace','teacher accessed badge workspace','replacement must rotate private QR','old QR accepted after replacement','duplicate scan toggled a KIOS checkout','direct badge reactivation bypassed lifecycle RPC']) assert.ok(badgeVerification.includes(assertion), `badge lifecycle SQL fixture must check: ${assertion}`);
 assert.doesNotMatch(badgeVerification, /https:\/\/[^\s]*supabase\.co/);
 
 assert.match(pushBranches, /- fix\/progression-points-integrity/);

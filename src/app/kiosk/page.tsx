@@ -5,6 +5,8 @@ import StudentKiosk from './kiosk-client'
 const kioskRoles = ['school_admin', 'director', 'secretary', 'surveillant', 'censeur', 'preschool_coordinator']
 
 export default async function KioskPage() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) redirect('/login?next=%2Fkiosk')
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=%2Fkiosk')

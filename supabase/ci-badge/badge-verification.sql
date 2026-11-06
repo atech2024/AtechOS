@@ -31,7 +31,7 @@ insert into public.school_members(school_id,user_id,role) values
 insert into public.school_kiosk_schedules(school_id,entry_opens_at,preschool_entry_opens_at) values('10000000-0000-0000-0000-000000000001',time '05:15',time '05:30');
 
 do $test$
-declare qr text; primary_qr text; replacement text; result jsonb; workspace jsonb; failed boolean; pairing_code text; device_token text; general_token text; general_device uuid; kind_pairing jsonb; kind_token text; pairing_result jsonb; school_entry time;
+declare qr text; primary_qr text; replacement text; result jsonb; workspace jsonb; badge_audit_workspace jsonb; failed boolean; pairing_code text; device_token text; general_token text; general_device uuid; kind_pairing jsonb; kind_token text; pairing_result jsonb; school_entry time;
 begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  set local role authenticated;
@@ -69,8 +69,8 @@ begin
  set local role authenticated;
  replacement:=public.get_student_badge_qr('50000000-0000-0000-0000-000000000001',true);
  if replacement is null or replacement=qr or replacement !~ '^AOSQ1\.[a-f0-9]{64}$' then raise exception 'replacement must rotate private QR'; end if;
- workspace:=public.badge_workspace('50000000-0000-0000-0000-000000000001');
- if workspace->>'qr'<>replacement or (select count(*) from public.student_badges where student_id='50000000-0000-0000-0000-000000000001' and active and state='active')<>1 then raise exception 'replacement must leave exactly one active badge'; end if;
+ badge_audit_workspace:=public.badge_workspace('50000000-0000-0000-0000-000000000001');
+ if badge_audit_workspace->>'qr'<>replacement or (select count(*) from public.student_badges where student_id='50000000-0000-0000-0000-000000000001' and active and state='active')<>1 then raise exception 'replacement must leave exactly one active badge'; end if;
  if not exists(select 1 from jsonb_array_elements(workspace->'events') event where event->>'action'='lost' and event->>'actor_role'='parent') then raise exception 'lost action must be attributed to linked parent'; end if;
  if has_table_privilege('authenticated',(select c.oid from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and c.relname='badge_token_history'),'select') or has_table_privilege('authenticated',(select c.oid from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and c.relname='student_badge_credentials'),'select') then raise exception 'authenticated users can read private badge credential tables'; end if;
  if has_table_privilege('authenticated','public.student_badges','update') then raise exception 'authenticated users can reactivate badges directly'; end if;
@@ -154,7 +154,7 @@ begin
 
  if (select count(*) from public.notifications where type='lost_badge')<>1 then raise exception 'lost report should create one staff notice'; end if;
  if not exists(select 1 from public.student_badges where student_id='50000000-0000-0000-0000-000000000001' and state='lost' and not active) then raise exception 'lost badge history was not preserved'; end if;
- if not exists(select 1 from jsonb_array_elements(workspace->'events') event where event->>'action'='replaced') then raise exception 'badge replacement action was not audited'; end if;
+ if not exists(select 1 from jsonb_array_elements(badge_audit_workspace->'events') event where event->>'action'='replaced') then raise exception 'badge replacement action was not audited'; end if;
 end
 $test$;
 rollback;

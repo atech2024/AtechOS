@@ -12,6 +12,7 @@ export type LandingCopy = {
     description: string
     primary: string
     secondary: string
+    evaluation: string
     previewAlt: string
     previewContext: string
     previewCaption: string
@@ -50,6 +51,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       description: 'AtechOS relie la direction, les équipes pédagogiques, les familles et les élèves autour des activités quotidiennes de l’établissement.',
       primary: 'Créer votre école',
       secondary: 'Se connecter',
+      evaluation: 'Évaluer AtechOS',
       previewAlt: 'Aperçu illustratif des espaces AtechOS pour la vie scolaire, la pédagogie et les finances.',
       previewContext: 'Espace école',
       previewCaption: 'Une vue organisée selon les responsabilités de chaque équipe.',
@@ -116,6 +118,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       description: 'AtechOS mete direksyon, ekip pedagojik la, fanmi yo ak elèv yo nan menm espas pou aktivite lekòl chak jou.',
       primary: 'Kreye lekòl ou',
       secondary: 'Konekte',
+      evaluation: 'Evalye AtechOS',
       previewAlt: 'Apèsi ilistratif sou espas AtechOS pou lavi lekòl, pedagoji ak finans.',
       previewContext: 'Espas lekòl',
       previewCaption: 'Yon apèsi òganize selon responsablite chak ekip.',
@@ -182,6 +185,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       description: 'AtechOS connects school leadership, teaching teams, families, and students around the everyday work of a school.',
       primary: 'Create your school',
       secondary: 'Sign in',
+      evaluation: 'Evaluate AtechOS',
       previewAlt: 'Illustrative preview of AtechOS spaces for school life, teaching, and finance.',
       previewContext: 'School workspace',
       previewCaption: 'A view organized around each team’s responsibilities.',

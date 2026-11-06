@@ -40,19 +40,22 @@ const settingGroups = [
 export default async function SettingsPage() {
   const db = await createClient()
   const { data, error } = await db.rpc('school_context')
-  if (error) throw new Error('Unable to verify your settings access.')
+  if (error) return <main className="mx-auto max-w-6xl space-y-4 p-5 md:p-8">
+    <h1 className="text-3xl font-bold text-slate-900"><T text="Settings center"/></h1>
+    <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+      <T text="We could not load your school access. Refresh the page or contact school administration."/>
+    </p>
+  </main>
   const roles: string[] = Array.isArray(data?.roles) ? data.roles : []
   const canManageSettings = Boolean(data?.owner || roles.some((role: string) => ['school_admin', 'director'].includes(role)))
   const canManageSignature = Boolean(data?.owner || roles.some((role: string) => ['school_admin', 'director', 'censeur', 'secretary', 'accountant'].includes(role)))
 
   return <main className="mx-auto min-h-screen max-w-6xl space-y-7 bg-slate-50 p-5 md:p-8">
     <header>
-      <p className="text-sm font-semibold uppercase tracking-wide text-blue-700"><T text="School administration"/></p>
       <h1 className="mt-1 text-3xl font-bold text-slate-900"><T text="Settings center"/></h1>
       <p className="mt-2 max-w-3xl text-slate-600"><T text="Configure school-wide rules in one place. Each setting opens the existing module that manages it."/></p>
     </header>
     {!canManageSettings && !canManageSignature && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900"><T text="You do not have permission to manage school settings."/></p>}
-    {canManageSignature && <FinanceReceiptSignatureSettings/>}
     {!canManageSettings && roles.includes('accountant') && <section aria-labelledby="finance-rate-settings" className="space-y-3">
       <div>
         <h2 id="finance-rate-settings" className="text-xl font-semibold text-slate-900"><T text="Finance operations"/></h2>
@@ -81,5 +84,6 @@ export default async function SettingsPage() {
         </div>
       </section>)}
     </div>}
+    {canManageSignature && <FinanceReceiptSignatureSettings/>}
   </main>
 }

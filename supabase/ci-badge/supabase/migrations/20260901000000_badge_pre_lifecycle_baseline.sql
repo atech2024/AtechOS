@@ -12,6 +12,21 @@ create table public.students(
  user_id uuid, active boolean not null default true,
  portal_enabled boolean not null default true, school_status text not null default 'active'
 );
+create table public.academic_years(id uuid primary key,school_id uuid not null references public.schools(id),is_current boolean not null default false);
+create table public.grade_levels(id uuid primary key,code text not null);
+create table public.classes(id uuid primary key,school_id uuid not null references public.schools(id),academic_year_id uuid not null references public.academic_years(id),name text not null,grade_level text,grade_level_id uuid references public.grade_levels(id),enabled boolean not null default true);
+create table public.enrollments(id uuid primary key default gen_random_uuid(),school_id uuid not null references public.schools(id),student_id uuid not null references public.students(id),class_id uuid not null references public.classes(id),status text not null default 'active');
+create table public.school_kiosk_schedules(school_id uuid primary key references public.schools(id),entry_opens_at time not null default time '05:00',entry_ends_at time not null default time '07:45',late_ends_at time not null default time '08:00',checkout_starts_at time not null default time '13:00',checkout_ends_at time not null default time '23:59',preschool_entry_opens_at time not null default time '05:00',preschool_entry_ends_at time not null default time '07:45',preschool_late_ends_at time not null default time '08:00',preschool_checkout_starts_at time not null default time '13:00',preschool_checkout_ends_at time not null default time '23:59',updated_by uuid,updated_at timestamptz not null default now());
+create table public.school_release_protocols(id uuid primary key default gen_random_uuid(),school_id uuid not null references public.schools(id),protocol_date date not null,release_at time not null,reason text not null,activated_name text,activated_role text,activated_at timestamptz not null default now());
+create function public.save_school_kiosk_schedule(p_entry_opens_at time,p_entry_ends_at time,p_late_ends_at time,p_checkout_starts_at time,p_checkout_ends_at time,p_preschool_entry_opens_at time,p_preschool_entry_ends_at time,p_preschool_late_ends_at time,p_preschool_checkout_starts_at time,p_preschool_checkout_ends_at time)
+returns void language plpgsql security definer set search_path=''
+as $school_save$
+declare sid uuid:=public.get_my_school_id();
+begin
+ if auth.uid() is null or sid is null or not private.has_role(sid,array['school_admin','director','secretary','surveillant','censeur']) then raise exception 'not_authorized';end if;
+ update public.school_kiosk_schedules set entry_opens_at=p_entry_opens_at,entry_ends_at=p_entry_ends_at,late_ends_at=p_late_ends_at,checkout_starts_at=p_checkout_starts_at,checkout_ends_at=p_checkout_ends_at,preschool_entry_opens_at=p_preschool_entry_opens_at,preschool_entry_ends_at=p_preschool_entry_ends_at,preschool_late_ends_at=p_preschool_late_ends_at,preschool_checkout_starts_at=p_preschool_checkout_starts_at,preschool_checkout_ends_at=p_preschool_checkout_ends_at where school_id=sid;
+end $school_save$;
+create or replace function public.grade_section(p_code text) returns text language sql immutable set search_path='' as $grade_section$ select case when p_code in ('PS1','PS2','PS3') then 'preschool' when p_code in ('AF1','AF2','AF3','AF4','AF5','AF6') then 'primary' when p_code in ('AF7','AF8','AF9') then 'fundamental' when p_code in ('NS1','NS2','NS3','NS4') then 'secondary' end $grade_section$;
 create table public.student_badges(
  id uuid primary key default gen_random_uuid(), school_id uuid not null references public.schools(id),
  student_id uuid not null references public.students(id), badge_uid text not null,

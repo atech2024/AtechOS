@@ -4,9 +4,18 @@ insert into public.users(id,full_name) values
  ('20000000-0000-0000-0000-000000000001','Badge director'),
  ('20000000-0000-0000-0000-000000000002','Linked parent'),
  ('20000000-0000-0000-0000-000000000003','Unrelated parent'),
- ('20000000-0000-0000-0000-000000000004','Badge teacher');
+ ('20000000-0000-0000-0000-000000000004','Badge teacher'),
+ ('20000000-0000-0000-0000-000000000005','Kind coordinator');
 insert into public.students(id,school_id,first_name,last_name,atechos_id) values
- ('50000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','Synthetic','Student','AOS-CI-5001');
+ ('50000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','Synthetic','Kind Student','AOS-CI-5001'),
+ ('50000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','Synthetic','Primary Student','AOS-CI-5002');
+insert into public.academic_years(id,school_id,is_current) values('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true);
+insert into public.classes(id,school_id,academic_year_id,name,grade_level) values
+ ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','PS1 A','PS1'),
+ ('40000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','AF1 A','AF1');
+insert into public.enrollments(id,school_id,student_id,class_id,status) values
+ ('60000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','active'),
+ ('60000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000002','active');
 insert into public.parents(id,school_id,user_id) values
  ('70000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002'),
  ('70000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000003');
@@ -16,15 +25,19 @@ insert into public.school_members(school_id,user_id,role) values
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','director'),
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002','parent'),
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000003','parent'),
- ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000004','teacher');
+ ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000004','teacher'),
+ ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000005','preschool_coordinator');
+
+insert into public.school_kiosk_schedules(school_id,entry_opens_at,preschool_entry_opens_at) values('10000000-0000-0000-0000-000000000001',time '05:15',time '05:30');
 
 do $test$
-declare qr text; replacement text; result jsonb; workspace jsonb; failed boolean; pairing_code text; device_token text; pairing_result jsonb;
+declare qr text; primary_qr text; replacement text; result jsonb; workspace jsonb; failed boolean; pairing_code text; device_token text; general_token text; general_device uuid; kind_pairing jsonb; kind_token text; pairing_result jsonb; school_entry time;
 begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  set local role authenticated;
  qr:=public.get_student_badge_qr('50000000-0000-0000-0000-000000000001',false);
  if qr !~ '^AOSQ1\.[a-f0-9]{64}$' or qr<>public.get_student_badge_qr('50000000-0000-0000-0000-000000000001',false) then raise exception 'active badge QR must be stable for physical reprint'; end if;
+ primary_qr:=public.get_student_badge_qr('50000000-0000-0000-0000-000000000002',false);
  workspace:=public.badge_workspace('50000000-0000-0000-0000-000000000001');
  if not (workspace->>'can_manage')::boolean or workspace->>'qr'<>qr then raise exception 'authorized staff badge workspace mismatch'; end if;
  reset role;
@@ -103,6 +116,41 @@ begin
  if result->>'error'<>'invalid_badge' then raise exception 'revoked KIOS device must lose scan access immediately';end if;
  reset role;
 
+
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+ set local role authenticated;
+ pairing_result:=public.create_kiosk_device_pairing_code('Second school KIOS',false);
+ pairing_result:=public.pair_kiosk_device(pairing_result->>'pairing_code');
+ general_token:=pairing_result->>'token';general_device:=(pairing_result->>'device_id')::uuid;
+ reset role;
+
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000005',true);
+ set local role authenticated;
+ failed:=false;begin perform public.create_kiosk_device_pairing_code('Coordinator wide device',false);exception when others then failed:=sqlerrm='not_authorized';end;
+ if not failed then raise exception 'Kind coordinator must not create a school-wide device';end if;
+ kind_pairing:=public.create_kiosk_device_pairing_code('Coordinator Kind KIOS',true);
+ pairing_code:=kind_pairing->>'pairing_code';
+ kind_pairing:=public.pair_kiosk_device(pairing_code);
+ kind_token:=kind_pairing->>'token';
+ if kind_token is null or kind_pairing->>'preschool_only'<>'true' then raise exception 'coordinator can pair a Kind-only kiosk';end if;
+ workspace:=public.kiosk_device_workspace();
+ if jsonb_array_length(workspace->'devices')<>1 or workspace->'devices'->0->>'preschool_only'<>'true' then raise exception 'coordinator device workspace must hide school-wide devices';end if;
+ result:=public.student_kiosk_badge(replacement,general_token);
+ if result->>'error'<>'invalid_badge' then raise exception 'coordinator cannot use a school-wide kiosk device';end if;
+ result:=public.student_kiosk_badge(replacement,kind_token);
+ if result->>'action'<>'duplicate_scan' then raise exception 'coordinator Kind kiosk can scan an actively enrolled Kind student';end if;
+ result:=public.student_kiosk_badge(primary_qr,kind_token);
+ if result->>'error'<>'invalid_badge' then raise exception 'Kind-only kiosk must reject students in other sections';end if;
+ failed:=false;begin perform public.revoke_kiosk_device(general_device);exception when others then failed:=sqlerrm='not_authorized';end;
+ if not failed then raise exception 'Kind coordinator must not revoke school-wide devices';end if;
+ workspace:=public.school_kiosk_schedule_workspace();
+ if (workspace->>'can_manage')::boolean or not (workspace->>'can_manage_preschool')::boolean or workspace->>'can_set_today_release'<>'false' or workspace->'schedule' ? 'entry_opens_at' then raise exception 'coordinator schedule workspace must expose only Kind settings';end if;
+ failed:=false;begin perform public.save_school_kiosk_schedule(time '05:15',time '07:30',time '08:00',time '13:00',time '23:59',time '05:30',time '07:20',time '07:45',time '12:30',time '17:00');exception when others then failed:=sqlerrm='not_authorized';end;
+ if not failed then raise exception 'Kind coordinator must not change school-wide hours';end if;
+ perform public.save_preschool_kiosk_schedule(time '05:40',time '07:10',time '07:35',time '12:20',time '16:30');
+ select entry_opens_at into school_entry from public.school_kiosk_schedules where school_id='10000000-0000-0000-0000-000000000001';
+ if school_entry<>time '05:15' or (select preschool_entry_opens_at from public.school_kiosk_schedules where school_id='10000000-0000-0000-0000-000000000001')<>time '05:40' then raise exception 'Kind schedule save must not modify school-wide hours';end if;
+ reset role;
 
  if (select count(*) from public.notifications where type='lost_badge')<>1 then raise exception 'lost report should create one staff notice'; end if;
  if not exists(select 1 from public.student_badges where student_id='50000000-0000-0000-0000-000000000001' and state='lost' and not active) then raise exception 'lost badge history was not preserved'; end if;

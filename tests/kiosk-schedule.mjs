@@ -9,6 +9,7 @@ function compile(path,imports={}){const exports={};vm.runInNewContext(ts.transpi
 const extra=compile('src/lib/translations-extra.ts')
 const translations=compile('src/lib/translations.ts',{'./translations-extra':extra})
 const migration=readFileSync('supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql','utf8')
+const scopedMigration=readFileSync('supabase/migrations/20261106195000_kiosk_preschool_device_scope.sql','utf8')
 for(const contract of [
  'create table public.school_kiosk_schedules',
  'enable row level security',
@@ -33,7 +34,11 @@ assert.ok(!migration.includes('finance_override')&&!migration.includes('sanction
 const settings=readFileSync('src/components/kiosk-schedule-settings.tsx','utf8')
 const route=readFileSync('src/app/dashboard/kiosk-settings/page.tsx','utf8')
 const navigation=readFileSync('src/lib/navigation.ts','utf8')
-assert.ok(route.includes("'surveillant','censeur'"),'KIOS operators need access to schedule configuration')
+assert.ok(route.includes("'surveillant','censeur','preschool_coordinator'"),'Kind coordinator needs the KIOS settings route')
+assert.ok(navigation.includes("'preschool_coordinator'"),'Kind coordinator can find KIOS settings in navigation')
+assert.ok(scopedMigration.includes('save_preschool_kiosk_schedule')&&scopedMigration.includes('can_manage_preschool'),'coordinator schedule writes are separate from school-wide hours')
+assert.ok(scopedMigration.includes("and (is_admin or preschool_only)"),'coordinator can only revoke preschool-only devices')
+assert.ok(scopedMigration.includes('private.kiosk_student_is_preschool(p_school,p_student)'),'Kind-only device authorization checks active preschool enrollment')
 assert.ok(navigation.includes("href:'/dashboard/kiosk-settings'"),'the KIOS schedule page must be discoverable in the app menu')
 assert.ok(settings.includes("rpc('school_kiosk_schedule_workspace')")&&settings.includes("rpc('save_school_kiosk_schedule'"),'UI must read and save schedules through tenant-scoped RPCs')
 assert.ok(settings.includes('Preschool / Kind hours')&&settings.includes('SchoolReleaseProtocolPanel'),'UI must expose separate Kind hours and Direction’s same-day release control')

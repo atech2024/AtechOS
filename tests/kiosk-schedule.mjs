@@ -9,7 +9,7 @@ function compile(path,imports={}){const exports={};vm.runInNewContext(ts.transpi
 const extra=compile('src/lib/translations-extra.ts')
 const translations=compile('src/lib/translations.ts',{'./translations-extra':extra})
 const migration=readFileSync('supabase/migrations/20261020113000_kiosk_school_and_preschool_schedules.sql','utf8')
-const scopedMigration=readFileSync('supabase/migrations/20261106195000_kiosk_preschool_device_scope.sql','utf8')
+const scopedMigration=readFileSync('supabase/migrations/20261106204145_kiosk_preschool_device_scope.sql','utf8')
 for(const contract of [
  'create table public.school_kiosk_schedules',
  'enable row level security',

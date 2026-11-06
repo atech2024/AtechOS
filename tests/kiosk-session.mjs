@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs'
 const kiosk=readFileSync('src/app/kiosk/kiosk-client.tsx','utf8')
 const kioskRoute=readFileSync('src/app/kiosk/page.tsx','utf8')
 const kioskAuthorization=readFileSync('supabase/migrations/20261106191849_kiosk_staff_session_required.sql','utf8')
-const kioskScope=readFileSync('supabase/migrations/20261106195000_kiosk_preschool_device_scope.sql','utf8')
+const kioskScope=readFileSync('supabase/migrations/20261106204145_kiosk_preschool_device_scope.sql','utf8')
 const scanner=readFileSync('src/components/qr-scanner.tsx','utf8')
 const translations=readFileSync('src/lib/translations-extra.ts','utf8')
 const styles=readFileSync('src/app/globals.css','utf8')

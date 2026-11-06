@@ -47,6 +47,7 @@ begin
  workspace:=public.badge_workspace('50000000-0000-0000-0000-000000000001');
  if (workspace->>'can_manage')::boolean or workspace->>'qr' is not null then raise exception 'parent received private operational QR'; end if;
  perform public.report_badge_lost('50000000-0000-0000-0000-000000000001','synthetic lost-badge test');
+ workspace:=public.badge_workspace('50000000-0000-0000-0000-000000000001');
  reset role;
 
  if has_function_privilege('anon','public.student_kiosk_badge(text,text)','execute') or has_function_privilege('anon','public.student_kiosk_badge(text)','execute') then raise exception 'anonymous callers must not execute badge attendance functions'; end if;

@@ -31,6 +31,9 @@ for(const contract of [
  'kiosk_schedule_protocol_notice_anchor_missing',
 ])assert.ok(migration.includes(contract),`missing KIOS schedule policy: ${contract}`)
 assert.ok(!migration.includes('finance_override')&&!migration.includes('sanction_override')&&!migration.includes('guard_override'),'KIOS schedules must not bypass existing finance, sanction, or GUARD controls')
+const haitiTime=compile('src/lib/haiti-time.ts')
+const haitiFormatted=haitiTime.formatHaitiDateTime('2026-11-06T12:00:00.000Z','fr')
+assert.ok(haitiFormatted.includes('07:00')&&!haitiFormatted.includes('12:00'),'device activity must display Port-au-Prince time regardless of browser timezone')
 const settings=readFileSync('src/components/kiosk-schedule-settings.tsx','utf8')
 const route=readFileSync('src/app/dashboard/kiosk-settings/page.tsx','utf8')
 const navigation=readFileSync('src/lib/navigation.ts','utf8')

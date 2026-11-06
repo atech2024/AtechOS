@@ -19,7 +19,7 @@ insert into public.school_members(school_id,user_id,role) values
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000004','teacher');
 
 do $test$
-declare qr text; replacement text; result jsonb; workspace jsonb; failed boolean;
+declare qr text; replacement text; result jsonb; workspace jsonb; failed boolean; pairing_code text; device_token text; pairing_result jsonb;
 begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
  set local role authenticated;
@@ -36,10 +36,7 @@ begin
  perform public.report_badge_lost('50000000-0000-0000-0000-000000000001','synthetic lost-badge test');
  reset role;
 
- set local role anon;
- result:=public.student_kiosk_badge(qr);
- if result->>'error'<>'invalid_badge' then raise exception 'lost badge QR must stop working immediately'; end if;
- reset role;
+ if has_function_privilege('anon','public.student_kiosk_badge(text,text)','execute') or has_function_privilege('anon','public.student_kiosk_badge(text)','execute') then raise exception 'anonymous callers must not execute badge attendance functions'; end if;
 
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000003',true);
  set local role authenticated;
@@ -68,14 +65,44 @@ begin
  if not failed then raise exception 'direct badge reactivation bypassed lifecycle RPC'; end if;
  reset role;
 
- set local role anon;
- result:=public.student_kiosk_badge(qr);
- if result->>'error'<>'invalid_badge' then raise exception 'old QR accepted after replacement'; end if;
- result:=public.student_kiosk_badge(replacement);
- if result->>'action'<>'check_in' then raise exception 'replacement QR failed student-only KIOS check-in'; end if;
- result:=public.student_kiosk_badge(replacement);
- if result->>'action'<>'duplicate_scan' then raise exception 'duplicate scan toggled a KIOS checkout'; end if;
+ if has_function_privilege('anon','public.student_kiosk_scan(text,text,text)','execute') or has_function_privilege('anon','public.student_kiosk_badge(text,text)','execute') then raise exception 'anonymous attendance scan execute must be revoked';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+ set local role authenticated;
+ pairing_result:=public.create_kiosk_device_pairing_code('Synthetic KIOS');
+ pairing_code:=pairing_result->>'pairing_code';
+ if pairing_code is null or length(pairing_code)<>32 then raise exception 'authorized staff must receive a one-time pairing code';end if;
+ pairing_result:=public.pair_kiosk_device(pairing_code);
+ device_token:=pairing_result->>'token';
+ if device_token is null or length(device_token)<>64 then raise exception 'valid pairing code must enroll the KIOS browser';end if;
+ failed:=false;begin perform public.pair_kiosk_device(pairing_code);exception when others then failed:=true;end;
+ if not failed then raise exception 'pairing code must be single-use';end if;
  reset role;
+
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000004',true);
+ set local role authenticated;
+ result:=public.student_kiosk_badge(replacement,device_token);
+ if result->>'error'<>'invalid_badge' then raise exception 'staff without a KIOS permission cannot scan';end if;
+ result:=public.student_kiosk_scan('AOS-CI-5001','123456',device_token);
+ if result->>'error'<>'invalid_credentials' then raise exception 'staff without a KIOS permission cannot record manual attendance';end if;
+ reset role;
+
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+ set local role authenticated;
+ result:=public.student_kiosk_badge(qr,device_token);
+ if result->>'error'<>'invalid_badge' then raise exception 'lost badge QR must stop working on an enrolled device';end if;
+ result:=public.student_kiosk_badge(replacement,'');
+ if result->>'error'<>'invalid_badge' then raise exception 'staff session without enrolled device must not scan';end if;
+ result:=public.student_kiosk_badge(replacement,device_token);
+ if result->>'action'<>'check_in' then raise exception 'authorized staff and enrolled KIOS must check in';end if;
+ result:=public.student_kiosk_badge(replacement,device_token);
+ if result->>'action'<>'duplicate_scan' then raise exception 'duplicate scan must not toggle checkout';end if;
+ result:=public.student_kiosk_scan('AOS-CI-5001','123456',device_token);
+ if result->>'action'<>'duplicate_scan' then raise exception 'authorized manual scan should preserve existing attendance behavior';end if;
+ perform public.revoke_kiosk_device((pairing_result->>'device_id')::uuid);
+ result:=public.student_kiosk_badge(replacement,device_token);
+ if result->>'error'<>'invalid_badge' then raise exception 'revoked KIOS device must lose scan access immediately';end if;
+ reset role;
+
 
  if (select count(*) from public.notifications where type='lost_badge')<>1 then raise exception 'lost report should create one staff notice'; end if;
  if not exists(select 1 from public.student_badges where student_id='50000000-0000-0000-0000-000000000001' and state='lost' and not active) then raise exception 'lost badge history was not preserved'; end if;

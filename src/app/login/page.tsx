@@ -28,7 +28,9 @@ export default function LoginPage() {
         return
       }
 
-      router.replace('/auth/continue')
+      const next = new URLSearchParams(window.location.search).get('next')
+      const continueUrl = next ? `/auth/continue?next=${encodeURIComponent(next)}` : '/auth/continue'
+      router.replace(continueUrl)
       router.refresh()
     } catch {
       setError('Unable to complete the request. Please try again.')

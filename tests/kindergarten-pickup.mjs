@@ -14,7 +14,7 @@ assert.ok(!nav.permittedNavigation(['parent']).some(item=>item.href==='/dashboar
 const migration=readFileSync('supabase/migrations/20260930232834_kindergarten_pickup_workflow.sql','utf8')
 const kioskFollowup=readFileSync('supabase/migrations/20261005210000_home_arrival_and_preschool_relocation_approval.sql','utf8')
 assert.ok(kioskFollowup.includes("'already_picked_up_by_parent'"),'the next KIOS scan must identify a completed preschool pickup before normal time-window messaging')
-assert.ok(readFileSync('src/app/kiosk/page.tsx','utf8').includes('already_picked_up_by_parent'),'the KIOS success state must explain that a parent or authorized adult already collected the child')
+assert.ok(readFileSync('src/app/kiosk/kiosk-client.tsx','utf8').includes('already_picked_up_by_parent'),'the KIOS success state must explain that a parent or authorized adult already collected the child')
 for(const contract of ["private.is_preschool_student(s.id)","private.can_operate_kindergarten_pickup(sid)","'PICKUP','pickup_complete'","unique(student_id,pickup_date)","pickup_history_immutable","'already_picked_up'","check_out_at=checkout","'STAFF',auth.uid(),coalesce(actor_name,'Staff')"]){assert.ok(migration.includes(contract),`missing secure pickup rule: ${contract}`)}
 const updateMigration=readFileSync('supabase/migrations/20261003000000_limit_duplicate_preschool_pickup_updates.sql','utf8')
 for(const contract of ["u.parent_user_id=auth.uid() and u.status=p_status","created_at at time zone 'America/Port-au-Prince'","for update","raise exception 'pickup_update_already_sent'","'kindergarten-pickup-parent:'||update_id::text"]){assert.ok(updateMigration.includes(contract),`missing pickup update protection: ${contract}`)}

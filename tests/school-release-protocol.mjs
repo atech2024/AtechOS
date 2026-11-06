@@ -46,7 +46,7 @@ const ui=readFileSync('src/components/school-release-protocol.tsx','utf8')
 const page=readFileSync('src/components/attendance-workspace.tsx','utf8')
 assert.ok(page.includes('{!embedded&&canMark&&<SchoolReleaseProtocolPanel/>}'),'only staff already authorized for the standalone attendance workspace should load the school-wide protocol panel')
 assert.ok(ui.includes("rpc('school_release_protocol_workspace')")&&ui.includes("rpc('activate_school_release_protocol'"),'UI must read and activate through scoped server RPCs')
-const kiosk=readFileSync('src/app/kiosk/page.tsx','utf8')
+const kiosk=readFileSync('src/app/kiosk/kiosk-client.tsx','utf8')
 assert.ok(kiosk.includes('school_release_protocol_active')&&kiosk.includes('School release protocol active. Check-out recorded.'),'KIOS should confirm checkout under the school dismissal protocol')
 for(const text of ['School release protocol','School release protocol active. Check-out recorded.','Set a Direction-authorized release time for today. Checked-in students outside Preschool may check out from that time. Preschool students keep their separate hours and pickup workflow. Finance and GUARD restrictions remain active.','Only school Direction, the school administrator, or the secretary can activate this protocol.','I confirm that school Direction is dismissing all students except Preschool, who keep their own schedule and pickup workflow. Finance and GUARD restrictions remain in effect.','The school-release protocol is active today. Checked-in non-Preschool students may check out from the selected time.','Release time for today'])for(const locale of ['fr','ht'])assert.notEqual(translations.translate(text,locale),text,`${text} needs ${locale} translation`)
 

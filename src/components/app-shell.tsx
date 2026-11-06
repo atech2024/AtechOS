@@ -246,7 +246,7 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
         <div className="flex min-w-0 items-center gap-4">
           {avatar ? <img src={avatar} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-full object-cover"/> : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700">{name.trim().slice(0, 1).toUpperCase() || 'A'}</span>}
           <div className="min-w-0">
-            <p className="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl"><T text={greeting}/>, {name}</p>
+            <p className="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">{`${t(greeting)}, ${name.trim()}`}</p>
             <p className="mt-1 text-sm text-slate-600"><T text="Welcome to your school dashboard"/></p>
             <p className="mt-1 truncate text-sm font-medium text-blue-800">{roles.map((role, index) => <span key={role}>{index > 0 ? ' · ' : ''}<T text={roleLabels[role] || role}/></span>)}</p>
           </div>

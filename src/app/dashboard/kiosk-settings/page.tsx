@@ -9,7 +9,7 @@ export default async function KioskSettingsPage(){
  const {data,error}=await db.rpc('school_context')
  if(error)throw new Error('Unable to verify KIOS settings access.')
  const roles:string[]=Array.isArray(data?.roles)?data.roles:[]
- const allowed=Boolean(data?.owner||roles.some(role=>['school_admin','director','secretary','surveillant','censeur'].includes(role)))
+ const allowed=Boolean(data?.owner||roles.some(role=>['school_admin','director','secretary','surveillant','censeur','preschool_coordinator'].includes(role)))
  if(!allowed)redirect('/dashboard')
  return <KioskScheduleSettings/>
 }

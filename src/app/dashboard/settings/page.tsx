@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { AcademicYearLink } from '@/components/academic-year-context'
 import { T } from '@/components/translation-provider'
 import { FinanceReceiptSignatureSettings } from '@/components/finance-payment-receipt'
 import { createClient } from '@/lib/supabase/server'
@@ -59,11 +59,11 @@ export default async function SettingsPage() {
         <p className="mt-1 text-sm text-slate-600"><T text="Refresh the official BRH rate without accessing school finance rules."/></p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Link href="/dashboard/finance/settings" className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+        <AcademicYearLink href="/dashboard/finance/settings" className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
           <h3 className="font-semibold text-slate-900 group-hover:text-blue-700"><T text="BRH reference rate"/></h3>
           <p className="mt-2 min-h-10 text-sm leading-6 text-slate-600"><T text="Only school managers can change finance settings."/></p>
           <span className="mt-4 inline-flex font-semibold text-blue-700"><T text="Open settings"/> →</span>
-        </Link>
+        </AcademicYearLink>
       </div>
     </section>}
     {canManageSettings && <div className="space-y-6">
@@ -73,11 +73,11 @@ export default async function SettingsPage() {
           <p className="mt-1 text-sm text-slate-600"><T text={group.description}/></p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {group.links.map(link => <Link key={link.href} href={link.href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+          {group.links.map(link => <AcademicYearLink key={link.href} href={link.href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
             <h3 className="font-semibold text-slate-900 group-hover:text-blue-700"><T text={link.title}/></h3>
             <p className="mt-2 min-h-10 text-sm leading-6 text-slate-600"><T text={link.description}/></p>
             <span className="mt-4 inline-flex font-semibold text-blue-700"><T text="Open settings"/> →</span>
-          </Link>)}
+          </AcademicYearLink>)}
         </div>
       </section>)}
     </div>}

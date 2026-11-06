@@ -55,7 +55,8 @@ export default async function Home() {
             <h1><span className="landing-hero__title-line">{copy.hero.title}</span><span className="landing-hero__emphasis-line">{copy.hero.emphasis}</span></h1>
             <p>{copy.hero.description}</p>
             <div className="landing-actions">
-              <Link href="/signup" className="landing-button landing-button--primary">{copy.hero.primary}<ArrowRight size={18} aria-hidden="true" /></Link>
+              <Link href="/fonctionnalites#evaluation" className="landing-button landing-button--primary">{copy.hero.evaluation}<ArrowRight size={18} aria-hidden="true" /></Link>
+              <Link href="/signup" className="landing-button landing-button--secondary">{copy.hero.primary}</Link>
               <Link href="/signin" className="landing-button landing-button--secondary">{copy.hero.secondary}</Link>
             </div>
             <div className="landing-hero__principles" aria-label={copy.modules.items.slice(0, 4).map(item => item.title).join(' · ')}>
@@ -69,11 +70,6 @@ export default async function Home() {
         </div>
       </section>
 
-      <div className="landing-ribbon" aria-hidden="true">
-        <div className="landing-frame landing-ribbon__inner">
-          <span>{copy.modules.items[0].title}</span><i /><span>{copy.modules.items[1].title}</span><i /><span>{copy.modules.items[2].title}</span><i /><span>{copy.modules.items[3].title}</span>
-        </div>
-      </div>
 
       <section id="roles" className="landing-section landing-introduction">
         <div className="landing-frame landing-introduction__grid" data-landing-reveal>

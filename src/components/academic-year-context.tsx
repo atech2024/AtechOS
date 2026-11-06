@@ -1,6 +1,7 @@
 'use client'
 
-import {createContext,useContext,useEffect,useMemo,type ReactNode} from 'react'
+import Link from 'next/link'
+import {createContext,useContext,useEffect,useMemo,type ReactNode,type ComponentProps} from 'react'
 import {usePathname,useRouter,useSearchParams} from 'next/navigation'
 
 export type AcademicYearOption={id:string;name:string;start_date:string;end_date:string;is_current:boolean}
@@ -21,3 +22,8 @@ export function AcademicYearProvider({children,years,currentYearId,canSelect}:{c
 }
 
 export function useAcademicYear(){const value=useContext(AcademicYearContext);if(!value)throw new Error('useAcademicYear must be used inside AcademicYearProvider');return value}
+
+export function AcademicYearLink({href,...props}:Omit<ComponentProps<typeof Link>,'href'>&{href:string}){
+ const {canSelect,yearId}=useAcademicYear()
+ return <Link {...props} href={canSelect&&yearId?{pathname:href,query:{year:yearId}}:href}/>
+}

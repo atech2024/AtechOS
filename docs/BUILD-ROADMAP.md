@@ -1,12 +1,11 @@
 # AtechOS / KIOS build roadmap
-Updated: 2026-10-20
-Updated: 2026-10-18
+Updated: 2026-11-06
 
 Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION REQUIRED` when a missing business rule changes permissions, audit, or user-visible behavior. A build is not done until its acceptance criteria and relevant tests pass. Existing code is not proof that a build meets the product requirements; unreviewed areas remain explicitly unaudited.
 
 ## Current state
 
-- Latest verified application `main`: `58349176359b4a150d20057a10c5ec5ecb6efedc` (PR #150 merged 2026-10-19). The merged KIOS baseline includes persistent scanning, session history, and translated attendance feedback; physical-camera verification remains open. This KIOS follow-up moves feedback above the camera, adds front/back camera controls, makes session history collapsible, and reduces the always-visible Haiti-hours footprint. Status remains `IN PROGRESS` until CI, responsive Preview review, and physical front/back camera verification pass. Other module statuses remain as recorded in their BUILD rows and need separate current verification.
+- Historical KIOS baseline: `58349176359b4a150d20057a10c5ec5ecb6efedc` (PR #150 merged 2026-10-19). The merged KIOS baseline includes persistent scanning, session history, and translated attendance feedback; physical-camera verification remains open. This KIOS follow-up moves feedback above the camera, adds front/back camera controls, makes session history collapsible, and reduces the always-visible Haiti-hours footprint. Status remains `IN PROGRESS` until CI, responsive Preview review, and physical front/back camera verification pass. Other module statuses remain as recorded in their BUILD rows and need separate current verification.
 - The separate documentation PR branch `docs/current-workflows-deployment` remains unchanged; its PR is not part of this implementation branch.
 - Live review: `https://atech-os-kog7.vercel.app/dashboard` was accessible in the authenticated browser on 2026-10-02. It showed a flat sidebar, a duplicate “Vos modules” dashboard catalog, no breadcrumb or academic-year control, and a Haitian-Creole date in a French UI. This records the observed page only; it does not identify the live deployment's source commit.
 - No database or RLS changes are in scope for BUILD 01. The topbar reads the existing current academic-year label when available; year selection and applying a selected year across domains belong to BUILD 03.

@@ -1,4 +1,5 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ 'Badges for my children':['Cartes de mes enfants','Badj pitit mwen yo'],
  'Authorize this KIOS device':["Autoriser cet appareil KIOS","Otorize aparèy KIOS sa a"],
  'Enter the one-time code issued from KIOS settings on this device. It expires after 10 minutes.':["Saisissez sur cet appareil le code à usage unique créé dans les paramètres KIOS. Il expire après 10 minutes.","Antre sou aparèy sa a kòd yon sèl itilizasyon ki soti nan paramèt KIOS yo. Li ekspire apre 10 minit."],
  'This pairing code is invalid or expired. Ask school staff for a new one.':["Ce code d’association est invalide ou expiré. Demandez-en un nouveau au personnel scolaire.","Kòd aparèy la pa bon oswa li ekspire. Mande staff lekòl la yon lòt."],

@@ -1,9 +1,8 @@
 'use client'
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
 import { T, useLocale } from '@/components/translation-provider'
-import { useAcademicYear } from '@/components/academic-year-context'
+import { AcademicYearLink, useAcademicYear } from '@/components/academic-year-context'
 import SchoolDateInput from '@/components/school-date-input'
 import { createClient } from '@/lib/supabase/client'
 import { schoolDateTimeToISO } from '@/lib/school-date'
@@ -353,7 +352,7 @@ export default function FinanceWorkspace({ schoolId, initialTab = 'overview', ca
   }
 
   const activeTab = (key: typeof tab, label: string) => <button key={key} type="button" onClick={() => setTab(key)} className={`rounded-lg px-3 py-2 text-sm font-medium ${tab === key ? 'bg-blue-700 text-white' : 'text-slate-700 hover:bg-slate-100'}`}><T text={label}/></button>
-  const routeTab = (key: 'payments' | 'settings', label: string, href: string) => <Link key={key} href={href} aria-current={tab === key ? 'page' : undefined} className={`rounded-lg px-3 py-2 text-sm font-medium ${tab === key ? 'bg-blue-700 text-white' : 'text-slate-700 hover:bg-slate-100'}`}><T text={label}/></Link>
+  const routeTab = (key: 'payments' | 'settings', label: string, href: string) => <AcademicYearLink key={key} href={href} aria-current={tab === key ? 'page' : undefined} className={`rounded-lg px-3 py-2 text-sm font-medium ${tab === key ? 'bg-blue-700 text-white' : 'text-slate-700 hover:bg-slate-100'}`}><T text={label}/></AcademicYearLink>
 
   if (loading) return <main className="mx-auto max-w-7xl p-6"><p className="text-slate-600"><T text="Loading finance workspace…"/></p></main>
 

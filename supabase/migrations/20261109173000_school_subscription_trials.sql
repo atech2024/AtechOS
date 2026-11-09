@@ -77,3 +77,28 @@ begin
   'if not private.school_trial_allows_write(sid,''finance'') then raise exception ''school_plan_write_restricted''; end if; '||anchor);
 end
 $trial_fee_plan$;
+
+-- Preserve each operation's existing role check and lock the write behind its trial plan.
+do $trial_finance_writes$
+declare entry record; src text; anchor text;
+begin
+ for entry in select * from (values
+  ('public.issue_finance_fee_plan(uuid)','manager'),
+  ('public.record_finance_payment_base(uuid,numeric,text,text,text,timestamptz)','member'),
+  ('public.review_finance_payment(uuid,text,text)','can_validate'),
+  ('public.refund_finance_payment(uuid,numeric,text)','can_validate'),
+  ('public.request_finance_adjustment(uuid,text,numeric,text,timestamptz,timestamptz)','manager'),
+  ('public.review_finance_adjustment(uuid,text,text)','manager'),
+  ('public.revoke_finance_adjustment(uuid,text)','manager'),
+  ('public.save_finance_settings(text,boolean,boolean,boolean,boolean,boolean)','manager'),
+  ('public.save_finance_payment_methods(jsonb)','manager')
+ ) as guards(signature,role_check) loop
+  select pg_get_functiondef(entry.signature::regprocedure) into src;
+  anchor:=format('if auth.uid() is null or sid is null or not private.finance_%s(sid) then raise exception ''not_authorized''; end if;',entry.role_check);
+  if length(src)-length(replace(src,anchor,''))<>length(anchor) then
+   raise exception 'trial_finance_guard_anchor_mismatch: %',entry.signature;
+  end if;
+  execute replace(src,anchor,anchor||' if not private.school_trial_allows_write(sid,''finance'') then raise exception ''school_plan_write_restricted''; end if;');
+ end loop;
+end
+$trial_finance_writes$;

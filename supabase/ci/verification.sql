@@ -413,6 +413,12 @@ begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
  set local role authenticated;
  first_plan:=public.choose_school_trial_plan('attendance');
+ begin
+  perform public.create_finance_fee_plan(null,null,'invalid','', '[]'::jsonb);
+  raise exception 'fee plan probe must fail';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
  reset role;
  if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') or private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') then raise exception 'attendance trial scope incorrect';end if;
  set local role authenticated;
@@ -434,6 +440,12 @@ begin
  reset role;
  if private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') then raise exception 'expired trial must be read-only';end if;
  set local role authenticated;
+ begin
+  perform public.create_finance_fee_plan(null,null,'invalid','', '[]'::jsonb);
+  raise exception 'fee plan probe must fail';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
  begin perform public.choose_school_trial_plan('school');exception when others then rejected:=sqlerrm='school_trial_expired';end;
  if not rejected then raise exception 'expired trial must not restart';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);

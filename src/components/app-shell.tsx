@@ -68,7 +68,7 @@ export default function AppShell({ children, school, name, avatar, roles, owner,
   const items = permittedNavigation(roles, owner, teacherManager)
   const dashboard = items.find(item => item.href === '/dashboard')
   const groups = groupOrder.map(group => ({ group, items: items.filter(item => item.group === group) })).filter(section => section.items.length)
-  const activeItem = [...items].sort((a, b) => b.href.length - a.href.length).find(item => path === item.href || path.startsWith(item.href + '/'))
+  const activeItem = [...items].sort((a, b) => b.href.length - a.href.length).find(item => path === item.href || (item.href !== '/dashboard' && path.startsWith(item.href + '/')))
   const [collapsedGroups, setCollapsedGroups] = useState<NavigationGroup[]>([])
   const [menu, setMenu] = useState(false)
   const [query, setQuery] = useState('')

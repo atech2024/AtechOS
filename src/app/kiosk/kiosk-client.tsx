@@ -41,7 +41,22 @@ export default function StudentKiosk() {
  useEffect(()=>{const guide=scanGuideRef.current;if(!guide)return;let isIntersecting=false;const syncMotion=()=>setScanGuideActive(document.visibilityState==='visible'&&isIntersecting);const observer=typeof IntersectionObserver==='undefined'?null:new IntersectionObserver(([entry])=>{isIntersecting=entry.isIntersecting;syncMotion()},{threshold:.1});if(observer)observer.observe(guide);else isIntersecting=true;document.addEventListener('visibilitychange',syncMotion);syncMotion();return()=>{observer?.disconnect();document.removeEventListener('visibilitychange',syncMotion)}},[])
  async function submit(event:FormEvent){event.preventDefault();await record(code.trim(),pin)}
  async function pairDevice(event:FormEvent){event.preventDefault();setPairingError('');setBusy(true);try{const {data,error}=await createClient().rpc('pair_kiosk_device',{p_pairing_code:pairingCode.trim().toLowerCase()});if(error||!data?.token){setPairingError(error?.message==='invalid_kiosk_pairing_code'?'This pairing code is invalid or expired. Ask school staff for a new one.':'Unable to authorize this kiosk. Please try again.');return}localStorage.setItem('atechos-kiosk-device-token',data.token);setDeviceToken(data.token);setPairingCode('')}catch{setPairingError('Unable to authorize this kiosk. Please try again.')}finally{setBusy(false)}}
- function clearDevice(){localStorage.removeItem('atechos-kiosk-device-token');setDeviceToken('');setNotice(null)}
+ function clearDevice() {
+  if (lock.current || busy) return
+  try {
+   localStorage.removeItem('atechos-kiosk-device-token')
+  } catch {
+   announceError('The action could not be completed. Refresh the page and try again.',undefined,'error')
+   return
+  }
+  setDeviceToken('')
+  setCode('')
+  setPin('')
+  setPairingCode('')
+  setPairingError('')
+  setNotice(null)
+  setLog([])
+ }
  function announceError(message:string,details?:{first_name?:string;last_name?:string;class_name?:string},tone:'warning'|'error'='warning') {setNotice({tone,message,firstName:details?.first_name,lastName:details?.last_name,className:details?.class_name,at:new Date().toISOString()})}
  async function record(scanned:string,secret='',fromCamera=false){if(lock.current)return;lock.current=true;setBusy(true);setNotice(null)
   try {const {data,error:failure}=await (scanned.startsWith('AOSQ1.')?createClient().rpc('student_kiosk_badge',{p_qr:scanned,p_device_token:deviceToken}):createClient().rpc('student_kiosk_scan',{p_code:scanned,p_pin:secret,p_device_token:deviceToken}));
@@ -73,7 +88,7 @@ export default function StudentKiosk() {
     <section aria-labelledby="scanner-title" className="rounded-2xl border border-[#dce4ee] bg-white p-4 shadow-[0_8px_28px_rgba(8,26,53,.06)] sm:p-6">
      <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e9f3ff] text-[#056cd3]"><ScanLine size={20} aria-hidden="true"/></span><div><h2 id="scanner-title" className="text-lg font-bold tracking-[-.02em] sm:text-xl"><T text="Scan a student badge"/></h2><p className="mt-1 text-sm leading-5 text-[#52637a]"><T text="The camera stays on until you stop it. Scans appear in the history."/></p></div></div>
      {!deviceToken&&<form onSubmit={pairDevice} className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4"><h3 className="font-semibold text-blue-950"><T text="Authorize this KIOS device"/></h3><p className="mt-1 text-sm leading-5 text-blue-900"><T text="Enter the one-time code issued from KIOS settings on this device. It expires after 10 minutes."/></p>{pairingError&&<p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-white p-3 text-sm text-rose-800"><T text={pairingError}/></p>}<div className="mt-3 flex flex-col gap-2 sm:flex-row"><input required inputMode="text" autoComplete="off" maxLength={32} minLength={32} value={pairingCode} onChange={e=>setPairingCode(e.target.value.replace(/[^a-f0-9]/gi,'').toLowerCase())} placeholder="32-character pairing code" aria-label="KIOS pairing code" className="min-h-11 min-w-0 flex-1 rounded-lg border border-blue-200 bg-white px-3 font-mono text-sm tracking-wider outline-none focus:ring-2 focus:ring-blue-300"/><button disabled={busy||pairingCode.length!==32} className="min-h-11 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white disabled:opacity-50"><T text={busy?'Authorizing…':'Authorize device'}/></button></div></form>}
-     {deviceToken&&<div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"><span className="inline-flex items-center gap-2"><ShieldCheck size={16}/><T text="This KIOS device is authorized"/></span><button type="button" onClick={clearDevice} className="font-semibold underline underline-offset-2"><T text="Clear device on this browser"/></button></div>}
+     {deviceToken&&<div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"><span className="inline-flex items-center gap-2"><ShieldCheck size={16}/><T text="This KIOS device is authorized"/></span><button type="button" onClick={clearDevice} disabled={busy} className="font-semibold underline underline-offset-2 disabled:opacity-50"><T text="Clear device on this browser"/></button></div>}
      <div ref={scanGuideRef} data-motion-active={scanGuideActive&&!scanGuidePaused} className="kiosk-scan-guide relative isolate mt-4 overflow-hidden rounded-xl border border-[#dce8f5] bg-[#f7faff]" role="img">
       <span className="sr-only"><T text="Illustration: a student badge moves over the scanner, is read, then attendance is confirmed."/></span>
       <svg className="kiosk-scan-demo kiosk-scan-demo-wide absolute inset-0 hidden h-full w-full sm:block" viewBox="0 0 560 180" fill="none" aria-hidden="true" preserveAspectRatio="xMidYMid slice">

@@ -102,3 +102,15 @@ begin
  end loop;
 end
 $trial_finance_writes$;
+
+-- Both family payment overloads use this authorized base function.
+do $trial_family_payment$
+declare src text; anchor text:='if sid is null or not private.finance_parent_linked(sid,(select student_id from public.finance_charges where id=p_charge_id),pay_user) then raise exception ''not_authorized''; end if;';
+begin
+ select pg_get_functiondef('public.submit_family_finance_payment_base(uuid,numeric,text,text,text)'::regprocedure) into src;
+ if length(src)-length(replace(src,anchor,''))<>length(anchor) then
+  raise exception 'trial_family_payment_guard_anchor_mismatch';
+ end if;
+ execute replace(src,anchor,anchor||' if not private.school_trial_allows_write(sid,''finance'') then raise exception ''school_plan_write_restricted''; end if;');
+end
+$trial_family_payment$;

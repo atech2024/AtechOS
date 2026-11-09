@@ -123,6 +123,13 @@ begin
  pairing_result:=public.create_kiosk_device_pairing_code('Second school KIOS',false);
  pairing_result:=public.pair_kiosk_device(pairing_result->>'pairing_code');
  general_token:=pairing_result->>'token';general_device:=(pairing_result->>'device_id')::uuid;
+ pairing_result:=public.create_section_kiosk_pairing_code('Secondary KIOS','secondary');
+ if pairing_result->>'section' is distinct from 'secondary' then raise exception 'pairing must keep the requested section';end if;
+ pairing_result:=public.pair_kiosk_device(pairing_result->>'pairing_code');
+ result:=public.student_kiosk_badge(primary_qr,pairing_result->>'token');
+ if result->>'error' is distinct from 'kiosk_wrong_section_secondary' then raise exception 'Secondary KIOS must explain a Primary badge mismatch';end if;
+ workspace:=public.kiosk_device_workspace();
+ if not exists(select 1 from jsonb_array_elements(workspace->'devices') d where d->>'section'='secondary') then raise exception 'device list must show the new scope';end if;
  reset role;
 
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000005',true);

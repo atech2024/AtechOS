@@ -1,4 +1,11 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ "Primary only (1 AF–6 AF)":["Primaire uniquement (1 AF–6 AF)","Primè sèlman (1 AF–6 AF)"],
+ "Fundamental only (7 AF–9 AF)":["Fondamental uniquement (7 AF–9 AF)","Fondamantal sèlman (7 AF–9 AF)"],
+ "Secondary only (NS1–NS4)":["Secondaire uniquement (NS1–NS4)","Segondè sèlman (NS1–NS4)"],
+ "This KIOS is reserved for Preschool / Kind. Use the KIOS for your section.":["Ce KIOS est réservé à la section préscolaire / Kind. Utilisez le KIOS de votre section.","KIOS sa a rezève pou Kind. Ale nan KIOS ki pou seksyon pa w la."],
+ "This KIOS is reserved for 1 AF–6 AF. Use the KIOS for your section.":["Ce KIOS est réservé à la section 1 AF à 6 AF. Utilisez le KIOS de votre section.","KIOS sa a rezève pou 1 AF rive 6 AF. Ale nan KIOS ki pou seksyon pa w la."],
+ "This KIOS is reserved for 7 AF–9 AF. Use the KIOS for your section.":["Ce KIOS est réservé à la section 7 AF à 9 AF. Utilisez le KIOS de votre section.","KIOS sa a rezève pou 7 AF rive 9 AF. Ale nan KIOS ki pou seksyon pa w la."],
+ "This KIOS is reserved for NS1–NS4. Use the KIOS for your section.":["Ce KIOS est réservé à la section NS1 à NS4. Utilisez le KIOS de votre section.","KIOS sa a rezève pou NS1 rive NS4. Ale nan KIOS ki pou seksyon pa w la."],
  'Badges for my children':['Cartes de mes enfants','Badj pitit mwen yo'],
  'Authorize this KIOS device':["Autoriser cet appareil KIOS","Otorize aparèy KIOS sa a"],
  'Enter the one-time code issued from KIOS settings on this device. It expires after 10 minutes.':["Saisissez sur cet appareil le code à usage unique créé dans les paramètres KIOS. Il expire après 10 minutes.","Antre sou aparèy sa a kòd yon sèl itilizasyon ki soti nan paramèt KIOS yo. Li ekspire apre 10 minit."],

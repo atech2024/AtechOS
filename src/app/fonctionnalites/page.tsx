@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { ArrowRight, BookOpenCheck, CalendarDays, CircleDollarSign, GraduationCap, MessageSquareText, UsersRound } from 'lucide-react'
 import { cookies } from 'next/headers'
 import { landingCopyFor } from '@/lib/landing-content'
+import { getLaunchPrice, launchStudentLimit, schoolPlanIds, type BillingCurrency, type BillingPeriod } from '@/lib/subscription-pricing'
 import { localeFrom } from '@/lib/i18n'
 import { MarketingFooter, MarketingHeader } from '@/components/marketing-chrome'
 
@@ -17,11 +18,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: copy.pages.featuresTitle + ' | AtechOS', description: copy.pages.featuresDescription }
 }
 
-const launchPrices = [
-  ['1 950 HTG', '15 USD', '19 500 HTG', '150 USD'],
-  ['3 250 HTG', '25 USD', '32 500 HTG', '250 USD'],
-  ['4 550 HTG', '35 USD', '45 500 HTG', '350 USD'],
-] as const
 
 const pricingCopy = {
   "fr": [
@@ -189,6 +185,10 @@ export default async function FeaturesPage() {
   const copy = landingCopyFor(locale)
   const guide = evaluation[locale]
   const plans = schoolPlans[locale]
+  const formatPrice = (index: number, currency: BillingCurrency, period: BillingPeriod) => {
+    const amount = getLaunchPrice(schoolPlanIds[index], currency, period, launchStudentLimit)
+    return amount === null ? '—' : amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ' + currency
+  }
   const [limit, monthly, yearly, annualTerms, invoiceTerms, trialAvailability] = pricingCopy[locale]
   return <main className="landing">
     <a className="landing-skip-link" href="#features-content">{copy.navigation.skipToContent}</a>
@@ -276,8 +276,8 @@ export default async function FeaturesPage() {
               <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
               <p className="mt-2 leading-relaxed">{description}</p>
               <dl className="mt-4 space-y-2 border-t border-slate-200 pt-4 text-sm">
-                <div><dt>{monthly}</dt><dd className="font-semibold tabular-nums">{launchPrices[index][0]} / {launchPrices[index][1]}</dd></div>
-                <div><dt>{yearly}</dt><dd className="font-semibold tabular-nums">{launchPrices[index][2]} / {launchPrices[index][3]}</dd></div>
+                <div><dt>{monthly}</dt><dd className="font-semibold tabular-nums">{formatPrice(index, 'HTG', 'monthly')} / {formatPrice(index, 'USD', 'monthly')}</dd></div>
+                <div><dt>{yearly}</dt><dd className="font-semibold tabular-nums">{formatPrice(index, 'HTG', 'yearly')} / {formatPrice(index, 'USD', 'yearly')}</dd></div>
               </dl>
             </li>
           ))}

@@ -46,7 +46,8 @@ begin
  declare scope_result text:=private.kiosk_device_scan_result(b.school_id,p_device_token,b.student_id);
  begin
    if scope_result<>'authorized' then
-     return jsonb_build_object('error',case when scope_result='invalid_device' then 'invalid_badge' else scope_result end);
+     return jsonb_build_object('error',case when scope_result='invalid_device' or not b.active or b.state<>'active'
+       then 'invalid_badge' else scope_result end);
    end if;
  end;
  $body$);

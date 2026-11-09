@@ -209,10 +209,6 @@ export default async function FeaturesPage() {
             <li key={title} className="rounded-xl border border-slate-200 bg-white p-5 text-slate-800">
               <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
               <p className="mt-2 leading-relaxed">{description}</p>
-              <dl className="mt-4 space-y-2 border-t border-slate-200 pt-4 text-sm">
-                <div><dt>{monthly}</dt><dd className="font-semibold tabular-nums">{launchPrices[index][0]} / {launchPrices[index][1]}</dd></div>
-                <div><dt>{yearly}</dt><dd className="font-semibold tabular-nums">{launchPrices[index][2]} / {launchPrices[index][3]}</dd></div>
-              </dl>
             </li>
           ))}
         </ol>
@@ -279,6 +275,10 @@ export default async function FeaturesPage() {
             <li key={title} className="rounded-xl border border-slate-200 bg-white p-5 text-slate-800">
               <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
               <p className="mt-2 leading-relaxed">{description}</p>
+              <dl className="mt-4 space-y-2 border-t border-slate-200 pt-4 text-sm">
+                <div><dt>{monthly}</dt><dd className="font-semibold tabular-nums">{launchPrices[index][0]} / {launchPrices[index][1]}</dd></div>
+                <div><dt>{yearly}</dt><dd className="font-semibold tabular-nums">{launchPrices[index][2]} / {launchPrices[index][3]}</dd></div>
+              </dl>
             </li>
           ))}
         </ul>

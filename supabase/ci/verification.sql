@@ -413,6 +413,17 @@ begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
  set local role authenticated;
  first_plan:=public.choose_school_trial_plan('attendance');
+ reset role;
+ begin
+  insert into public.bulletin_versions(school_id,student_id,class_id,period_id,version,payload)
+  select school_id,student_id,class_id,period_id,version+100,payload
+  from public.bulletin_versions
+  where school_id='10000000-0000-0000-0000-000000000001' limit 1;
+  raise exception 'attendance trial must block bulletin publication';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
+ set local role authenticated;
  begin
   perform public.create_finance_fee_plan(null,null,'invalid','', '[]'::jsonb);
   raise exception 'fee plan probe must fail';

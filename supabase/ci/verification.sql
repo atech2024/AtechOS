@@ -413,6 +413,13 @@ begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
  set local role authenticated;
  first_plan:=public.choose_school_trial_plan('attendance');
+ reset role;
+ if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') or private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') then raise exception 'attendance trial scope incorrect';end if;
+ set local role authenticated;
+ perform public.choose_school_trial_plan('school');
+ reset role;
+ if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','school') or private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') then raise exception 'school trial scope incorrect';end if;
+ set local role authenticated;
  switched:=public.choose_school_trial_plan('school_finance');
  if switched->>'plan' is distinct from 'school_finance'
     or switched->>'started_at' is distinct from first_plan->>'started_at'
@@ -421,7 +428,11 @@ begin
    raise exception 'plan switching must preserve the 30-day trial';
  end if;
  reset role;
+ if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') or has_function_privilege('authenticated','private.school_trial_allows_write(uuid,text)','execute') then raise exception 'finance trial scope or helper ACL incorrect';end if;
  update private.school_subscription_trials set started_at=now()-interval '744 hours',ends_at=now()-interval '24 hours' where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
+ reset role;
+ if private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') then raise exception 'expired trial must be read-only';end if;
  set local role authenticated;
  begin perform public.choose_school_trial_plan('school');exception when others then rejected:=sqlerrm='school_trial_expired';end;
  if not rejected then raise exception 'expired trial must not restart';end if;

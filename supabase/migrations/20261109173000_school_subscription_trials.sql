@@ -114,3 +114,27 @@ begin
  execute replace(src,anchor,anchor||' if not private.school_trial_allows_write(sid,''finance'') then raise exception ''school_plan_write_restricted''; end if;');
 end
 $trial_family_payment$;
+
+-- Check writes after row authorization, including direct grade writes and RPCs.
+create function private.enforce_trial_school_write() returns trigger
+language plpgsql security definer set search_path='' as $$
+begin
+ if tg_op <> 'INSERT' and not private.school_trial_allows_write(old.school_id,'school') then
+  raise exception 'school_plan_write_restricted';
+ end if;
+ if tg_op <> 'DELETE' and not private.school_trial_allows_write(new.school_id,'school') then
+  raise exception 'school_plan_write_restricted';
+ end if;
+ return null;
+end $$;
+revoke all on function private.enforce_trial_school_write() from public,anon,authenticated;
+
+create trigger trial_school_write_grades
+after insert or update or delete on public.grades
+for each row execute function private.enforce_trial_school_write();
+create trigger trial_school_write_bulletins
+after insert on public.bulletin_versions
+for each row execute function private.enforce_trial_school_write();
+create trigger trial_school_write_preschool_bulletins
+after insert on public.preschool_bulletin_versions
+for each row execute function private.enforce_trial_school_write();

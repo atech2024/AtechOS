@@ -123,6 +123,13 @@ begin
  pairing_result:=public.create_kiosk_device_pairing_code('Second school KIOS',false);
  pairing_result:=public.pair_kiosk_device(pairing_result->>'pairing_code');
  general_token:=pairing_result->>'token';general_device:=(pairing_result->>'device_id')::uuid;
+ pairing_result:=public.create_section_kiosk_pairing_code('Secondary KIOS','secondary');
+ if pairing_result->>'section' is distinct from 'secondary' then raise exception 'pairing must keep the requested section';end if;
+ pairing_result:=public.pair_kiosk_device(pairing_result->>'pairing_code');
+ result:=public.student_kiosk_badge(primary_qr,pairing_result->>'token');
+ if result->>'error' is distinct from 'kiosk_wrong_section_secondary' then raise exception 'Secondary KIOS must explain a Primary badge mismatch';end if;
+ workspace:=public.kiosk_device_workspace();
+ if not exists(select 1 from jsonb_array_elements(workspace->'devices') d where d->>'section'='secondary') then raise exception 'device list must show the new scope';end if;
  reset role;
 
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000005',true);
@@ -141,7 +148,9 @@ begin
  result:=public.student_kiosk_badge(replacement,kind_token);
  if result->>'action'<>'duplicate_scan' then raise exception 'coordinator Kind kiosk can scan an actively enrolled Kind student';end if;
  result:=public.student_kiosk_badge(primary_qr,kind_token);
- if result->>'error'<>'invalid_badge' then raise exception 'Kind-only kiosk must reject students in other sections';end if;
+ if result->>'error' is distinct from 'kiosk_wrong_section_preschool' then raise exception 'Kind-only kiosk must explain the section mismatch';end if;
+ failed:=false;begin perform public.create_section_kiosk_pairing_code('Coordinator primary KIOS','primary');exception when others then failed:=sqlerrm='not_authorized';end;
+ if not failed then raise exception 'Kind coordinator must not create a primary device';end if;
  failed:=false;begin perform public.revoke_kiosk_device(general_device);exception when others then failed:=sqlerrm='not_authorized';end;
  if not failed then raise exception 'Kind coordinator must not revoke school-wide devices';end if;
  workspace:=public.school_kiosk_schedule_workspace();

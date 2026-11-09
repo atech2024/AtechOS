@@ -97,6 +97,7 @@ on:
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "supabase/migrations/20261106191849_kiosk_staff_session_required.sql"
       - "supabase/migrations/20261106204145_kiosk_preschool_device_scope.sql"
+      - "supabase/migrations/20261109150000_kiosk_device_sections.sql"
       - "vercel.json"
       - "supabase/ci/**"
       - "supabase/ci-badge/**"
@@ -190,6 +191,7 @@ on:
       - "supabase/migrations/20260928004221_badge_lifecycle_history.sql"
       - "supabase/migrations/20261106191849_kiosk_staff_session_required.sql"
       - "supabase/migrations/20261106204145_kiosk_preschool_device_scope.sql"
+      - "supabase/migrations/20261109150000_kiosk_device_sections.sql"
       - "vercel.json"
       - "supabase/ci/**"
       - "supabase/ci-badge/**"
@@ -335,6 +337,7 @@ jobs:
           cp ../migrations/20260928004221_badge_lifecycle_history.sql supabase/migrations/
           cp ../migrations/20261106191849_kiosk_staff_session_required.sql supabase/migrations/
           cp ../migrations/20261106204145_kiosk_preschool_device_scope.sql supabase/migrations/
+          cp ../migrations/20261109150000_kiosk_device_sections.sql supabase/migrations/
       - name: Start isolated Supabase and apply badge lifecycle migration
         working-directory: supabase/ci-badge
         run: |

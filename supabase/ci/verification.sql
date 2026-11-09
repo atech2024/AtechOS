@@ -403,4 +403,33 @@ begin
 end
 $kiosk_schedule_ci$;
 
+
+-- Test the school trial with synthetic school records in the enclosing rollback.
+update public.schools set owner_user_id='20000000-0000-0000-0000-000000000008' where id='10000000-0000-0000-0000-000000000001';
+do $trial_test$
+declare first_plan jsonb; switched jsonb; denied boolean:=false; rejected boolean:=false;
+begin
+ if has_function_privilege('anon','public.choose_school_trial_plan(text)','execute') then raise exception 'anonymous trial write';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ set local role authenticated;
+ first_plan:=public.choose_school_trial_plan('attendance');
+ switched:=public.choose_school_trial_plan('school_finance');
+ if switched->>'plan' is distinct from 'school_finance'
+    or switched->>'started_at' is distinct from first_plan->>'started_at'
+    or switched->>'ends_at' is distinct from first_plan->>'ends_at'
+    or (switched->>'ends_at')::timestamptz-(switched->>'started_at')::timestamptz<>interval '720 hours' then
+   raise exception 'plan switching must preserve the 30-day trial';
+ end if;
+ reset role;
+ update private.school_subscription_trials set started_at=now()-interval '744 hours',ends_at=now()-interval '24 hours' where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
+ begin perform public.choose_school_trial_plan('school');exception when others then rejected:=sqlerrm='school_trial_expired';end;
+ if not rejected then raise exception 'expired trial must not restart';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ begin perform public.choose_school_trial_plan('school');exception when others then denied:=sqlerrm='not_authorized';end;
+ if not denied then raise exception 'linked parent cannot manage subscription trials';end if;
+ reset role;
+end
+$trial_test$;
+
 rollback;

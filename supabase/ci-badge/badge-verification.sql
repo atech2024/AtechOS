@@ -141,7 +141,9 @@ begin
  result:=public.student_kiosk_badge(replacement,kind_token);
  if result->>'action'<>'duplicate_scan' then raise exception 'coordinator Kind kiosk can scan an actively enrolled Kind student';end if;
  result:=public.student_kiosk_badge(primary_qr,kind_token);
- if result->>'error'<>'invalid_badge' then raise exception 'Kind-only kiosk must reject students in other sections';end if;
+ if result->>'error' is distinct from 'kiosk_wrong_section_preschool' then raise exception 'Kind-only kiosk must explain the section mismatch';end if;
+ failed:=false;begin perform public.create_section_kiosk_pairing_code('Coordinator primary KIOS','primary');exception when others then failed:=sqlerrm='not_authorized';end;
+ if not failed then raise exception 'Kind coordinator must not create a primary device';end if;
  failed:=false;begin perform public.revoke_kiosk_device(general_device);exception when others then failed:=sqlerrm='not_authorized';end;
  if not failed then raise exception 'Kind coordinator must not revoke school-wide devices';end if;
  workspace:=public.school_kiosk_schedule_workspace();

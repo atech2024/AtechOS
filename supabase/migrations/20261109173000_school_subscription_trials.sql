@@ -44,3 +44,21 @@ begin
 end $$;
 revoke all on function public.school_subscription_trial(),public.choose_school_trial_plan(text) from public,anon,authenticated;
 grant execute on function public.school_subscription_trial(),public.choose_school_trial_plan(text) to authenticated;
+
+-- Internal policy for future write guards. Existing schools without a trial
+-- retain their current behavior. A paid subscription is handled separately.
+create function private.school_trial_allows_write(p_school uuid,p_module text) returns boolean
+language sql stable security definer set search_path='' as $$
+ select case
+   when p_school is null or p_module is null or p_module not in ('attendance','school','finance') then false
+   else coalesce((
+     select t.ends_at > statement_timestamp() and (
+       p_module='attendance' or
+       (p_module='school' and t.plan in ('school','school_finance')) or
+       (p_module='finance' and t.plan='school_finance')
+     )
+     from private.school_subscription_trials t where t.school_id=p_school
+   ),true)
+ end
+$$;
+revoke all on function private.school_trial_allows_write(uuid,text) from public,anon,authenticated;

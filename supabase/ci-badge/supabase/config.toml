@@ -8,7 +8,7 @@ extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
 [db]
-port = 54422
+port = 55482
 shadow_port = 54420
 major_version = 15
 

@@ -20,8 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
 const schoolPlans = {
   "fr": {
     "title": "Trois offres pour votre école",
-    "trial": "Essai complet de 30 jours",
-    "note": "L’offre d’essai prévoit l’accès à tous les modules, y compris la finance. Tarifs et ouverture de l’essai à venir.",
+    "trial": "Essayez l’offre de votre choix pendant 30 jours",
+    "note": "Pendant l’essai, accédez à toutes les fonctions de l’offre choisie. Changez d’offre en cours d’essai en gardant la même date de fin. À l’échéance, choisissez votre abonnement. Vos données restent consultables et les modules non inclus passent en lecture seule. Tarifs et ouverture de l’essai à venir.",
     "plans": [
       [
         "Présences",
@@ -39,8 +39,8 @@ const schoolPlans = {
   },
   "ht": {
     "title": "Twa plan pou lekòl ou",
-    "trial": "Esè konplè 30 jou",
-    "note": "Esè a prevwa aksè ak tout modil yo, ansanm ak Finans. N ap anonse pri yo ak dat esè a ap disponib.",
+    "trial": "Eseye nenpòt plan pandan 30 jou",
+    "note": "Pandan esè a, ou jwenn tout fonksyon plan ou chwazi a. Ou ka chanje plan pandan esè a pandan menm dat fen an rete valab. Lè esè a fini, chwazi abònman ou. Done ou yo rete disponib pou konsilte, epi modil ki pa nan abònman an pase an lekti sèlman. Pri ak dat ouvèti esè a ap vini.",
     "plans": [
       [
         "Prezans",
@@ -58,8 +58,8 @@ const schoolPlans = {
   },
   "en": {
     "title": "Three plans for your school",
-    "trial": "Full 30-day trial",
-    "note": "The planned trial includes all modules, including Finance. Pricing and trial availability will be announced.",
+    "trial": "Try any plan for 30 days",
+    "note": "During the trial, use every feature in your chosen plan. You can switch plans and keep the same end date. At the end, choose a subscription. Your data remains available to view, and modules outside your subscription become read-only. Pricing and trial availability will be announced.",
     "plans": [
       [
         "Attendance",

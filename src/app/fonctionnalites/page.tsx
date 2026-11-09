@@ -17,11 +17,44 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: copy.pages.featuresTitle + ' | AtechOS', description: copy.pages.featuresDescription }
 }
 
+const launchPrices = [
+  ['1 950 HTG', '15 USD', '19 500 HTG', '150 USD'],
+  ['3 250 HTG', '25 USD', '32 500 HTG', '250 USD'],
+  ['4 550 HTG', '35 USD', '45 500 HTG', '350 USD'],
+] as const
+
+const pricingCopy = {
+  "fr": [
+    "Prix de lancement par établissement, jusqu’à 150 élèves actifs.",
+    "Par mois",
+    "Par an",
+    "L’abonnement annuel coûte l’équivalent de 10 mois. Au-delà de 150 élèves, le prix est établi sur devis.",
+    "La devise (HTG ou USD) est choisie avant la facturation. Le montant reste fixe sur la facture. Matériel KIOS, impression de badges et installation sur place font l’objet d’un devis séparé si nécessaire.",
+    "Ouverture de l’essai à venir. Aucun paiement automatique pendant l’essai."
+  ],
+  "ht": [
+    "Pri lansman pou chak lekòl, jiska 150 elèv aktif.",
+    "Pa mwa",
+    "Pa ane",
+    "Abònman anyèl la koute menm pri ak 10 mwa. Pou plis pase 150 elèv, pri a sou devis.",
+    "Lekòl la chwazi HTG oswa USD anvan fakti a soti. Montan an rete fiks sou fakti a. Si sa nesesè, ekipman KIOS, enpresyon badj ak enstalasyon sou plas gen yon devis apa.",
+    "Esè a ap disponib pita. Pa gen peman otomatik pandan esè a."
+  ],
+  "en": [
+    "Launch pricing per school, up to 150 active students.",
+    "Monthly",
+    "Yearly",
+    "A yearly subscription costs the equivalent of 10 months. Schools with more than 150 students receive a quote.",
+    "Choose HTG or USD before invoicing. The invoice amount stays fixed. KIOS hardware, badge printing and on-site installation are quoted separately if needed.",
+    "Trial opening to be announced. No automatic payment during the trial."
+  ]
+}
+
 const schoolPlans = {
   "fr": {
     "title": "Trois offres pour votre école",
     "trial": "Essayez l’offre de votre choix pendant 30 jours",
-    "note": "Pendant l’essai, accédez à toutes les fonctions de l’offre choisie. Changez d’offre en cours d’essai en gardant la même date de fin. À l’échéance, choisissez votre abonnement. Vos données restent consultables et les modules non inclus passent en lecture seule. Tarifs et ouverture de l’essai à venir.",
+    "note": "Pendant l’essai, accédez à toutes les fonctions de l’offre choisie. Changez d’offre en cours d’essai en gardant la même date de fin. À l’échéance, choisissez votre abonnement. Vos données restent consultables et les modules non inclus passent en lecture seule.",
     "plans": [
       [
         "Présences",
@@ -40,7 +73,7 @@ const schoolPlans = {
   "ht": {
     "title": "Twa plan pou lekòl ou",
     "trial": "Eseye nenpòt plan pandan 30 jou",
-    "note": "Pandan esè a, ou jwenn tout fonksyon plan ou chwazi a. Ou ka chanje plan pandan esè a pandan menm dat fen an rete valab. Lè esè a fini, chwazi abònman ou. Done ou yo rete disponib pou konsilte, epi modil ki pa nan abònman an pase an lekti sèlman. Pri ak dat ouvèti esè a ap vini.",
+    "note": "Pandan esè a, ou jwenn tout fonksyon plan ou chwazi a. Ou ka chanje plan pandan esè a pandan menm dat fen an rete valab. Lè esè a fini, chwazi abònman ou. Done ou yo rete disponib pou konsilte, epi modil ki pa nan abònman an pase an lekti sèlman.",
     "plans": [
       [
         "Prezans",
@@ -59,7 +92,7 @@ const schoolPlans = {
   "en": {
     "title": "Three plans for your school",
     "trial": "Try any plan for 30 days",
-    "note": "During the trial, use every feature in your chosen plan. You can switch plans and keep the same end date. At the end, choose a subscription. Your data remains available to view, and modules outside your subscription become read-only. Pricing and trial availability will be announced.",
+    "note": "During the trial, use every feature in your chosen plan. You can switch plans and keep the same end date. At the end, choose a subscription. Your data remains available to view, and modules outside your subscription become read-only.",
     "plans": [
       [
         "Attendance",
@@ -156,6 +189,7 @@ export default async function FeaturesPage() {
   const copy = landingCopyFor(locale)
   const guide = evaluation[locale]
   const plans = schoolPlans[locale]
+  const [limit, monthly, yearly, annualTerms, invoiceTerms, trialAvailability] = pricingCopy[locale]
   return <main className="landing">
     <a className="landing-skip-link" href="#features-content">{copy.navigation.skipToContent}</a>
     <MarketingHeader copy={copy} />
@@ -175,6 +209,10 @@ export default async function FeaturesPage() {
             <li key={title} className="rounded-xl border border-slate-200 bg-white p-5 text-slate-800">
               <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
               <p className="mt-2 leading-relaxed">{description}</p>
+              <dl className="mt-4 space-y-2 border-t border-slate-200 pt-4 text-sm">
+                <div><dt>{monthly}</dt><dd className="font-semibold tabular-nums">{launchPrices[index][0]} / {launchPrices[index][1]}</dd></div>
+                <div><dt>{yearly}</dt><dd className="font-semibold tabular-nums">{launchPrices[index][2]} / {launchPrices[index][3]}</dd></div>
+              </dl>
             </li>
           ))}
         </ol>
@@ -235,17 +273,21 @@ export default async function FeaturesPage() {
     <section id="offres" className="landing-section landing-subpage-content" aria-labelledby="plans-title">
       <div className="landing-frame">
         <h2 id="plans-title" className="text-3xl font-semibold tracking-tight">{plans.title}</h2>
+        <p className="mt-2 text-slate-700">{limit}</p>
         <ul className="mt-6 grid gap-4 md:grid-cols-3">
-          {plans.plans.map(([title, description]) => (
+          {plans.plans.map(([title, description], index) => (
             <li key={title} className="rounded-xl border border-slate-200 bg-white p-5 text-slate-800">
               <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
               <p className="mt-2 leading-relaxed">{description}</p>
             </li>
           ))}
         </ul>
+        <p className="mt-5 max-w-3xl">{annualTerms}</p>
+        <p className="mt-2 max-w-3xl">{invoiceTerms}</p>
         <div className="mt-6 rounded-xl bg-blue-50 p-5 text-blue-950">
           <h3 className="text-lg font-semibold">{plans.trial}</h3>
           <p className="mt-2">{plans.note}</p>
+          <p className="mt-2 font-medium">{trialAvailability}</p>
         </div>
       </div>
     </section>

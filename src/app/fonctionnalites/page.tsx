@@ -17,6 +17,66 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: copy.pages.featuresTitle + ' | AtechOS', description: copy.pages.featuresDescription }
 }
 
+const schoolPlans = {
+  "fr": {
+    "title": "Trois offres pour votre école",
+    "trial": "Essai complet de 30 jours",
+    "note": "L’offre d’essai prévoit l’accès à tous les modules, y compris la finance. Tarifs et ouverture de l’essai à venir.",
+    "plans": [
+      [
+        "Présences",
+        "L’offre la plus accessible pour suivre les entrées, sorties et retards avec KIOS."
+      ],
+      [
+        "École",
+        "Tout le plan Présences, plus classes, devoirs, examens, notes, bulletins et portails."
+      ],
+      [
+        "École + Finance",
+        "Tout le plan École, plus échéances, suivi des paiements, reçus et remboursements."
+      ]
+    ]
+  },
+  "ht": {
+    "title": "Twa plan pou lekòl ou",
+    "trial": "Esè konplè 30 jou",
+    "note": "Esè a prevwa aksè ak tout modil yo, ansanm ak Finans. N ap anonse pri yo ak dat esè a ap disponib.",
+    "plans": [
+      [
+        "Prezans",
+        "Plan ki pi abòdab la pou swiv antre, sòti ak reta avèk KIOS."
+      ],
+      [
+        "Lekòl",
+        "Tout sa ki nan Prezans, plis klas, devwa, egzamen, nòt, bilten ak pòtal."
+      ],
+      [
+        "Lekòl + Finans",
+        "Tout sa ki nan Lekòl, plis échéance, swivi peman, resi ak ranbousman."
+      ]
+    ]
+  },
+  "en": {
+    "title": "Three plans for your school",
+    "trial": "Full 30-day trial",
+    "note": "The planned trial includes all modules, including Finance. Pricing and trial availability will be announced.",
+    "plans": [
+      [
+        "Attendance",
+        "The most affordable plan for KIOS check-ins, check-outs and lateness."
+      ],
+      [
+        "School",
+        "Everything in Attendance, plus classes, assignments, exams, grades, report cards and portals."
+      ],
+      [
+        "School + Finance",
+        "Everything in School, plus installments, payment tracking, receipts and refunds."
+      ]
+    ]
+  }
+}
+
 const evaluation = {
   "fr": {
     "title": "Évaluez AtechOS avant de déployer dans votre école",
@@ -95,6 +155,7 @@ export default async function FeaturesPage() {
   const locale = localeFrom((await cookies()).get('atechos_locale')?.value)
   const copy = landingCopyFor(locale)
   const guide = evaluation[locale]
+  const plans = schoolPlans[locale]
   return <main className="landing">
     <a className="landing-skip-link" href="#features-content">{copy.navigation.skipToContent}</a>
     <MarketingHeader copy={copy} />
@@ -169,6 +230,23 @@ export default async function FeaturesPage() {
             </li>
           })}
         </ul>
+      </div>
+    </section>
+    <section id="offres" className="landing-section landing-subpage-content" aria-labelledby="plans-title">
+      <div className="landing-frame">
+        <h2 id="plans-title" className="text-3xl font-semibold tracking-tight">{plans.title}</h2>
+        <ul className="mt-6 grid gap-4 md:grid-cols-3">
+          {plans.plans.map(([title, description]) => (
+            <li key={title} className="rounded-xl border border-slate-200 bg-white p-5 text-slate-800">
+              <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
+              <p className="mt-2 leading-relaxed">{description}</p>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-6 rounded-xl bg-blue-50 p-5 text-blue-950">
+          <h3 className="text-lg font-semibold">{plans.trial}</h3>
+          <p className="mt-2">{plans.note}</p>
+        </div>
       </div>
     </section>
     <section className="landing-closing"><div className="landing-frame landing-closing__inner" data-landing-reveal>

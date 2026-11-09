@@ -1,4 +1,5 @@
 import { AcademicYearLink } from '@/components/academic-year-context'
+import SchoolTrialSettings from '@/components/school-trial-settings'
 import { T } from '@/components/translation-provider'
 import { FinanceReceiptSignatureSettings } from '@/components/finance-payment-receipt'
 import { createClient } from '@/lib/supabase/server'
@@ -47,6 +48,10 @@ export default async function SettingsPage() {
     </p>
   </main>
   const roles: string[] = Array.isArray(data?.roles) ? data.roles : []
+  const previewTrialEnabled = process.env.VERCEL_ENV !== 'production' && process.env.SCHOOL_TRIAL_PREVIEW === 'true'
+  const trial = previewTrialEnabled && data?.owner && roles.includes('school_admin')
+    ? await db.rpc('school_subscription_trial')
+    : null
   const canManageSettings = Boolean(data?.owner || roles.some((role: string) => ['school_admin', 'director'].includes(role)))
   const canManageSignature = Boolean(data?.owner || roles.some((role: string) => ['school_admin', 'director', 'censeur', 'secretary', 'accountant'].includes(role)))
 
@@ -84,6 +89,8 @@ export default async function SettingsPage() {
         </div>
       </section>)}
     </div>}
+    {trial && !trial.error && <SchoolTrialSettings initialTrial={trial.data}/>}
+    {trial?.error && <p role="alert" className="text-sm text-red-800"><T text="We could not load your school access. Refresh the page or contact school administration."/></p>}
     {canManageSignature && <FinanceReceiptSignatureSettings/>}
   </main>
 }

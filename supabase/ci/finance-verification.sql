@@ -317,7 +317,6 @@ begin
   if not denied then raise exception 'parent payment must respect the school trial plan';end if;
   reset role;
   delete from private.school_subscription_trials where school_id='fa000000-0000-0000-0000-000000000001';
-  set local role authenticated;
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
   perform public.save_finance_payment_methods(jsonb_build_object(
     'moncash',jsonb_build_object('enabled',true,'account_name','Finance CI','phone','50937000001','max_htg',2500),

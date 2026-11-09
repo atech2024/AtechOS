@@ -43,7 +43,11 @@ activeShellPath='/dashboard'
 const homeHtml=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual Fixture Teacher',school:'Fixture School',avatar:null,roles:['teacher'],owner:false,academicYear:'2025–2026',greeting:'Good morning'},'Fixture dashboard'))
 assert.ok(homeHtml.includes('Good morning, Actual Fixture Teacher'),'Staff dashboard should greet the signed-in person.')
 assert.ok(homeHtml.includes('Welcome to your school dashboard'),'Staff dashboard should display a welcome message.')
-assert.ok(homeHtml.includes('href="/dashboard/my-profile"'),'Staff can open the self-service profile from the dashboard.')
+assert.ok(homeHtml.includes('href="/dashboard/my-profile?year=year-1"'),'The profile shortcut preserves the selected year.')
+activeShellPath='/dashboard/finance/payments'
+const paymentsHtml=renderToStaticMarkup(React.createElement(AppShell,{name:'Fixture Accountant',school:'Fixture School',avatar:null,roles:['accountant'],owner:false,academicYear:'2025–2026'},'Fixture payments'))
+assert.match(paymentsHtml,/href="\/dashboard\/finance\/payments\?year=year-1"[^>]*aria-current="page"/)
+assert.equal((paymentsHtml.match(/aria-current="page"/g)||[]).length,1,'Only the most specific menu entry is current.')
 console.log('PASS staff profile identity, greeting and profile shortcut render for the signed-in teacher.')
 activeShellPath='/dashboard/grades'
 const dashboardLayout=readFileSync('src/app/dashboard/layout.tsx','utf8')

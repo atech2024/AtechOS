@@ -62,3 +62,18 @@ language sql stable security definer set search_path='' as $$
  end
 $$;
 revoke all on function private.school_trial_allows_write(uuid,text) from public,anon,authenticated;
+
+-- Apply the trial rule after the existing school and finance role checks.
+do $trial_fee_plan$
+declare
+ src text;
+ anchor text := 'select currency_code into currency from public.finance_settings where school_id=sid;';
+begin
+ select pg_get_functiondef('public.create_finance_fee_plan(uuid,uuid,text,text,jsonb)'::regprocedure) into src;
+ if length(src)-length(replace(src,anchor,''))<>length(anchor) then
+  raise exception 'trial_fee_plan_guard_anchor_mismatch';
+ end if;
+ execute replace(src,anchor,
+  'if not private.school_trial_allows_write(sid,''finance'') then raise exception ''school_plan_write_restricted''; end if; '||anchor);
+end
+$trial_fee_plan$;

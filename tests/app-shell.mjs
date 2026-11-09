@@ -47,7 +47,7 @@ assert.ok(homeHtml.includes('href="/dashboard/my-profile?year=year-1"'),'The pro
 activeShellPath='/dashboard/finance/payments'
 const paymentsHtml=renderToStaticMarkup(React.createElement(AppShell,{name:'Fixture Accountant',school:'Fixture School',avatar:null,roles:['accountant'],owner:false,academicYear:'2025–2026'},'Fixture payments'))
 assert.match(paymentsHtml,/href="\/dashboard\/finance\/payments\?year=year-1"[^>]*aria-current="page"/)
-assert.equal((paymentsHtml.match(/aria-current="page"/g)||[]).length,1,'Only the most specific menu entry is current.')
+assert.equal((paymentsHtml.match(/<a\b[^>]*aria-current="page"/g)||[]).length,1,'Only the most specific menu entry is current.')
 console.log('PASS staff profile identity, greeting and profile shortcut render for the signed-in teacher.')
 activeShellPath='/dashboard/grades'
 const dashboardLayout=readFileSync('src/app/dashboard/layout.tsx','utf8')

@@ -129,9 +129,16 @@ begin
 end $$;
 revoke all on function private.enforce_trial_school_write() from public,anon,authenticated;
 
-create trigger trial_school_write_grades
-after insert or update or delete on public.grades
-for each row execute function private.enforce_trial_school_write();
+-- The reduced general CI schema does not include numeric grades.
+do $trial_grade_guard$
+begin
+ if to_regclass('public.grades') is not null then
+  create trigger trial_school_write_grades
+  after insert or update or delete on public.grades
+  for each row execute function private.enforce_trial_school_write();
+ end if;
+end
+$trial_grade_guard$;
 create trigger trial_school_write_bulletins
 after insert on public.bulletin_versions
 for each row execute function private.enforce_trial_school_write();

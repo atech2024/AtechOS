@@ -15,6 +15,12 @@ function compile(path, imports = {}) {
   return exports
 }
 
+const subscriptionPricing = compile('src/lib/subscription-pricing.ts')
+assert.equal(subscriptionPricing.getLaunchPrice('attendance', 'HTG', 'monthly', 150), 1950)
+assert.equal(subscriptionPricing.getLaunchPrice('school', 'USD', 'yearly', 150), 250)
+assert.equal(subscriptionPricing.getLaunchPrice('school_finance', 'HTG', 'yearly', 150), 45500)
+assert.equal(subscriptionPricing.getLaunchPrice('school_finance', 'HTG', 'yearly', 151), null)
+
 const { landingCopyFor } = compile('src/lib/landing-content.ts')
 const { shouldEnableLandingMotion } = compile('src/lib/landing-media.ts')
 assert.equal(shouldEnableLandingMotion(false, false, true), true, 'desktop can use supported decorative motion')
@@ -43,6 +49,7 @@ const common = {
   'next/headers': { cookies: async () => ({ get: () => ({ value: 'fr' }) }) },
   'lucide-react': iconMock,
   '@/lib/landing-content': { landingCopyFor },
+  '@/lib/subscription-pricing': subscriptionPricing,
   '@/lib/i18n': { localeFrom: value => value === 'ht' || value === 'en' ? value : 'fr' },
   '@/components/marketing-chrome': marketingChrome,
   '@/components/landing-hero-media': heroMedia,

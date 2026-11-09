@@ -162,7 +162,7 @@ begin
  if school_entry<>time '05:15' or (select preschool_entry_opens_at from public.school_kiosk_schedules where school_id='10000000-0000-0000-0000-000000000001')<>time '05:40' then raise exception 'Kind schedule save must not modify school-wide hours';end if;
  reset role;
 
- if not exists(select 1 from public.badge_scans where student_id='50000000-0000-0000-0000-000000000002' and result='kiosk_wrong_section_preschool') then raise exception 'verified wrong-section scan must appear in badge history';end if;
+ if not exists(select 1 from public.badge_scans scan where scan.student_id='50000000-0000-0000-0000-000000000002' and scan.result='kiosk_wrong_section_preschool') then raise exception 'verified wrong-section scan must appear in badge history';end if;
  if (select count(*) from public.notifications where type='lost_badge')<>1 then raise exception 'lost report should create one staff notice'; end if;
  if not exists(select 1 from public.student_badges where student_id='50000000-0000-0000-0000-000000000001' and state='lost' and not active) then raise exception 'lost badge history was not preserved'; end if;
  if not exists(select 1 from jsonb_array_elements(badge_audit_workspace->'events') event where event->>'action'='replaced') then raise exception 'badge replacement action was not audited'; end if;

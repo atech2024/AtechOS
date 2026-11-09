@@ -9,6 +9,11 @@ const states:Record<string,string>={active:'Active',lost:'Lost',replaced:'Replac
 const scanResultLabels = new Map<string, string>([
   ["check_in","Check-in recorded."],
   ["check_out","Check-out recorded."],
+  ["already_picked_up_by_parent","Exit already recorded"],
+  ["kiosk_wrong_section_preschool","This KIOS is reserved for Preschool / Kind. Use the KIOS for your section."],
+  ["kiosk_wrong_section_primary","This KIOS is reserved for 1 AF–6 AF. Use the KIOS for your section."],
+  ["kiosk_wrong_section_fundamental","This KIOS is reserved for 7 AF–9 AF. Use the KIOS for your section."],
+  ["kiosk_wrong_section_secondary","This KIOS is reserved for NS1–NS4. Use the KIOS for your section."],
   ["kiosk_closed","KIOS is outside the configured entry and checkout hours. Contact school staff."],
   ["guard_three_unexcused_absences","Access refused: three school-day absences have no accepted reason. Go to the Director with your parent or guardian."],
   ["financial_restriction","Access refused: an overdue school fee still has a balance. Contact the school administration."],

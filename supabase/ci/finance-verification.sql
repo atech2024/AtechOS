@@ -308,6 +308,16 @@ begin
   denied:=false;
   begin perform public.submit_family_finance_payment(entry_charge_id,5,'PayPal','CI-PARENT-DISABLED',''); exception when others then denied:=sqlerrm='payment_method_disabled'; end;
   if not denied then raise exception 'parent submitted a disabled payment method'; end if;
+  reset role;
+  insert into private.school_subscription_trials(school_id,plan,started_at,ends_at)
+  values('fa000000-0000-0000-0000-000000000001','attendance',now(),now()+interval '720 hours');
+  set local role authenticated;
+  denied:=false;
+  begin perform public.submit_family_finance_payment(entry_charge_id,5,'PayPal','CI-PARENT-TRIAL',''); exception when others then denied:=sqlerrm='school_plan_write_restricted'; end;
+  if not denied then raise exception 'parent payment must respect the school trial plan';end if;
+  reset role;
+  delete from private.school_subscription_trials where school_id='fa000000-0000-0000-0000-000000000001';
+  set local role authenticated;
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
   perform public.save_finance_payment_methods(jsonb_build_object(
     'moncash',jsonb_build_object('enabled',true,'account_name','Finance CI','phone','50937000001','max_htg',2500),

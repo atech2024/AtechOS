@@ -416,8 +416,18 @@ do $trial_test$
 declare first_plan jsonb; switched jsonb; denied boolean:=false; rejected boolean:=false;
 begin
  if has_function_privilege('anon','public.choose_school_trial_plan(text)','execute') then raise exception 'anonymous trial write';end if;
- perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
  set local role authenticated;
+ begin
+  perform public.school_subscription_trial();
+  raise exception 'parent read trial status before trial creation';
+ exception when others then
+  if sqlerrm is distinct from 'not_authorized' then raise;end if;
+ end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ if public.school_subscription_trial() is not null then
+  raise exception 'new school must have no trial status';
+ end if;
  first_plan:=public.choose_school_trial_plan('attendance');
  reset role;
  begin

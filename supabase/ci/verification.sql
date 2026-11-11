@@ -581,8 +581,11 @@ $trial_test$;
 
 -- All subscription billing fixtures are synthetic and roll back.
 
- -- Reach exactly 150 despite other test cases adding students to this school.
- select count(*) into existing_active from public.students
+ do $subscription_capacity_test$
+declare existing_active integer; additions integer;
+begin
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+select count(*) into existing_active from public.students
  where school_id='10000000-0000-0000-0000-000000000001' and active and school_status='active';
  additions:=150-existing_active;
  if additions<1 then raise exception 'CI school unexpectedly starts at the capacity boundary';end if;
@@ -605,6 +608,10 @@ $trial_test$;
   raise exception 'reactivation exceeded 150 active students';
  exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
 
+end
+$subscription_capacity_test$;
+
+
 insert into private.subscription_billing_operators(user_id)
 values('20000000-0000-0000-0000-000000000008');
 insert into public.users(id,full_name) values('20000000-0000-0000-0000-000000000009','Other School Owner');
@@ -614,7 +621,7 @@ update public.schools set owner_user_id='20000000-0000-0000-0000-000000000009'
 where id='10000000-0000-0000-0000-000000000002';
 
 do $subscription_billing_test$
-declare invoice uuid; renewal uuid; different_plan uuid; workspace jsonb; first_end timestamptz; failed boolean; existing_active integer; additions integer;
+declare invoice uuid; renewal uuid; different_plan uuid; workspace jsonb; first_end timestamptz; failed boolean;
 begin
  if has_function_privilege('anon','public.create_school_subscription_invoice(text,text,text,text)','execute')
  or has_table_privilege('authenticated','private.school_subscription_invoices','select')

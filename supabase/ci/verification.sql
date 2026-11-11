@@ -607,6 +607,8 @@ select count(*) into existing_active from public.students
   and atechos_id='CI-CAPACITY-'||additions;
   raise exception 'reactivation exceeded 150 active students';
  exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
+ delete from public.students where school_id='10000000-0000-0000-0000-000000000001'
+ and atechos_id like 'CI-CAPACITY-%';
 
 end
 $subscription_capacity_test$;

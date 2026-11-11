@@ -28,7 +28,7 @@ const copy = {
   currency: 'Devise', period: 'Facturation', monthly: 'Mensuelle', yearly: 'Annuelle',
   method: 'Moyen de paiement', create: 'Créer ma facture', loading: 'Chargement…',
   unavailable: 'Aucun moyen de paiement configuré pour cette devise.',
-  pending: 'À payer', submitted: 'Vérification en cours', paid: 'Paiement confirmé',
+  expired: 'Expirée', pending: 'À payer', submitted: 'Vérification en cours', paid: 'Paiement confirmé',
   rejected: 'Paiement refusé', cancelled: 'Annulée', expires: 'Valable jusqu’au',
   beneficiary: 'Bénéficiaire', account: 'Compte destinataire', reference: 'Référence de la transaction',
   referenceHint: 'Recopiez la référence du reçu fourni par le service de paiement.',
@@ -62,7 +62,7 @@ const copy = {
   currency: 'Lajan', period: 'Fakti', monthly: 'Chak mwa', yearly: 'Chak ane',
   method: 'Metòd peman', create: 'Kreye fakti mwen', loading: 'Ap chaje…',
   unavailable: 'Pa gen metòd peman konfigire pou lajan sa a.',
-  pending: 'Pou peye', submitted: 'Ap verifye', paid: 'Peman konfime',
+  expired: 'Ekspire', pending: 'Pou peye', submitted: 'Ap verifye', paid: 'Peman konfime',
   rejected: 'Peman refize', cancelled: 'Anile', expires: 'Valab jiska',
   beneficiary: 'Benefisyè', account: 'Kont k ap resevwa a', reference: 'Referans tranzaksyon an',
   referenceHint: 'Kopye referans ki sou resi sèvis peman an.',
@@ -96,7 +96,7 @@ const copy = {
   currency: 'Currency', period: 'Billing', monthly: 'Monthly', yearly: 'Yearly',
   method: 'Payment method', create: 'Create my invoice', loading: 'Loading…',
   unavailable: 'No payment method is configured for this currency.',
-  pending: 'Awaiting payment', submitted: 'Under review', paid: 'Payment confirmed',
+  expired: 'Expired', pending: 'Awaiting payment', submitted: 'Under review', paid: 'Payment confirmed',
   rejected: 'Payment rejected', cancelled: 'Cancelled', expires: 'Valid until',
   beneficiary: 'Recipient', account: 'Receiving account', reference: 'Transaction reference',
   referenceHint: 'Copy the reference from the payment provider’s receipt.',
@@ -180,6 +180,7 @@ export default function SchoolSubscriptionBilling({ operator = false }: { operat
   })
  }
  const methods = workspace?.methods.filter(method => method.currency === currency && method.enabled) ?? []
+ const expired = (invoice: Invoice) => invoice.status === 'pending' && Date.parse(invoice.expires_at) <= Date.now()
  const openInvoice = workspace?.invoices.some(invoice => invoice.status === 'pending' || invoice.status === 'submitted')
 
  return <section aria-labelledby="subscription-billing-title" className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
@@ -221,7 +222,7 @@ export default function SchoolSubscriptionBilling({ operator = false }: { operat
       <p className="mt-1 text-sm text-slate-600">{text[invoice.plan]} · {invoice.billing_period === 'yearly' ? text.yearly : text.monthly}</p>
       {operator && <p className="mt-1 break-all text-sm text-slate-600">{invoice.school_name || invoice.school_id}</p>}</div>
      <div className="text-right"><p className="text-xl font-bold text-slate-950">{new Intl.NumberFormat(locale, { style: 'currency', currency: invoice.currency }).format(invoice.amount)}</p>
-      <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${invoice.status === 'paid' ? 'bg-emerald-50 text-emerald-900' : invoice.status === 'rejected' ? 'bg-red-50 text-red-900' : 'bg-slate-100 text-slate-700'}`}>{text[invoice.status as keyof typeof text] ?? invoice.status}</span></div>
+      <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${invoice.status === 'paid' ? 'bg-emerald-50 text-emerald-900' : invoice.status === 'rejected' ? 'bg-red-50 text-red-900' : 'bg-slate-100 text-slate-700'}`}>{text[(expired(invoice) ? 'expired' : invoice.status) as keyof typeof text] ?? invoice.status}</span></div>
     </div>
     <dl className="grid gap-3 rounded-xl bg-slate-50 p-4 text-sm sm:grid-cols-2">
      <div><dt className="text-slate-500">{text.method}</dt><dd className="mt-1 font-medium">{methodNames[invoice.method]}</dd></div>
@@ -231,7 +232,7 @@ export default function SchoolSubscriptionBilling({ operator = false }: { operat
     </dl>
     {invoice.reference && <p className="break-all text-sm"><strong>{text.reference}</strong> · {invoice.reference}</p>}
     {invoice.review_note && <p className="break-words text-sm text-slate-700">{invoice.review_note}</p>}
-    {!operator && invoice.status === 'pending' && <form onSubmit={event => {
+    {!operator && invoice.status === 'pending' && !expired(invoice) && <form onSubmit={event => {
      event.preventDefault()
      void act('submit_school_subscription_payment', { p_invoice: invoice.id, p_reference: new FormData(event.currentTarget).get('reference') })
     }} className="space-y-3">
@@ -244,6 +245,7 @@ export default function SchoolSubscriptionBilling({ operator = false }: { operat
       <button type="button" className={secondary} disabled={busy} onClick={() => void act('cancel_school_subscription_invoice', { p_invoice: invoice.id })}>{text.cancel}</button>
      </div>
     </form>}
+    {!operator && expired(invoice) && <button type="button" className={secondary} disabled={busy} onClick={() => void act('cancel_school_subscription_invoice', { p_invoice: invoice.id })}>{text.cancel}</button>}
     {operator && invoice.status === 'submitted' && <form onSubmit={event => {
      event.preventDefault()
      const approve = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'approve'

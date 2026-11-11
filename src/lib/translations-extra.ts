@@ -1,4 +1,5 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ "Manage AtechOS subscriptions":["Gérer les abonnements AtechOS","Jere abònman AtechOS"],
  "30-day school trial":["Essai de 30 jours pour l’école","Esè 30 jou pou lekòl la"],
  "Trial preview. Plan selection does not yet change module access.":["Aperçu de l’essai. Le choix de l’offre ne modifie pas encore les accès.","Apèsi esè a. Chwa plan an poko chanje aksè nan modil yo."],
  "Trial ends":["Fin de l’essai","Fen esè a"],

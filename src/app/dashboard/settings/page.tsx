@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import SchoolSubscriptionBilling from '@/components/school-subscription-billing'
 import { AcademicYearLink } from '@/components/academic-year-context'
 import SchoolTrialSettings from '@/components/school-trial-settings'
 import { T } from '@/components/translation-provider'
@@ -52,6 +54,7 @@ export default async function SettingsPage() {
   const trial = previewTrialEnabled && data?.owner && roles.includes('school_admin')
     ? await db.rpc('school_subscription_trial')
     : null
+  const billingOperator = previewTrialEnabled ? await db.rpc('subscription_billing_operator') : null
   const canManageSettings = Boolean(data?.owner || roles.some((role: string) => ['school_admin', 'director'].includes(role)))
   const canManageSignature = Boolean(data?.owner || roles.some((role: string) => ['school_admin', 'director', 'censeur', 'secretary', 'accountant'].includes(role)))
 
@@ -89,7 +92,11 @@ export default async function SettingsPage() {
         </div>
       </section>)}
     </div>}
-    {trial && !trial.error && <SchoolTrialSettings initialTrial={trial.data}/>}
+    {trial && !trial.error && <>
+      <SchoolTrialSettings initialTrial={trial.data}/>
+      <SchoolSubscriptionBilling/>
+    </>}
+    {billingOperator?.data === true && <Link href="/platform/billing" className="inline-flex min-h-11 items-center rounded-xl border border-blue-200 bg-blue-50 px-4 font-semibold text-blue-800 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><T text="Manage AtechOS subscriptions"/></Link>}
     {trial?.error && <p role="alert" className="text-sm text-red-800"><T text="We could not load your school access. Refresh the page or contact school administration."/></p>}
     {canManageSignature && <FinanceReceiptSignatureSettings/>}
   </main>

@@ -13,6 +13,10 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 
 ### Subscription plans and trial lifecycle — 2026-11-11
 
+- Subscription billing follow-up adds server-priced HTG/USD invoices, immutable recipient snapshots, one open invoice per school, duplicate transaction-reference protection, and a separate platform operator permission. A submitted reference does not activate a subscription. An operator must verify the received amount/currency and record a note before approval. Renewals preserve remaining time and annual billing charges ten monthly payments for a one-year period. Mid-period paid-plan changes require a commercial review.
+- School settings and the separate operator screen remain behind the existing Preview flag. Operator membership and payment destinations must be configured privately after deployment. No real recipient account details are stored in repository source. SQL and UI validation for this follow-up are pending.
+
+
 - Status `IN PROGRESS`. Draft PR #188 implements a private, one-time 720-hour trial for the selected plan. Changing plans preserves the original expiration. Existing schools without a trial retain their current behavior.
 - Commit `c65d496` passed application/build and isolated database checks. Database coverage includes trial expiration, plan switching, restricted finance operations, bulletin publication, and insert/update/delete behavior through a synthetic grade trigger table. The reduced database fixture does not validate the real numeric-grades table and its RLS together.
 - Follow-up `9a42800` makes trial-status ownership authorization unconditional, including before any trial exists, and adds authorized-empty/unauthorized-read regression cases. Its checks are pending at this documentation checkpoint.

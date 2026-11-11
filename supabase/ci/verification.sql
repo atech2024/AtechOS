@@ -507,4 +507,141 @@ begin
 end
 $trial_test$;
 
+
+-- All subscription billing fixtures are synthetic and roll back.
+insert into private.subscription_billing_operators(user_id)
+values('20000000-0000-0000-0000-000000000008');
+insert into public.users(id,full_name) values('20000000-0000-0000-0000-000000000009','Other School Owner');
+insert into public.school_members(school_id,user_id,role,enabled)
+values('10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000009','school_admin',true);
+update public.schools set owner_user_id='20000000-0000-0000-0000-000000000009'
+where id='10000000-0000-0000-0000-000000000002';
+
+do $subscription_billing_test$
+declare invoice uuid; renewal uuid; different_plan uuid; workspace jsonb; first_end timestamptz; failed boolean;
+begin
+ if has_function_privilege('anon','public.create_school_subscription_invoice(text,text,text,text)','execute')
+ or has_table_privilege('authenticated','private.school_subscription_invoices','select')
+ or has_table_privilege('authenticated','private.subscription_billing_operators','insert') then
+  raise exception 'subscription billing ACL is unsafe';
+ end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ set local role authenticated;
+ begin
+  perform public.subscription_billing_admin_workspace();
+  raise exception 'parent reached platform billing';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ begin
+  perform public.create_school_subscription_invoice('attendance','HTG','monthly','moncash');
+  raise exception 'parent created subscription invoice';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ perform public.save_subscription_payment_method('moncash','CI recipient','+50937000001',true);
+ perform public.save_subscription_payment_method('paypal','CI USD recipient','billing-ci@example.invalid',true);
+ invoice:=public.create_school_subscription_invoice('attendance','HTG','monthly','moncash');
+ if public.create_school_subscription_invoice('attendance','HTG','monthly','moncash')<>invoice then
+  raise exception 'retry created duplicate invoice';
+ end if;
+ begin
+  perform public.create_school_subscription_invoice('school','USD','monthly','paypal');
+  raise exception 'two invoices opened for the same school';
+ exception when others then if sqlerrm<>'subscription_invoice_pending' then raise;end if;end;
+ perform public.save_subscription_payment_method('moncash','Changed recipient','+50937000002',true);
+ workspace:=public.school_subscription_billing_workspace();
+ if workspace->'invoices'->0->>'amount'<>'1950.00'
+ or workspace->'invoices'->0->'destination'->>'account'<>'+50937000001' then
+  raise exception 'invoice price or destination snapshot changed';
+ end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000009',true);
+ workspace:=public.school_subscription_billing_workspace();
+ if jsonb_array_length(workspace->'invoices')<>0 then raise exception 'other school saw subscription invoice';end if;
+ begin
+  perform public.submit_school_subscription_payment(invoice,'CI-SUB-OTHER-SCHOOL');
+  raise exception 'other school submitted subscription payment';
+ exception when others then if sqlerrm<>'subscription_invoice_not_pending' then raise;end if;end;
+ begin
+  perform public.save_subscription_payment_method('moncash','Hijacked recipient','+50937000003',true);
+  raise exception 'school owner changed platform destination';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ perform public.submit_school_subscription_payment(invoice,'CI-SUB-001');
+ reset role;
+ if exists(select 1 from private.school_paid_subscriptions where school_id='10000000-0000-0000-0000-000000000001') then
+  raise exception 'payment claim activated subscription';
+ end if;
+ set local role authenticated;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000009',true);
+ begin
+  perform public.review_school_subscription_payment(invoice,true,1950,'HTG','CI bank transaction verified');
+  raise exception 'school owner activated subscription';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ begin
+  perform public.review_school_subscription_payment(invoice,true,1950,'USD','CI wrong currency');
+  raise exception 'wrong currency activated subscription';
+ exception when others then if sqlerrm<>'subscription_payment_mismatch' then raise;end if;end;
+ begin
+  perform public.review_school_subscription_payment(invoice,true,1900,'HTG','CI wrong amount');
+  raise exception 'wrong amount activated subscription';
+ exception when others then if sqlerrm<>'subscription_payment_mismatch' then raise;end if;end;
+ perform public.review_school_subscription_payment(invoice,true,1950,'HTG','CI provider transaction verified');
+ begin
+  perform public.review_school_subscription_payment(invoice,true,1950,'HTG','CI repeated approval');
+  raise exception 'repeat review extended subscription';
+ exception when others then if sqlerrm<>'subscription_invoice_not_submitted' then raise;end if;end;
+ reset role;
+ if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance')
+ or private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') then
+  raise exception 'paid subscription module boundaries incorrect';
+ end if;
+ select ends_at into first_end from private.school_paid_subscriptions where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
+ renewal:=public.create_school_subscription_invoice('attendance','HTG','yearly','moncash');
+ begin
+  perform public.submit_school_subscription_payment(renewal,' ci-sub-001 ');
+  raise exception 'transaction reference reused';
+ exception when others then if sqlerrm<>'subscription_reference_used' then raise;end if;end;
+ perform public.submit_school_subscription_payment(renewal,'CI-SUB-002');
+ perform public.review_school_subscription_payment(renewal,true,19500,'HTG','CI annual renewal verified');
+ reset role;
+ if (select ends_at from private.school_paid_subscriptions where school_id='10000000-0000-0000-0000-000000000001')<>first_end+interval '1 year' then
+  raise exception 'renewal lost the remaining subscription period';
+ end if;
+ set local role authenticated;
+ different_plan:=public.create_school_subscription_invoice('school','USD','monthly','paypal');
+ workspace:=public.school_subscription_billing_workspace();
+ if workspace->'invoices'->0->>'amount'<>'25.00' then raise exception 'USD subscription quote incorrect';end if;
+ perform public.submit_school_subscription_payment(different_plan,'CI-USD-SUB');
+ begin
+  perform public.review_school_subscription_payment(different_plan,true,25,'USD','CI plan change verified');
+  raise exception 'active paid plan replaced without commercial review';
+ exception when others then if sqlerrm<>'subscription_active_plan_change_requires_review' then raise;end if;end;
+ perform public.review_school_subscription_payment(different_plan,false,null,'USD','CI rejected pending commercial review');
+ different_plan:=public.create_school_subscription_invoice('school','USD','yearly','paypal');
+ perform public.cancel_school_subscription_invoice(different_plan);
+ different_plan:=public.create_school_subscription_invoice('school','USD','yearly','paypal');
+ reset role;
+ update private.school_subscription_invoices set expires_at=now()-interval '1 day' where id=different_plan;
+ set local role authenticated;
+ begin
+  perform public.submit_school_subscription_payment(different_plan,'CI-EXPIRED-SUB');
+  raise exception 'expired quote accepted payment submission';
+ exception when others then if sqlerrm<>'subscription_invoice_not_pending' then raise;end if;end;
+ reset role;
+ update private.school_paid_subscriptions set starts_at=now()-interval '2 months',ends_at=now()-interval '1 month'
+ where school_id='10000000-0000-0000-0000-000000000001';
+ if private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') then
+  raise exception 'expired paid subscription regained grandfather access';
+ end if;
+ update private.subscription_billing_operators set enabled=false;
+ set local role authenticated;
+ if public.subscription_billing_operator() then raise exception 'disabled platform operator retained access';end if;
+ begin
+  perform public.subscription_billing_admin_workspace();
+  raise exception 'disabled operator read billing';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ reset role;
+end
+$subscription_billing_test$;
+
 rollback;

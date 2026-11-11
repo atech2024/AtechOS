@@ -337,22 +337,24 @@ end $$;
 
 create function public.review_school_subscription_payment(p_invoice uuid,p_approve boolean,p_verified_amount numeric,p_currency text,p_note text) returns void
 language plpgsql security definer set search_path='' as $$
-declare invoice private.school_subscription_invoices; current_subscription private.school_paid_subscriptions; period_start timestamptz;
+declare invoice private.school_subscription_invoices; current_subscription private.school_paid_subscriptions; period_start timestamptz; invoice_school uuid;
 begin
  if not public.subscription_billing_operator() then raise exception 'not_authorized';end if;
  if p_approve is null or p_note is null or char_length(trim(p_note)) not between 5 and 1200 then raise exception 'subscription_review_note_required';end if;
+ select school_id into invoice_school from private.school_subscription_invoices where id=p_invoice;
+ if not found then raise exception 'subscription_invoice_not_submitted';end if;
+ perform 1 from public.schools where id=invoice_school for update;
  select * into invoice from private.school_subscription_invoices where id=p_invoice for update;
  if not found or invoice.status<>'submitted' then raise exception 'subscription_invoice_not_submitted';end if;
  if p_approve then
   if p_verified_amount is null or p_verified_amount<>invoice.amount or p_currency is distinct from invoice.currency then
    raise exception 'subscription_payment_mismatch';
   end if;
-  perform 1 from public.schools where id=invoice.school_id for update;
   select * into current_subscription from private.school_paid_subscriptions where school_id=invoice.school_id;
   if found and current_subscription.ends_at>clock_timestamp() and current_subscription.plan<>invoice.plan then
    raise exception 'subscription_active_plan_change_requires_review';
   end if;
-  period_start:=greatest(clock_timestamp(),current_subscription.ends_at,
+  period_start:=greatest(statement_timestamp(),current_subscription.ends_at,
    (select ends_at from private.school_subscription_trials where school_id=invoice.school_id));
   insert into private.school_paid_subscriptions(school_id,plan,starts_at,ends_at,invoice_id)
   values(invoice.school_id,invoice.plan,period_start,

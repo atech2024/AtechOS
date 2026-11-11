@@ -148,7 +148,7 @@ export default function SchoolSubscriptionBilling({ operator = false }: { operat
  }
  useEffect(() => {
   let active = true
-  createClient().rpc(operator ? 'subscription_billing_admin_workspace' : 'school_subscription_billing_workspace').then(({ data, error }) => {
+  Promise.resolve(createClient().rpc(operator ? 'subscription_billing_admin_workspace' : 'school_subscription_billing_workspace')).then(({ data, error }) => {
    if (!active) return
    if (error) showError(error)
    else setWorkspace(data as Workspace)

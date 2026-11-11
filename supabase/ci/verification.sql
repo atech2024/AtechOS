@@ -406,6 +406,12 @@ $kiosk_schedule_ci$;
 
 -- Test the school trial with synthetic school records in the enclosing rollback.
 update public.schools set owner_user_id='20000000-0000-0000-0000-000000000008' where id='10000000-0000-0000-0000-000000000001';
+create temporary table trial_grade_probe (school_id uuid, marker integer);
+insert into trial_grade_probe values ('10000000-0000-0000-0000-000000000001',1);
+create trigger trial_grade_probe_guard
+after insert or update or delete on trial_grade_probe
+for each row execute function private.enforce_trial_school_write();
+
 do $trial_test$
 declare first_plan jsonb; switched jsonb; denied boolean:=false; rejected boolean:=false;
 begin
@@ -413,6 +419,27 @@ begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
  set local role authenticated;
  first_plan:=public.choose_school_trial_plan('attendance');
+ reset role;
+ begin
+  update trial_grade_probe set marker=2;
+  raise exception 'attendance plan allowed a grade update';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
+ begin
+  delete from trial_grade_probe;
+  raise exception 'attendance plan allowed a grade deletion';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
+ begin
+  insert into trial_grade_probe values('10000000-0000-0000-0000-000000000001',3);
+  raise exception 'attendance plan allowed a grade insertion';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
+ set local role authenticated;
+
  reset role;
  begin
   insert into public.bulletin_versions(school_id,student_id,class_id,period_id,version,payload)
@@ -434,6 +461,10 @@ begin
  if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') or private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') then raise exception 'attendance trial scope incorrect';end if;
  set local role authenticated;
  perform public.choose_school_trial_plan('school');
+ reset role;
+ update trial_grade_probe set marker=2;
+ if not exists(select 1 from trial_grade_probe where marker=2) then raise exception 'school plan must allow grade changes';end if;
+ set local role authenticated;
  reset role;
  if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','school') or private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') then raise exception 'school trial scope incorrect';end if;
  set local role authenticated;

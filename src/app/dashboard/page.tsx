@@ -25,6 +25,7 @@ import { T } from '@/components/translation-provider'
 import { cookies } from 'next/headers'
 import { localeFrom } from '@/lib/i18n'
 import { permittedNavigation, type NavigationItem } from '@/lib/navigation'
+import { isSchoolSubscriptionsEnabled } from '@/lib/school-subscriptions-feature'
 
 const rolePriority = ['school_admin', 'director', 'censeur', 'secretary', 'surveillant', 'teacher', 'parent']
 const preferredRoutes: Record<string, string[]> = {
@@ -90,6 +91,21 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const roles: string[] = Array.isArray(context.data?.roles) ? context.data.roles : []
   if (roles.includes('accountant')) redirect('/dashboard/finance')
 
+  const subscriptionsEnabled = isSchoolSubscriptionsEnabled()
+  const trialResponse = subscriptionsEnabled && context.data?.owner && roles.includes('school_admin')
+    ? await db.rpc('school_subscription_trial')
+    : null
+  const trial = trialResponse && !trialResponse.error && trialResponse.data
+    ? trialResponse.data as { plan: string; ends_at: string; active: boolean }
+    : null
+  const trialDaysRemaining = trial?.active
+    ? Math.max(0, Math.ceil((Date.parse(trial.ends_at) - Date.now()) / 86_400_000))
+    : 0
+  const trialPlanLabels: Record<string, string> = {
+    attendance: 'Attendance plan',
+    school: 'School plan',
+    school_finance: 'School + Finance plan',
+  }
   const visibleNavigation = permittedNavigation(roles, Boolean(context.data?.owner))
   const actions = dashboardActions(roles, Boolean(context.data?.owner), visibleNavigation)
   const data = summary.data
@@ -110,6 +126,25 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           {data?.date && schoolDate(data.date, locale)} · <T text={data?.school_scope ? 'School overview' : 'Your authorized records'} />
         </p>
       </header>
+
+      {trial && (
+        <section aria-labelledby="school-trial-status" className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-sky-50 p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="rounded-xl bg-blue-100 p-3 text-blue-700"><CalendarDays size={21} aria-hidden="true" /></span>
+              <div>
+                <h2 id="school-trial-status" className="font-semibold text-slate-950"><T text={trial.active && trialDaysRemaining > 0 ? 'Your school trial is active' : 'This school's trial has ended.'} /></h2>
+                {trial.active && trialDaysRemaining > 0 ? (
+                  <p className="mt-1 text-sm text-slate-600"><strong className="text-blue-800">{trialDaysRemaining} <T text="days remaining" /></strong> · <T text={trialPlanLabels[trial.plan] || 'School plan'} /></p>
+                ) : <p className="mt-1 text-sm text-slate-600"><T text="Choose a subscription to keep the school modules active." /></p>}
+              </div>
+            </div>
+            <Link href={selectedYear ? `/dashboard/settings?year=${encodeURIComponent(selectedYear)}` : '/dashboard/settings'} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white transition hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">
+              <T text="Manage trial and subscription" />
+            </Link>
+          </div>
+        </section>
+      )}
 
       {summary.error ? (
         <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4"><T text="Unable to load dashboard totals." /></p>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { T, useLocale } from '@/components/translation-provider'
 import { schoolPlanIds, type SchoolPlanId } from '@/lib/subscription-pricing'
 import { schoolDateTime } from '@/lib/school-date'
@@ -20,8 +20,16 @@ export default function SchoolTrialSettings({ initialTrial }: { initialTrial: Tr
  const [busy, setBusy] = useState(false)
  const [error, setError] = useState('')
  const [saved, setSaved] = useState(false)
- const expired = trial?.active === false
+ const [now, setNow] = useState(() => Date.now())
+ const expired = trial?.active === false || Boolean(trial && Date.parse(trial.ends_at) <= now)
+ const daysRemaining = trial && !expired ? Math.max(0, Math.ceil((Date.parse(trial.ends_at) - now) / 86_400_000)) : 0
 
+ useEffect(() => {
+  const timer = window.setInterval(() => setNow(Date.now()), 60_000)
+  return () => window.clearInterval(timer)
+ }, [])
+
+ // Keep the displayed countdown aligned with the persisted one-time trial deadline.
  async function save(event: FormEvent<HTMLFormElement>) {
   event.preventDefault()
   if (busy || expired) return
@@ -47,9 +55,11 @@ export default function SchoolTrialSettings({ initialTrial }: { initialTrial: Tr
  return <section aria-labelledby="school-trial-title" className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
   <div>
    <h2 id="school-trial-title" className="text-xl font-semibold text-slate-950"><T text="30-day school trial"/></h2>
-   <p className="mt-1 text-sm text-slate-600"><T text="Trial preview. Plan selection does not yet change module access."/></p>
+   {trial
+    ? <p className="mt-1 text-sm text-slate-600"><T text="The selected offer controls which modules are active during the trial. Changing offers does not reset the original end date."/></p>
+    : <p className="mt-1 text-sm text-slate-600"><T text="Choose a plan to start the school’s one-time 30-day trial."/></p>}
   </div>
-  {trial && <p className="text-sm"><T text="Trial ends"/> · <time dateTime={trial.ends_at}>{schoolDateTime(trial.ends_at, locale)}</time></p>}
+  {trial && <p className="text-sm"><T text={expired ? 'Trial ended' : 'Trial ends'}/> · <time dateTime={trial.ends_at}>{schoolDateTime(trial.ends_at, locale)}</time>{!expired && <span> · <strong>{daysRemaining}</strong> <T text="days remaining"/></span>}</p>}
   {expired ? <p role="status"><T text="This school's trial has ended."/></p> : <form onSubmit={save} className="flex flex-wrap items-end gap-3">
    <label className="grid gap-1 text-sm font-medium">
     <T text="Trial plan"/>

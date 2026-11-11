@@ -23,7 +23,7 @@ end $$;
 revoke all on function private.school_trial_owner_id() from public,anon,authenticated;
 
 create function public.school_subscription_trial() returns jsonb
-language plpgsql stable security definer set search_path='' as $
+language plpgsql stable security definer set search_path='' as $$
 declare
  sid uuid:=private.school_trial_owner_id();
  trial_status jsonb;
@@ -33,7 +33,7 @@ begin
  from private.school_subscription_trials t
  where t.school_id=sid;
  return trial_status;
-end $;
+end $$;
 
 create function public.choose_school_trial_plan(p_plan text) returns jsonb
 language plpgsql security definer set search_path='' as $$

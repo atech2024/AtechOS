@@ -434,3 +434,34 @@ begin
  if nullif(p_new_pin,'') is not null and p_new_pin !~ '^[0-9]{6,12}$' then return jsonb_build_object('error','invalid_pin');end if;
  return jsonb_build_object('ok',true);
 end $$;
+
+-- Assignment relations mirror the audited tenant and parent keys so the general
+-- plan tests exercise real parent/receipt writes and cascading deletion.
+-- Teacher/student API authorization remains covered by the separate fixtures.
+create table public.assignments (
+ id uuid primary key default gen_random_uuid(),
+ school_id uuid not null references public.schools(id),
+ class_id uuid not null references public.classes(id),
+ subject_id uuid references public.subjects(id),
+ teacher_id uuid references public.users(id),
+ title text not null,
+ description text,
+ due_at timestamptz,
+ attachment_url text,
+ created_at timestamptz not null default now(),
+ grading_period_id uuid references public.grading_periods(id),
+ max_score numeric,
+ online_submission boolean not null default false
+);
+create table public.assignment_receipts (
+ assignment_id uuid not null references public.assignments(id) on delete cascade,
+ student_id uuid not null references public.students(id) on delete cascade,
+ received_at timestamptz not null default now(),
+ source text not null check(source in ('teacher','online')),
+ recorded_by uuid references public.users(id),
+ response text,
+ primary key(assignment_id,student_id)
+);
+alter table public.assignments enable row level security;
+alter table public.assignment_receipts enable row level security;
+revoke all on public.assignments,public.assignment_receipts from public,anon,authenticated;

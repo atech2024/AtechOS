@@ -13,6 +13,10 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 
 ### Subscription plans and trial lifecycle — 2026-11-11
 
+- Pedagogical plan follow-up reuses the existing AFTER-write guard on tenant-scoped teaching configuration, assignments, exam scheduling/submissions, and Preschool evaluation records. Receipt and exam-version writes derive their school from the parent record. Parent deletion and receipt cascades are covered together so a denied delete rolls back the entire operation.
+- The general SQL fixture now includes assignment/receipt relations matching the audited parent keys. Behavioral cases exercise assignment/receipt updates, permitted and rejected cascading deletion, and the existing authenticated Preschool competency RPC under Attendance, School, and expired trials. Full teacher/student API authorization remains covered by separate fixtures; combined plan coverage for numeric grades, exam versions and file storage still needs verification. New-school trial enrollment and attendance-expiry safety also remain open before public activation.
+
+
 - Subscription billing follow-up adds server-priced HTG/USD invoices, immutable recipient snapshots, one open invoice per school, duplicate transaction-reference protection, and a separate platform operator permission. A submitted reference does not activate a subscription. An operator must verify the received amount/currency and record a note before approval. Renewals preserve remaining time and annual billing charges ten monthly payments for a one-year period. Mid-period paid-plan changes require a commercial review.
 - School settings and the separate operator screen remain behind the existing Preview flag. Operator membership and payment destinations must be configured privately after deployment. No real recipient account details are stored in repository source. SQL and UI validation for this follow-up are pending.
 

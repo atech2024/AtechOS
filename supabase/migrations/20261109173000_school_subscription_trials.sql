@@ -408,3 +408,61 @@ grant execute on function public.subscription_billing_operator(),public.school_s
  public.submit_school_subscription_payment(uuid,text),public.subscription_billing_admin_workspace(),
  public.save_subscription_payment_method(text,text,text,boolean),
  public.review_school_subscription_payment(uuid,boolean,numeric,text,text) to authenticated;
+
+-- Apply the shared plan rule to pedagogical writes, including privileged RPCs.
+-- Older/reduced CI schemas may omit a relation or its tenant column.
+do $school_plan_tables$
+declare target text;
+begin
+ foreach target in array array[
+  'assignments','subjects','class_subjects','school_grading_settings','grading_periods',
+  'exam_schedule','teacher_exam_submissions','grade_corrections','grade_deadline_exceptions',
+  'preschool_competencies','preschool_evaluations','preschool_student_remarks',
+  'preschool_program_settings','confirmed_official_exam_dates'
+ ] loop
+  if exists(select 1 from information_schema.columns
+   where table_schema='public' and table_name=target and column_name='school_id') then
+   execute format('create trigger trial_school_write_guard after insert or update or delete on public.%I for each row execute function private.enforce_trial_school_write()',target);
+  end if;
+ end loop;
+end
+$school_plan_tables$;
+
+-- Receipt/version rows inherit the plan from their parent rather than accepting
+-- a tenant identifier from the caller.
+create function private.enforce_trial_related_school_write() returns trigger
+language plpgsql security definer set search_path='' as $$
+declare sid uuid;
+begin
+ if tg_op<>'INSERT' then
+  execute format('select school_id from public.%I where id=$1',tg_argv[0])
+  into sid using (to_jsonb(old)->>tg_argv[1])::uuid;
+  -- A parent cascade may have already removed the parent. Its own AFTER
+  -- trigger still checks the plan and rolls back the entire delete if denied.
+  if (sid is not null or tg_op<>'DELETE') and not private.school_trial_allows_write(sid,'school') then
+   raise exception 'school_plan_write_restricted';
+  end if;
+ end if;
+ if tg_op<>'DELETE' then
+  execute format('select school_id from public.%I where id=$1',tg_argv[0])
+  into sid using (to_jsonb(new)->>tg_argv[1])::uuid;
+  if not private.school_trial_allows_write(sid,'school') then raise exception 'school_plan_write_restricted';end if;
+ end if;
+ return null;
+end $$;
+revoke all on function private.enforce_trial_related_school_write() from public,anon,authenticated;
+
+do $school_plan_related_tables$
+declare target record;
+begin
+ for target in select * from (values
+  ('assignment_receipts','assignments','assignment_id'),
+  ('exam_schedule_versions','exam_schedule','exam_id')
+ ) as guards(child,parent,foreign_key) loop
+  if exists(select 1 from information_schema.columns
+   where table_schema='public' and table_name=target.child and column_name=target.foreign_key) then
+   execute format('create trigger trial_related_school_write_guard after insert or update or delete on public.%I for each row execute function private.enforce_trial_related_school_write(%L,%L)',target.child,target.parent,target.foreign_key);
+  end if;
+ end loop;
+end
+$school_plan_related_tables$;

@@ -412,8 +412,14 @@ create trigger trial_grade_probe_guard
 after insert or update or delete on trial_grade_probe
 for each row execute function private.enforce_trial_school_write();
 
+insert into public.assignments(id,school_id,class_id,title)
+values('a0000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',
+ '40000000-0000-0000-0000-000000000001','CI trial assignment');
+insert into public.assignment_receipts(assignment_id,student_id,source)
+values('a0000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','teacher');
+
 do $trial_test$
-declare first_plan jsonb; switched jsonb; denied boolean:=false; rejected boolean:=false;
+declare first_plan jsonb; switched jsonb; denied boolean:=false; rejected boolean:=false; competency uuid;
 begin
  if has_function_privilege('anon','public.choose_school_trial_plan(text)','execute') then raise exception 'anonymous trial write';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
@@ -430,6 +436,28 @@ begin
  end if;
  first_plan:=public.choose_school_trial_plan('attendance');
  reset role;
+ begin
+  update public.assignments set title='Disallowed change' where id='a0000000-0000-0000-0000-000000000001';
+  raise exception 'attendance plan changed an assignment';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ begin
+  update public.assignment_receipts set response='Disallowed receipt change' where assignment_id='a0000000-0000-0000-0000-000000000001';
+  raise exception 'attendance plan changed an assignment receipt';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ begin
+  delete from public.assignments where id='a0000000-0000-0000-0000-000000000001';
+  raise exception 'attendance plan deleted an assignment';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ if not exists(select 1 from public.assignment_receipts where assignment_id='a0000000-0000-0000-0000-000000000001') then
+  raise exception 'rejected parent delete lost its receipt';
+ end if;
+ set local role authenticated;
+ begin
+  perform public.save_preschool_competency(null,'PS1','language','CI blocked trial competency',true);
+  raise exception 'attendance plan created a competency through the RPC';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ reset role;
+
  begin
   update trial_grade_probe set marker=2;
   raise exception 'attendance plan allowed a grade update';
@@ -471,7 +499,15 @@ begin
  if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') or private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') then raise exception 'attendance trial scope incorrect';end if;
  set local role authenticated;
  perform public.choose_school_trial_plan('school');
+ competency:=public.save_preschool_competency(null,'PS1','language','CI allowed trial competency',true);
+ perform public.save_preschool_competency(competency,'PS1','language','CI updated trial competency',true);
  reset role;
+ update public.assignments set title='Allowed school plan change' where id='a0000000-0000-0000-0000-000000000001';
+ update public.assignment_receipts set response='Allowed school plan receipt' where assignment_id='a0000000-0000-0000-0000-000000000001';
+ delete from public.assignments where id='a0000000-0000-0000-0000-000000000001';
+ if exists(select 1 from public.assignment_receipts where assignment_id='a0000000-0000-0000-0000-000000000001') then
+  raise exception 'allowed assignment delete did not cascade';
+ end if;
  update trial_grade_probe set marker=2;
  if not exists(select 1 from trial_grade_probe where marker=2) then raise exception 'school plan must allow grade changes';end if;
  set local role authenticated;
@@ -492,6 +528,20 @@ begin
  reset role;
  if private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') then raise exception 'expired trial must be read-only';end if;
  set local role authenticated;
+ begin
+  perform public.save_preschool_competency(competency,'PS1','language','CI expired trial edit',true);
+  raise exception 'expired trial changed a competency through the RPC';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ reset role;
+ if not exists(select 1 from public.preschool_competencies where id=competency and label='CI updated trial competency') then
+  raise exception 'rejected competency update changed its saved value';
+ end if;
+ begin
+  delete from public.preschool_competencies where id=competency;
+  raise exception 'expired trial deleted a competency';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ set local role authenticated;
+
  begin
   perform public.create_finance_fee_plan(null,null,'invalid','', '[]'::jsonb);
   raise exception 'fee plan probe must fail';

@@ -581,10 +581,14 @@ $trial_test$;
 
 -- All subscription billing fixtures are synthetic and roll back.
 
- -- Trial/paid school stays at or below the 150 active-student tier.
+ -- Reach exactly 150 despite other test cases adding students to this school.
+ select count(*) into existing_active from public.students
+ where school_id='10000000-0000-0000-0000-000000000001' and active and school_status='active';
+ additions:=150-existing_active;
+ if additions<1 then raise exception 'CI school unexpectedly starts at the capacity boundary';end if;
  insert into public.students(id,school_id,first_name,last_name,atechos_id)
  select gen_random_uuid(),'10000000-0000-0000-0000-000000000001',
-  'Capacity','CI '||n,'CI-CAPACITY-'||n from generate_series(1,149) n;
+  'Capacity','CI '||n,'CI-CAPACITY-'||n from generate_series(1,additions) n;
  begin
   insert into public.students(id,school_id,first_name,last_name,atechos_id)
   values(gen_random_uuid(),'10000000-0000-0000-0000-000000000001','Capacity','Over','CI-CAPACITY-OVER');
@@ -592,12 +596,12 @@ $trial_test$;
  exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
  -- Inactive departures free capacity, after which one new active student fits.
  update public.students set active=false where school_id='10000000-0000-0000-0000-000000000001'
- and atechos_id='CI-CAPACITY-149';
+ and atechos_id='CI-CAPACITY-'||additions;
  insert into public.students(id,school_id,first_name,last_name,atechos_id)
  values(gen_random_uuid(),'10000000-0000-0000-0000-000000000001','Capacity','Replacement','CI-CAPACITY-REPLACEMENT');
  begin
   update public.students set active=true where school_id='10000000-0000-0000-0000-000000000001'
-  and atechos_id='CI-CAPACITY-149';
+  and atechos_id='CI-CAPACITY-'||additions;
   raise exception 'reactivation exceeded 150 active students';
  exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
 
@@ -610,7 +614,7 @@ update public.schools set owner_user_id='20000000-0000-0000-0000-000000000009'
 where id='10000000-0000-0000-0000-000000000002';
 
 do $subscription_billing_test$
-declare invoice uuid; renewal uuid; different_plan uuid; workspace jsonb; first_end timestamptz; failed boolean;
+declare invoice uuid; renewal uuid; different_plan uuid; workspace jsonb; first_end timestamptz; failed boolean; existing_active integer; additions integer;
 begin
  if has_function_privilege('anon','public.create_school_subscription_invoice(text,text,text,text)','execute')
  or has_table_privilege('authenticated','private.school_subscription_invoices','select')

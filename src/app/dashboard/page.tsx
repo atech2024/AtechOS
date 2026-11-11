@@ -133,7 +133,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             <div className="flex items-start gap-3">
               <span className="rounded-xl bg-blue-100 p-3 text-blue-700"><CalendarDays size={21} aria-hidden="true" /></span>
               <div>
-                <h2 id="school-trial-status" className="font-semibold text-slate-950"><T text={trial.active && trialDaysRemaining > 0 ? 'Your school trial is active' : 'This school's trial has ended.'} /></h2>
+                <h2 id="school-trial-status" className="font-semibold text-slate-950"><T text={trial.active && trialDaysRemaining > 0 ? 'Your school trial is active' : `This school's trial has ended.`} /></h2>
                 {trial.active && trialDaysRemaining > 0 ? (
                   <p className="mt-1 text-sm text-slate-600"><strong className="text-blue-800">{trialDaysRemaining} <T text="days remaining" /></strong> · <T text={trialPlanLabels[trial.plan] || 'School plan'} /></p>
                 ) : <p className="mt-1 text-sm text-slate-600"><T text="Choose a subscription to keep the school modules active." /></p>}

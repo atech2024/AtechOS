@@ -584,7 +584,7 @@ $trial_test$;
  -- Trial/paid school stays at or below the 150 active-student tier.
  insert into public.students(id,school_id,first_name,last_name,atechos_id)
  select gen_random_uuid(),'10000000-0000-0000-0000-000000000001',
-  'Capacity','CI '||n,'CI-CAPACITY-'||n from generate_series(1,146) n;
+  'Capacity','CI '||n,'CI-CAPACITY-'||n from generate_series(1,149) n;
  begin
   insert into public.students(id,school_id,first_name,last_name,atechos_id)
   values(gen_random_uuid(),'10000000-0000-0000-0000-000000000001','Capacity','Over','CI-CAPACITY-OVER');
@@ -592,12 +592,12 @@ $trial_test$;
  exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
  -- Inactive departures free capacity, after which one new active student fits.
  update public.students set active=false where school_id='10000000-0000-0000-0000-000000000001'
- and atechos_id='CI-CAPACITY-146';
+ and atechos_id='CI-CAPACITY-149';
  insert into public.students(id,school_id,first_name,last_name,atechos_id)
  values(gen_random_uuid(),'10000000-0000-0000-0000-000000000001','Capacity','Replacement','CI-CAPACITY-REPLACEMENT');
  begin
   update public.students set active=true where school_id='10000000-0000-0000-0000-000000000001'
-  and atechos_id='CI-CAPACITY-146';
+  and atechos_id='CI-CAPACITY-149';
   raise exception 'reactivation exceeded 150 active students';
  exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
 

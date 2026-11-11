@@ -11,6 +11,15 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 - No database or RLS changes are in scope for BUILD 01. The topbar reads the existing current academic-year label when available; year selection and applying a selected year across domains belong to BUILD 03.
 - Supabase schema, RLS, functions, and migrations must be re-audited before builds that change or depend on them. Build 01 does not write school data.
 
+### Subscription plans and trial lifecycle — 2026-11-11
+
+- Status `IN PROGRESS`. Draft PR #188 implements a private, one-time 720-hour trial for the selected plan. Changing plans preserves the original expiration. Existing schools without a trial retain their current behavior.
+- Commit `c65d496` passed application/build and isolated database checks. Database coverage includes trial expiration, plan switching, restricted finance operations, bulletin publication, and insert/update/delete behavior through a synthetic grade trigger table. The reduced database fixture does not validate the real numeric-grades table and its RLS together.
+- Follow-up `9a42800` makes trial-status ownership authorization unconditional, including before any trial exists, and adds authorized-empty/unauthorized-read regression cases. Its checks are pending at this documentation checkpoint.
+- Implementation, CI, Preview behavior, and Production activation remain separate. The trial interface is Preview-only and flag-controlled. This trial migration has not been applied to Production.
+- Remaining acceptance work includes the complete module write-boundary inventory, paid subscription activation and renewal, server-side student limits, authenticated plan/trial walkthroughs, and safe handling of attendance after expiry. Recording a child's departure or authorized pickup must remain available.
+- Next priority is to finish and behaviorally verify these boundaries before enabling trial activation for customers.
+
 ### UX research applied
 
 - Observed pattern: the Fluent 2 navigation guidance groups sub-items by related app sections and keeps long navigation content in a scrollable region; the Atlassian navigation system separates persistent header, scrollable body, and footer, and overlays the side navigation below desktop widths. Why it helps: staff can find a work area without scanning one long undifferentiated list, while identity and sign-out remain in stable locations. KIOS implementation: use capability-filtered domain groups, a scrollable nav body, fixed brand/logout areas, and a responsive overlay, while retaining AtechOS colors, labels, and icons. References: [Fluent 2 Nav usage](https://fluent2.microsoft.design/components/web/react/core/nav/usage), [Atlassian navigation layout](https://atlassian.design/components/navigation-system/layout).

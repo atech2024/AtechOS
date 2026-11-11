@@ -580,6 +580,27 @@ $trial_test$;
 
 
 -- All subscription billing fixtures are synthetic and roll back.
+
+ -- Trial/paid school stays at or below the 150 active-student tier.
+ insert into public.students(id,school_id,first_name,last_name,atechos_id)
+ select gen_random_uuid(),'10000000-0000-0000-0000-000000000001',
+  'Capacity','CI '||n,'CI-CAPACITY-'||n from generate_series(1,146) n;
+ begin
+  insert into public.students(id,school_id,first_name,last_name,atechos_id)
+  values(gen_random_uuid(),'10000000-0000-0000-0000-000000000001','Capacity','Over','CI-CAPACITY-OVER');
+  raise exception 'subscribed school exceeded 150 active students';
+ exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
+ -- Inactive departures free capacity, after which one new active student fits.
+ update public.students set active=false where school_id='10000000-0000-0000-0000-000000000001'
+ and atechos_id='CI-CAPACITY-146';
+ insert into public.students(id,school_id,first_name,last_name,atechos_id)
+ values(gen_random_uuid(),'10000000-0000-0000-0000-000000000001','Capacity','Replacement','CI-CAPACITY-REPLACEMENT');
+ begin
+  update public.students set active=true where school_id='10000000-0000-0000-0000-000000000001'
+  and atechos_id='CI-CAPACITY-146';
+  raise exception 'reactivation exceeded 150 active students';
+ exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
+
 insert into private.subscription_billing_operators(user_id)
 values('20000000-0000-0000-0000-000000000008');
 insert into public.users(id,full_name) values('20000000-0000-0000-0000-000000000009','Other School Owner');

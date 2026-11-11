@@ -622,3 +622,36 @@ create policy subscription_storage_update on storage.objects
 as restrictive for update to authenticated
 using (private.subscription_storage_write_allowed(bucket_id,name))
 with check (private.subscription_storage_write_allowed(bucket_id,name));
+
+-- The quoted 150-student launch tier is enforced at the tenant data boundary,
+-- including direct writes and concurrent admissions, for subscribed schools.
+create function private.enforce_subscription_student_capacity() returns trigger
+language plpgsql security definer set search_path='' as $$
+declare sid uuid; was_counted boolean:=false; is_counted boolean;
+begin
+ is_counted:=coalesce(new.active,false) and new.school_status='active';
+ if tg_op='UPDATE' then
+  was_counted:=coalesce(old.active,false) and old.school_status='active' and old.school_id=new.school_id;
+  if was_counted or not is_counted then return new;end if;
+ end if;
+ if not is_counted then return new;end if;
+ sid:=new.school_id;
+ if auth.uid() is not null and not exists(select 1 from public.school_members
+  where school_id=sid and user_id=auth.uid() and enabled) then
+  raise exception 'school_membership_required';end if;
+ if not exists(select 1 from private.school_subscription_trials where school_id=sid)
+ and not exists(select 1 from private.school_paid_subscriptions where school_id=sid) then
+  return new;
+ end if;
+ perform 1 from public.schools where id=sid for update;
+ if (select count(*) from public.students
+  where school_id=sid and active and school_status='active'
+   and (tg_op<>'UPDATE' or id<>old.id))>=150 then
+  raise exception 'subscription_quote_required';
+ end if;
+ return new;
+end $$;
+revoke all on function private.enforce_subscription_student_capacity() from public,anon,authenticated;
+create trigger subscription_student_capacity
+before insert or update of school_id,active,school_status on public.students
+for each row execute function private.enforce_subscription_student_capacity();

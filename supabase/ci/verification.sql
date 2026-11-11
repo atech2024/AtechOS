@@ -190,8 +190,16 @@ begin
  if not exists(select 1 from jsonb_array_elements(ps_staff_labels) as staff_label(value)
      where staff_label.value->>'id'='20000000-0000-0000-0000-000000000004' and staff_label.value->>'label'='Enseignante titulaire')
    or ps_staff_labels::text like '%sex%' then raise exception 'staff gendered label or profile privacy contract failed';end if;
- perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','late');
- if not exists(select 1 from public.attendance_events where student_id='50000000-0000-0000-0000-000000000001' and actor_role='teacher' and action='late') then raise exception 'Kind coordinator attendance action was not attributed';end if;
+ failed:=false;
+ begin perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','late');
+ exception when others then failed:=sqlerrm='attendance_already_complete';end;
+ if not failed then raise exception 'Kind coordinator changed a completed pickup attendance';end if;
+ insert into public.students(id,school_id,first_name,last_name,atechos_id)
+ values('b5000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','Coordinator','Attendance CI','CI-COORDINATOR-ATTENDANCE');
+ insert into public.enrollments(id,school_id,student_id,class_id,status)
+ values('b6000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','b5000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002','active');
+ perform public.staff_mark_attendance('b5000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002','late');
+ if not exists(select 1 from public.attendance_events where student_id='b5000000-0000-0000-0000-000000000001' and actor_role='teacher' and action='late') then raise exception 'Kind coordinator attendance action was not attributed';end if;
  failed:=false;begin perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000006','40000000-0000-0000-0000-000000000006','present');exception when others then failed:=sqlerrm='not_authorized';end;
  if not failed then raise exception 'Kind coordinator marked non-Kind attendance';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
@@ -363,7 +371,7 @@ begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
  update public.attendance set status='late',late_minutes=8 where id='80000000-0000-0000-0000-000000000001';
  summary:=public.dashboard_summary();
- if summary->>'present'<>'1' or summary->>'late'<>'1' then raise exception 'school-wide present total must include late arrivals and expose lateness as a subset: %',summary;end if;
+ if summary->>'present'<>'2' or summary->>'late'<>'2' then raise exception 'school-wide present total must include late arrivals and expose lateness as a subset: %',summary;end if;
  perform public.activate_school_section('11000000-0000-0000-0000-000000000001','primary',true);
  select id into nonpreschool_class from public.classes where school_id='10000000-0000-0000-0000-000000000001' and (grade_level_id='30000000-0000-0000-0000-000000000002' or grade_level='AF1') and academic_year_id='11000000-0000-0000-0000-000000000001' limit 1;
  insert into public.students(id,school_id,first_name,last_name,atechos_id) values('50000000-0000-0000-0000-000000000007','10000000-0000-0000-0000-000000000001','Primary','CI','AOS-CI-KIOS');

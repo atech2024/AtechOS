@@ -935,4 +935,138 @@ begin
 end
 $attendance_subscription_expiry_test$;
 
+
+-- Exercise the added boundary on real storage.objects RLS, without broadening
+-- production permissions. Controlled permissive policies below exist only in
+-- this rollback transaction: the migration's restrictive policies must still win.
+insert into storage.buckets(id,name) values
+ ('assignment-files','assignment-files'),('teacher-exam-files','teacher-exam-files'),
+ ('finance-proofs','finance-proofs'),('ci-unrelated-files','ci-unrelated-files')
+on conflict(id) do nothing;
+grant select,insert,update on storage.objects to authenticated;
+create policy ci_subscription_storage_insert on storage.objects for insert to authenticated
+with check ((storage.foldername(name))[2]=auth.uid()::text
+ and private.has_role(((storage.foldername(name))[1])::uuid,array['school_admin','teacher','parent']));
+create policy ci_subscription_storage_read on storage.objects for select to authenticated
+using ((storage.foldername(name))[2]=auth.uid()::text);
+create policy ci_subscription_storage_update on storage.objects for update to authenticated
+using ((storage.foldername(name))[2]=auth.uid()::text)
+with check ((storage.foldername(name))[2]=auth.uid()::text);
+
+do $subscription_storage_test$
+declare
+ sid uuid:='10000000-0000-0000-0000-000000000001';
+ actor uuid:='20000000-0000-0000-0000-000000000008';
+ parent_actor uuid:='20000000-0000-0000-0000-000000000002';
+ other_sid uuid:='10000000-0000-0000-0000-000000000002';
+ bucket text; path text; existing_id uuid; changed integer;
+begin
+ if private.subscription_storage_write_allowed('assignment-files','invalid/path')
+ or private.subscription_storage_write_allowed('finance-proofs',null) then
+  raise exception 'malformed file path received plan access';end if;
+ if has_function_privilege('anon','private.subscription_storage_write_allowed(text,text)','execute') then
+  raise exception 'anonymous subscription storage helper access';end if;
+ perform set_config('request.jwt.claim.sub',actor::text,true);
+ update private.school_paid_subscriptions set plan='attendance',starts_at=now()-interval '1 day',ends_at=now()+interval '1 day'
+ where school_id=sid;
+ foreach bucket in array array['assignment-files','teacher-exam-files','finance-proofs'] loop
+  path:=sid::text||'/'||actor::text||'/attendance-denied-'||bucket;
+  set local role authenticated;
+  begin
+   insert into storage.objects(bucket_id,name) values(bucket,path);
+   raise exception 'Attendance plan accepted restricted file: %',bucket;
+  exception when insufficient_privilege then null;end;
+  reset role;
+ end loop;
+ update private.school_paid_subscriptions set plan='school' where school_id=sid;
+ foreach bucket in array array['assignment-files','teacher-exam-files'] loop
+  path:=sid::text||'/'||actor::text||'/school-allowed-'||bucket;
+  set local role authenticated;
+  insert into storage.objects(bucket_id,name) values(bucket,path);
+  reset role;
+ end loop;
+ set local role authenticated;
+ begin
+  insert into storage.objects(bucket_id,name) values('finance-proofs',sid::text||'/'||actor::text||'/school-finance-denied');
+  raise exception 'School plan accepted a finance proof';
+ exception when insufficient_privilege then null;end;
+ reset role;
+ update private.school_paid_subscriptions set plan='school_finance' where school_id=sid;
+ set local role authenticated;
+ insert into storage.objects(bucket_id,name) values('finance-proofs',sid::text||'/'||actor::text||'/finance-allowed');
+ -- UPDATE supports replacement only while the plan and original authorization allow it.
+ update storage.objects set metadata='{"ci":"active replacement"}'::jsonb
+ where bucket_id='assignment-files' and name=sid::text||'/'||actor::text||'/school-allowed-assignment-files';
+ get diagnostics changed=row_count;
+ if changed<>1 then raise exception 'active plan could not replace an authorized file';end if;
+ begin
+  insert into storage.objects(bucket_id,name) values('assignment-files',other_sid::text||'/'||actor::text||'/cross-school');
+  raise exception 'storage subscription guard accepted a nonmember tenant';
+ exception when insufficient_privilege then null;end;
+ begin
+  insert into storage.objects(bucket_id,name) values('assignment-files',sid::text||'/'||parent_actor::text||'/wrong-owner');
+  raise exception 'subscription entitlement replaced file ownership authorization';
+ exception when insufficient_privilege then null;end;
+ reset role;
+ perform set_config('request.jwt.claim.sub',parent_actor::text,true);
+ set local role authenticated;
+ insert into storage.objects(bucket_id,name) values('finance-proofs',sid::text||'/'||parent_actor::text||'/parent-allowed');
+ reset role;
+ perform set_config('request.jwt.claim.sub',actor::text,true);
+ update private.school_paid_subscriptions set ends_at=now()-interval '1 second' where school_id=sid;
+ set local role authenticated;
+ select id into existing_id from storage.objects
+ where bucket_id='assignment-files' and name=sid::text||'/'||actor::text||'/school-allowed-assignment-files';
+ if existing_id is null then raise exception 'expiry removed existing file read access';end if;
+ update storage.objects set metadata='{"ci":"expired replacement"}'::jsonb where id=existing_id;
+ get diagnostics changed=row_count;
+ if changed<>0 then raise exception 'expiry accepted file replacement';end if;
+ foreach bucket in array array['assignment-files','teacher-exam-files','finance-proofs'] loop
+  begin
+   insert into storage.objects(bucket_id,name) values(bucket,sid::text||'/'||actor::text||'/expired-'||bucket);
+   raise exception 'expired plan accepted a file: %',bucket;
+  exception when insufficient_privilege then null;end;
+ end loop;
+ -- A rename out of a guarded bucket cannot evade its old-row condition.
+ update storage.objects set bucket_id='ci-unrelated-files' where id=existing_id;
+ get diagnostics changed=row_count;
+ if changed<>0 then raise exception 'expired file moved out of a guarded bucket';end if;
+ -- Unrelated profile/photo buckets are outside this module rule.
+ insert into storage.objects(bucket_id,name) values('ci-unrelated-files',sid::text||'/'||actor::text||'/unaffected');
+ begin
+  update storage.objects set bucket_id='assignment-files'
+  where bucket_id='ci-unrelated-files' and name=sid::text||'/'||actor::text||'/unaffected';
+  raise exception 'expired file moved into a guarded bucket';
+ exception when insufficient_privilege then null;end;
+ reset role;
+ perform set_config('request.jwt.claim.sub',parent_actor::text,true);
+ set local role authenticated;
+ begin
+  insert into storage.objects(bucket_id,name) values('finance-proofs',sid::text||'/'||parent_actor::text||'/parent-expired');
+  raise exception 'expired plan accepted a parent proof';
+ exception when insufficient_privilege then null;end;
+ reset role;
+ perform set_config('request.jwt.claim.sub',actor::text,true);
+ update private.school_paid_subscriptions set ends_at=now()+interval '1 day' where school_id=sid;
+ update public.school_members set enabled=false where school_id=sid and user_id=actor;
+ set local role authenticated;
+ if private.subscription_storage_write_allowed('assignment-files',sid::text||'/'||actor::text||'/disabled') then
+  raise exception 'disabled membership retained storage plan access';end if;
+ reset role;
+ update public.school_members set enabled=true where school_id=sid and user_id=actor;
+ set local role authenticated;
+ update storage.objects set metadata='{"ci":"renewed"}'::jsonb where id=existing_id;
+ get diagnostics changed=row_count;
+ if changed<>1 then raise exception 'renewal did not restore permitted replacement';end if;
+ reset role;
+ perform set_config('request.jwt.claim.sub',parent_actor::text,true);
+ set local role authenticated;
+ begin
+  insert into storage.objects(bucket_id,name) values('assignment-files',sid::text||'/'||actor::text||'/parent-wrong-owner');
+  raise exception 'active paid plan bypassed original owner restriction';
+ exception when insufficient_privilege then null;end;
+ reset role;
+end
+$subscription_storage_test$;
+
 rollback;

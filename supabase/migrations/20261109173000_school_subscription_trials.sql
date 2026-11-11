@@ -592,3 +592,33 @@ begin
  end if;
 end
 $subscription_exam_capture$;
+
+-- Restrictive policies add a subscription boundary to the existing storage
+-- authorization. They never grant file access and do not affect reads/deletion.
+create function private.subscription_storage_write_allowed(p_bucket text,p_name text) returns boolean
+language plpgsql stable security definer set search_path='' as $$
+declare sid uuid; module_name text;
+begin
+ module_name:=case p_bucket
+  when 'assignment-files' then 'school'
+  when 'teacher-exam-files' then 'school'
+  when 'finance-proofs' then 'finance'
+  else null end;
+ if module_name is null then return true;end if;
+ if auth.uid() is null or coalesce(split_part(p_name,'/',1),'') !~*
+  '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then return false;end if;
+ sid:=split_part(p_name,'/',1)::uuid;
+ if not exists(select 1 from public.school_members
+  where school_id=sid and user_id=auth.uid() and enabled) then return false;end if;
+ return private.school_trial_allows_write(sid,module_name);
+end $$;
+revoke all on function private.subscription_storage_write_allowed(text,text) from public,anon,authenticated;
+grant execute on function private.subscription_storage_write_allowed(text,text) to authenticated;
+
+create policy subscription_storage_insert on storage.objects
+as restrictive for insert to authenticated
+with check (private.subscription_storage_write_allowed(bucket_id,name));
+create policy subscription_storage_update on storage.objects
+as restrictive for update to authenticated
+using (private.subscription_storage_write_allowed(bucket_id,name))
+with check (private.subscription_storage_write_allowed(bucket_id,name));

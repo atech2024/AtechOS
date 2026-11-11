@@ -465,3 +465,57 @@ create table public.assignment_receipts (
 alter table public.assignments enable row level security;
 alter table public.assignment_receipts enable row level security;
 revoke all on public.assignments,public.assignment_receipts from public,anon,authenticated;
+
+-- Columns and the legacy RPC used by subscription-onboarding integration checks.
+alter table public.schools alter column id set default gen_random_uuid();
+alter table public.schools add column email text;
+alter table public.users add column phone text;
+alter table public.users add column updated_at timestamptz not null default now();
+CREATE OR REPLACE FUNCTION public.create_school_onboarding(p_school_name text, p_school_code text, p_school_email text DEFAULT NULL::text, p_school_phone text DEFAULT NULL::text, p_school_address text DEFAULT NULL::text, p_admin_full_name text DEFAULT NULL::text, p_admin_phone text DEFAULT NULL::text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_user_id uuid := auth.uid();
+  v_school_id uuid;
+begin
+  if v_user_id is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  if nullif(trim(p_school_name), '') is null then
+    raise exception 'school_name_required';
+  end if;
+  if nullif(trim(p_school_code), '') is null then
+    raise exception 'school_code_required';
+  end if;
+  if exists (select 1 from public.schools where lower(code) = lower(trim(p_school_code))) then
+    raise exception 'school_code_already_exists';
+  end if;
+  if exists (select 1 from public.school_members where user_id = v_user_id) then
+    raise exception 'user_already_belongs_to_school';
+  end if;
+
+  insert into public.schools (name, code, email, phone, address)
+  values (trim(p_school_name), upper(trim(p_school_code)), nullif(trim(p_school_email), ''), nullif(trim(p_school_phone), ''), nullif(trim(p_school_address), ''))
+  returning id into v_school_id;
+
+  insert into public.users (id, full_name, email, phone)
+  select v_user_id, coalesce(nullif(trim(p_admin_full_name), ''), coalesce(au.raw_user_meta_data->>'full_name', ''), au.email), au.email, nullif(trim(p_admin_phone), '')
+  from auth.users au
+  where au.id = v_user_id
+  on conflict (id) do update
+    set full_name = excluded.full_name,
+        email = coalesce(public.users.email, excluded.email),
+        phone = coalesce(public.users.phone, excluded.phone),
+        updated_at = now();
+
+  update public.schools set owner_user_id=v_user_id where id=v_school_id;
+  insert into public.school_members (school_id, user_id, role)
+  values (v_school_id, v_user_id, 'school_admin');
+
+  return v_school_id;
+end;
+$function$

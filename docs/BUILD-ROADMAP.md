@@ -13,6 +13,9 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 
 ### Subscription plans and trial lifecycle — 2026-11-11
 
+- New-school enrollment now wraps the existing audited onboarding RPC and creates the selected 30-day trial in the same transaction. The original seven-argument caller remains supported and starts an Attendance trial. The internal pre-subscription function is no longer callable by authenticated or anonymous clients. Existing schools retain their historical access. Synthetic auth-user tests cover both signatures, plan switching without a new deadline, invalid-plan rollback, and the existing one-school membership restriction. The Preview-controlled onboarding form adds the plan selector and localized labels. Its authenticated walkthrough remains pending before public activation.
+
+
 - Pedagogical plan follow-up reuses the existing AFTER-write guard on tenant-scoped teaching configuration, assignments, exam scheduling/submissions, and Preschool evaluation records. Receipt and exam-version writes derive their school from the parent record. Parent deletion and receipt cascades are covered together so a denied delete rolls back the entire operation.
 - The general SQL fixture now includes assignment/receipt relations matching the audited parent keys. Behavioral cases exercise assignment/receipt updates, permitted and rejected cascading deletion, and the existing authenticated Preschool competency RPC under Attendance, School, and expired trials. Full teacher/student API authorization remains covered by separate fixtures; combined plan coverage for numeric grades, exam versions and file storage still needs verification. New-school trial enrollment and attendance-expiry safety also remain open before public activation.
 

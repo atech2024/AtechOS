@@ -728,4 +728,54 @@ begin
 end
 $subscription_billing_test$;
 
+
+-- Exercise the ordinary onboarding entry points with isolated auth users.
+insert into auth.users(id,email) values
+ ('20000000-0000-0000-0000-000000000010','trial-onboarding-ci@example.invalid'),
+ ('20000000-0000-0000-0000-000000000011','trial-legacy-ci@example.invalid');
+
+do $subscription_onboarding_test$
+declare sid uuid; trial jsonb; original_end text;
+begin
+ if has_function_privilege('authenticated','public.create_school_onboarding_before_subscription(text,text,text,text,text,text,text)','execute')
+ or has_function_privilege('anon','public.create_school_onboarding(text,text,text,text,text,text,text,text)','execute') then
+  raise exception 'subscription onboarding bypass is exposed';
+ end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000010',true);
+ set local role authenticated;
+ begin
+  perform public.create_school_onboarding('Invalid trial school','CI-TRIAL-INVALID',null,null,null,'CI owner',null,'invalid');
+  raise exception 'invalid onboarding trial plan accepted';
+ exception when others then if sqlerrm<>'invalid_trial_plan' then raise;end if;end;
+ sid:=public.create_school_onboarding('Selected trial school','CI-TRIAL-SELECTED',null,null,null,'CI owner',null,'school_finance');
+ trial:=public.school_subscription_trial();
+ if trial->>'plan'<>'school_finance' or (trial->>'active')::boolean is distinct from true
+ or (trial->>'ends_at')::timestamptz-(trial->>'started_at')::timestamptz<>interval '720 hours' then
+  raise exception 'new school did not receive its selected 30-day trial';
+ end if;
+ original_end:=trial->>'ends_at';
+ perform public.choose_school_trial_plan('school');
+ trial:=public.school_subscription_trial();
+ if trial->>'ends_at'<>original_end then raise exception 'onboarding plan switch restarted the trial';end if;
+ reset role;
+ if exists(select 1 from public.schools where code='CI-TRIAL-INVALID')
+ or not exists(select 1 from private.school_subscription_trials where school_id=sid and plan='school') then
+  raise exception 'school creation and trial enrollment are not atomic';
+ end if;
+ set local role authenticated;
+ begin
+  perform public.create_school_onboarding('Duplicate school','CI-TRIAL-DUPLICATE');
+  raise exception 'existing member created another trial school';
+ exception when others then if sqlerrm<>'user_already_belongs_to_school' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000011',true);
+ sid:=public.create_school_onboarding('Legacy client school','CI-TRIAL-LEGACY');
+ trial:=public.school_subscription_trial();
+ if trial->>'plan'<>'attendance' then raise exception 'legacy onboarding bypassed the default trial';end if;
+ reset role;
+ if private.school_trial_allows_write(sid,'finance') or not private.school_trial_allows_write(sid,'attendance') then
+  raise exception 'legacy onboarding received incorrect module access';
+ end if;
+end
+$subscription_onboarding_test$;
+
 rollback;

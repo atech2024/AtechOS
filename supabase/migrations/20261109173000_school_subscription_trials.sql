@@ -466,3 +466,48 @@ begin
  end loop;
 end
 $school_plan_related_tables$;
+
+-- Preserve the audited onboarding logic and make trial enrollment atomic with
+-- school creation. The old seven-argument entry point defaults to Attendance.
+alter function public.create_school_onboarding(text,text,text,text,text,text,text)
+ rename to create_school_onboarding_before_subscription;
+revoke all on function public.create_school_onboarding_before_subscription(text,text,text,text,text,text,text)
+ from public,anon,authenticated;
+
+create function public.create_school_onboarding(
+ p_school_name text,p_school_code text,p_school_email text,p_school_phone text,
+ p_school_address text,p_admin_full_name text,p_admin_phone text,p_trial_plan text
+) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare sid uuid;
+begin
+ if p_trial_plan is null or p_trial_plan not in ('attendance','school','school_finance') then
+  raise exception 'invalid_trial_plan';
+ end if;
+ if auth.uid() is null then raise exception 'not_authenticated';end if;
+ perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(auth.uid()::text,0));
+ sid:=public.create_school_onboarding_before_subscription(
+  p_school_name,p_school_code,p_school_email,p_school_phone,
+  p_school_address,p_admin_full_name,p_admin_phone
+ );
+ insert into private.school_subscription_trials(school_id,plan,started_at,ends_at)
+ values(sid,p_trial_plan,statement_timestamp(),statement_timestamp()+interval '720 hours');
+ return sid;
+end $$;
+
+create function public.create_school_onboarding(
+ p_school_name text,p_school_code text,p_school_email text default null,p_school_phone text default null,
+ p_school_address text default null,p_admin_full_name text default null,p_admin_phone text default null
+) returns uuid
+language sql security definer set search_path='' as $$
+ select public.create_school_onboarding(p_school_name,p_school_code,p_school_email,p_school_phone,
+  p_school_address,p_admin_full_name,p_admin_phone,'attendance')
+$$;
+revoke all on function
+ public.create_school_onboarding(text,text,text,text,text,text,text),
+ public.create_school_onboarding(text,text,text,text,text,text,text,text)
+ from public,anon,authenticated;
+grant execute on function
+ public.create_school_onboarding(text,text,text,text,text,text,text),
+ public.create_school_onboarding(text,text,text,text,text,text,text,text)
+ to authenticated;

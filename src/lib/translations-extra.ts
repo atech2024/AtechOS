@@ -1,4 +1,10 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ "Set up the school workspace and make this account the first school administrator.":["Configurez votre établissement et devenez son premier administrateur.","Konfigire espas lekòl la epi vin premye administratè li."],
+ "The 30-day trial starts when you create your school. Changing plans keeps the same end date.":["L’essai de 30 jours commence à la création de votre établissement. Un changement d’offre conserve la même date de fin.","Esè 30 jou a kòmanse lè ou kreye lekòl la. Chanje plan pa chanje dat fen an."],
+ "Creating school...":["Création de l’établissement…","Ap kreye lekòl la…"],
+ "Create school workspace":["Créer l’espace de mon établissement","Kreye espas lekòl la"],
+ "School identifier":["Identifiant de l’établissement","Idantifyan lekòl la"],
+ "Example Academy":["Exemple d’établissement","Egzanp lekòl"],
  "Manage AtechOS subscriptions":["Gérer les abonnements AtechOS","Jere abònman AtechOS"],
  "30-day school trial":["Essai de 30 jours pour l’école","Esè 30 jou pou lekòl la"],
  "Trial preview. Plan selection does not yet change module access.":["Aperçu de l’essai. Le choix de l’offre ne modifie pas encore les accès.","Apèsi esè a. Chwa plan an poko chanje aksè nan modil yo."],

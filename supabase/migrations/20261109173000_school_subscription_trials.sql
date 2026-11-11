@@ -636,13 +636,13 @@ begin
  end if;
  if not is_counted then return new;end if;
  sid:=new.school_id;
- if auth.uid() is not null and not exists(select 1 from public.school_members
-  where school_id=sid and user_id=auth.uid() and enabled) then
-  raise exception 'school_membership_required';end if;
  if not exists(select 1 from private.school_subscription_trials where school_id=sid)
  and not exists(select 1 from private.school_paid_subscriptions where school_id=sid) then
   return new;
  end if;
+ if auth.uid() is not null and not exists(select 1 from public.school_members
+  where school_id=sid and user_id=auth.uid() and enabled) then
+  raise exception 'school_membership_required';end if;
  perform 1 from public.schools where id=sid for update;
  if (select count(*) from public.students
   where school_id=sid and active and school_status='active'

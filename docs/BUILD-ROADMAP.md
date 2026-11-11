@@ -13,6 +13,10 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 
 ### Subscription plans and trial lifecycle — 2026-11-11
 
+- Attendance-expiry follow-up blocks new attendance writes while permitting the checkout of an existing check-in with unchanged school, student, date, arrival and lateness. Existing staff attribution, Kind authorized-adult verification, KIOS schedules and release rules continue to run. KIOS returns a specific subscription message for new entries, and the shared automatic-absence job excludes ineligible schools instead of failing for all schools. Optional exam-presence capture is skipped outside the School plan so it cannot block a checkout.
+- The general CI staff-attendance fixture now mirrors the audited production checkout path while retaining the authorization anchors required by the staged Kind migration. Rollback cases use real staff/Kind RPCs, the shared KIOS recording path with a controlled scan window, unauthorized pickup denial, immutable arrival facts, an eligible-school automatic-absence control, and resumption after renewal. These changes await their final CI checks and authenticated Preview review. Combined production-like exam-capture coverage remains pending.
+
+
 - Checkpoint `22ba81f` passed application/build and isolated SQL checks, including new-school trial enrollment and pedagogical write denial. Follow-up review keeps Kind coordinator administration in base operations because it shares a settings row with curriculum preferences. The mixed settings table is excluded from the teaching-write trigger; competency/evaluation writes remain plan-controlled. Added real coordinator-assignment RPC cases for Attendance and expired trials. This follow-up awaits its final checks.
 
 

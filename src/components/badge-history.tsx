@@ -7,6 +7,7 @@ export type BadgeWorkspace={can_manage:boolean;payment_restricted?:boolean;qr:st
 type ParentBadgeStudent={first_name:string;last_name:string;atechos_id:string}
 const states:Record<string,string>={active:'Active',lost:'Lost',replaced:'Replaced',revoked:'Revoked'}
 const scanResultLabels = new Map<string, string>([
+  ["attendance_subscription_expired","New check-in recording is paused. Contact school administration. Check-outs remain available."],
   ["check_in","Check-in recorded."],
   ["check_out","Check-out recorded."],
   ["already_picked_up_by_parent","Exit already recorded"],

@@ -1,4 +1,5 @@
 export const extraTranslations:Record<string,[string,string]> = {
+ "New check-in recording is paused. Contact school administration. Check-outs remain available.":["L’enregistrement des nouvelles entrées est suspendu. Contactez l’administration. Les sorties restent disponibles.","Anrejistreman nouvo antre yo an poz. Kontakte administrasyon lekòl la. Sòti yo toujou disponib."],
  "Set up the school workspace and make this account the first school administrator.":["Configurez votre établissement et devenez son premier administrateur.","Konfigire espas lekòl la epi vin premye administratè li."],
  "The 30-day trial starts when you create your school. Changing plans keeps the same end date.":["L’essai de 30 jours commence à la création de votre établissement. Un changement d’offre conserve la même date de fin.","Esè 30 jou a kòmanse lè ou kreye lekòl la. Chanje plan pa chanje dat fen an."],
  "Creating school...":["Création de l’établissement…","Ap kreye lekòl la…"],

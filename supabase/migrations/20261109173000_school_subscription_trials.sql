@@ -511,3 +511,84 @@ grant execute on function
  public.create_school_onboarding(text,text,text,text,text,text,text),
  public.create_school_onboarding(text,text,text,text,text,text,text,text)
  to authenticated;
+
+-- Expiry prevents new attendance writes while preserving a narrowly scoped
+-- checkout of an existing check-in. Tenant/student/day and arrival data stay fixed.
+create function private.enforce_subscription_attendance_write() returns trigger
+language plpgsql security definer set search_path='' as $$
+begin
+ if tg_op='INSERT' then
+  if private.school_trial_allows_write(new.school_id,'attendance') then return null;end if;
+ elsif tg_op='DELETE' then
+  if private.school_trial_allows_write(old.school_id,'attendance') then return null;end if;
+ else
+  if private.school_trial_allows_write(old.school_id,'attendance')
+   and private.school_trial_allows_write(new.school_id,'attendance') then return null;end if;
+  if new.school_id=old.school_id
+   and old.check_in_at is not null and old.check_out_at is null and new.check_out_at is not null
+   and (to_jsonb(new)-array['check_out_at','updated_at','recorded_by'])
+    =(to_jsonb(old)-array['check_out_at','updated_at','recorded_by']) then
+   return null;
+  end if;
+ end if;
+ raise exception 'attendance_subscription_expired';
+end $$;
+revoke all on function private.enforce_subscription_attendance_write() from public,anon,authenticated;
+create trigger subscription_attendance_write
+after insert or update or delete on public.attendance
+for each row execute function private.enforce_subscription_attendance_write();
+
+-- Keep the existing validation, schedules, sanctions, and release logic intact.
+alter function private.record_student_kiosk(uuid) rename to record_student_kiosk_before_subscription;
+revoke all on function private.record_student_kiosk_before_subscription(uuid) from public,anon,authenticated;
+create function private.record_student_kiosk(p_student uuid) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare sid uuid; today date:=(now() at time zone 'America/Port-au-Prince')::date;
+begin
+ select school_id into sid from public.students where id=p_student and active and school_status='active';
+ if sid is not null and not private.school_trial_allows_write(sid,'attendance') then
+  perform pg_advisory_xact_lock(hashtextextended(p_student::text||today::text,0));
+  if not exists(select 1 from public.attendance
+   where school_id=sid and student_id=p_student and attendance_date=today and check_in_at is not null) then
+   return jsonb_build_object('error','attendance_subscription_expired');
+  end if;
+ end if;
+ return private.record_student_kiosk_before_subscription(p_student);
+end $$;
+revoke all on function private.record_student_kiosk(uuid) from public,anon,authenticated;
+
+-- A school's expiry must not abort the shared automatic-absence job.
+do $subscription_absence_filter$
+declare src text; anchor text:='and private.guard_school_day(s.school_id,d)';
+begin
+ select pg_get_functiondef('private.mark_missing_attendance(timestamptz)'::regprocedure) into src;
+ if length(src)-length(replace(src,anchor,''))<>length(anchor) then
+  raise exception 'subscription_absence_anchor_mismatch';
+ end if;
+ execute replace(src,anchor,anchor||' and private.school_trial_allows_write(s.school_id,''attendance'')');
+end
+$subscription_absence_filter$;
+
+-- KIOS is the only caller of this optional exam side effect. Skip capture
+-- outside the School plan rather than making a child's checkout fail.
+do $subscription_exam_capture$
+begin
+ if to_regprocedure('private.capture_exam_presence(uuid,uuid,timestamptz)') is not null then
+  alter function private.capture_exam_presence(uuid,uuid,timestamptz)
+   rename to capture_exam_presence_before_subscription;
+  revoke all on function private.capture_exam_presence_before_subscription(uuid,uuid,timestamptz) from public,anon,authenticated;
+  execute $capture$
+   create function private.capture_exam_presence(p_student uuid,p_class uuid,p_scan timestamptz) returns void
+   language plpgsql security definer set search_path='' as $body$
+   declare sid uuid;
+   begin
+    select school_id into sid from public.students where id=p_student;
+    if private.school_trial_allows_write(sid,'school') then
+     perform private.capture_exam_presence_before_subscription(p_student,p_class,p_scan);
+    end if;
+   end $body$;
+  $capture$;
+  revoke all on function private.capture_exam_presence(uuid,uuid,timestamptz) from public,anon,authenticated;
+ end if;
+end
+$subscription_exam_capture$;

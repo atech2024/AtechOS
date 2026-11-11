@@ -282,22 +282,37 @@ grant execute on function public.dashboard_summary() to authenticated;
 
 -- Synthetic pre-change attendance RPC: mirrors the authorization and attribution
 -- anchors that the Kind coordinator migration must safely extend.
-create or replace function public.staff_mark_attendance(p_student uuid,p_class uuid,p_status text) returns uuid language plpgsql security definer set search_path='' as $$
-declare s public.students; actor_role text; actor_name text; attendance_id uuid; d date:=(now() at time zone 'America/Port-au-Prince')::date;
+CREATE OR REPLACE FUNCTION public.staff_mark_attendance(p_student uuid, p_class uuid, p_status text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare s public.students; a public.attendance; actor_role text;actor_name text;ts timestamptz:=now();d date:=(now() at time zone 'America/Port-au-Prince')::date;
 begin
  select * into s from public.students where id=p_student and active and school_status='active';
- if s.id is null or not private.has_role(s.school_id,array['school_admin','director','secretary','surveillant','censeur']) then raise exception 'not_authorized'; end if;
- if p_status not in ('present','late','absent','checkout') then raise exception 'invalid_status'; end if;
- select role::text into actor_role from public.school_members where school_id=s.school_id and user_id=auth.uid() and enabled and role in ('school_admin','director','secretary','surveillant','censeur') order by role limit 1;
- if actor_role is null then raise exception 'not_authorized'; end if;
+ if s.id is null or not private.has_role(s.school_id,array['school_admin','director','secretary','surveillant','censeur']) then raise exception 'not_authorized';end if;
+ if p_status not in ('present','late','absent','checkout') then raise exception 'invalid_status';end if;
+ if not exists(select 1 from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id where e.student_id=s.id and e.class_id=p_class and e.status='active' and c.school_id=s.school_id and c.enabled and y.is_current) then raise exception 'current_enrollment_required';end if;
  select full_name into actor_name from public.users where id=auth.uid();
- insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,recorded_by)
- values(s.school_id,s.id,p_class,d,p_status,case when p_status<>'absent' and p_status<>'checkout' then now() end,auth.uid())
- on conflict(student_id,attendance_date) do update set status=excluded.status,check_in_at=coalesce(attendance.check_in_at,excluded.check_in_at),recorded_by=auth.uid(),updated_at=now() returning id into attendance_id;
- insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date)
- values(attendance_id,s.id,'STAFF',auth.uid(),coalesce(actor_name,auth.uid()::text),actor_role,p_status,d);
- return attendance_id;
-end $$;
+ if exists(select 1 from public.schools where id=s.school_id and owner_user_id=auth.uid()) then actor_role:='school_admin';else
+ select role::text into actor_role from public.school_members where school_id=s.school_id and user_id=auth.uid() and enabled and role in ('school_admin','director','secretary','surveillant','censeur') order by case role when 'school_admin' then 0 when 'director' then 1 when 'secretary' then 2 else 3 end limit 1;end if;
+ perform pg_advisory_xact_lock(hashtextextended(s.id::text||d::text,0));
+ select * into a from public.attendance where student_id=s.id and attendance_date=d for update;
+ if p_status='checkout' then
+  if a.check_in_at is null then raise exception 'check_in_required';end if;
+  if a.check_out_at is not null then return a.id;end if;
+  update public.attendance set check_out_at=ts,recorded_by=auth.uid(),updated_at=ts where id=a.id returning * into a;
+ else
+  if a.check_out_at is not null then raise exception 'attendance_already_complete';end if;
+  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,recorded_by)
+  values(s.school_id,s.id,p_class,d,p_status,case when p_status<>'absent' then ts end,auth.uid())
+  on conflict(student_id,attendance_date) do update set status=excluded.status,check_in_at=case when excluded.status='absent' then null else coalesce(attendance.check_in_at,excluded.check_in_at) end,recorded_by=auth.uid(),updated_at=ts returning * into a;
+ end if;
+ insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action) values(a.id,s.id,'STAFF',auth.uid(),coalesce(actor_name,auth.uid()::text),actor_role,p_status);
+ return a.id;
+end $function$;
+
 revoke all on function public.staff_mark_attendance(uuid,uuid,text) from public,anon,authenticated;
 grant execute on function public.staff_mark_attendance(uuid,uuid,text) to authenticated;
 

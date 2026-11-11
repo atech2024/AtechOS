@@ -791,4 +791,140 @@ begin
 end
 $subscription_onboarding_test$;
 
+
+-- Expired subscriptions keep checkout and authorized Kind pickup operational.
+-- The scan window is controlled only inside this rollback fixture.
+do $attendance_subscription_expiry_test$
+declare
+ sid uuid:='10000000-0000-0000-0000-000000000001';
+ other_sid uuid:='10000000-0000-0000-0000-000000000002';
+ today date:=(now() at time zone 'America/Port-au-Prince')::date;
+ primary_class uuid; control_year uuid; control_class uuid:=gen_random_uuid();
+ token text:=encode(extensions.gen_random_bytes(32),'hex');
+ adult uuid; outcome jsonb; arrival timestamptz:=now()-interval '1 hour';
+ cron_day date; fn regprocedure; args text; function_name text;
+begin
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ select c.id into primary_class from public.classes c join public.academic_years y on y.id=c.academic_year_id
+ where c.school_id=sid and c.grade_level='AF1' and c.enabled and y.is_current limit 1;
+ if primary_class is null then raise exception 'expiry test needs an active Primary class';end if;
+ update private.school_paid_subscriptions set plan='attendance',starts_at=now()-interval '1 day',ends_at=now()+interval '1 day'
+ where school_id=sid;
+ insert into public.students(id,school_id,first_name,last_name,atechos_id) values
+ ('b0000000-0000-0000-0000-000000000001',sid,'Kind','Expiry','CI-EXPIRY-KIND'),
+ ('b0000000-0000-0000-0000-000000000002',sid,'Staff','Checkout','CI-EXPIRY-STAFF'),
+ ('b0000000-0000-0000-0000-000000000003',sid,'New','Arrival','CI-EXPIRY-ARRIVAL'),
+ ('b0000000-0000-0000-0000-000000000004',sid,'KIOS','Checkout','CI-EXPIRY-KIOS'),
+ ('b0000000-0000-0000-0000-000000000005',other_sid,'Active','Control','CI-EXPIRY-CONTROL');
+ insert into public.enrollments(id,school_id,student_id,class_id,status) values
+ (gen_random_uuid(),sid,'b0000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','active'),
+ (gen_random_uuid(),sid,'b0000000-0000-0000-0000-000000000002',primary_class,'active'),
+ (gen_random_uuid(),sid,'b0000000-0000-0000-0000-000000000003',primary_class,'active'),
+ (gen_random_uuid(),sid,'b0000000-0000-0000-0000-000000000004',primary_class,'active');
+ insert into public.attendance(school_id,student_id,class_id,attendance_date,check_in_at,status,late_minutes) values
+ (sid,'b0000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',today,arrival,'present',0),
+ (sid,'b0000000-0000-0000-0000-000000000002',primary_class,today,arrival,'late',5),
+ (sid,'b0000000-0000-0000-0000-000000000004',primary_class,today,arrival,'present',0);
+ insert into public.student_badges(id,school_id,student_id,badge_uid) values
+ ('b3000000-0000-0000-0000-000000000001',sid,'b0000000-0000-0000-0000-000000000001','CI-EXPIRY-BADGE');
+ insert into private.badge_token_history(token_hash,badge_id)
+ values(encode(extensions.digest(token,'sha256'),'hex'),'b3000000-0000-0000-0000-000000000001');
+ update private.school_paid_subscriptions set ends_at=now()-interval '1 second' where school_id=sid;
+
+ -- Changing arrival data while claiming to check out must still be denied.
+ begin
+  update public.attendance set check_out_at=now(),check_in_at=now()
+  where student_id='b0000000-0000-0000-0000-000000000002' and attendance_date=today;
+  raise exception 'checkout exception changed the original arrival';
+ exception when others then if sqlerrm<>'attendance_subscription_expired' then raise;end if;end;
+ begin
+  update public.attendance set check_out_at=now(),status='present'
+  where student_id='b0000000-0000-0000-0000-000000000002' and attendance_date=today;
+  raise exception 'checkout exception changed the original lateness status';
+ exception when others then if sqlerrm<>'attendance_subscription_expired' then raise;end if;end;
+ set local role authenticated;
+ begin
+  perform public.staff_mark_attendance('b0000000-0000-0000-0000-000000000003',primary_class,'present');
+  raise exception 'expired subscription accepted a new staff check-in';
+ exception when others then if sqlerrm<>'attendance_subscription_expired' then raise;end if;end;
+ perform public.staff_mark_attendance('b0000000-0000-0000-0000-000000000002',primary_class,'checkout');
+ adult:=public.save_kindergarten_pickup_authorization('b0000000-0000-0000-0000-000000000001',null,'CI authorized adult','guardian','+50937000001',true);
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ begin
+  perform public.complete_kindergarten_pickup('AOSQ1.'||token,adult,'CI expiry pickup');
+  raise exception 'expiry bypassed Kind pickup authorization';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ outcome:=public.complete_kindergarten_pickup('AOSQ1.'||token,adult,'CI expiry pickup');
+ if not (outcome ? 'pickup_id') then raise exception 'expired subscription blocked authorized Kind pickup';end if;
+ reset role;
+ if not exists(select 1 from public.attendance
+  where student_id='b0000000-0000-0000-0000-000000000002' and attendance_date=today
+   and check_in_at=arrival and check_out_at is not null and status='late' and late_minutes=5) then
+  raise exception 'staff checkout lost its original attendance facts';
+ end if;
+ if not exists(select 1 from public.attendance_events
+  where student_id='b0000000-0000-0000-0000-000000000002'
+   and source='STAFF' and actor_id='20000000-0000-0000-0000-000000000008' and action='checkout') then
+  raise exception 'expiry checkout lost staff attribution';
+ end if;
+ if not exists(select 1 from public.attendance_events
+  where student_id='b0000000-0000-0000-0000-000000000001'
+   and source='STAFF' and actor_id='20000000-0000-0000-0000-000000000008' and action='kindergarten_pickup_check_out') then
+  raise exception 'expiry Kind pickup lost staff attribution';
+ end if;
+ outcome:=private.record_student_kiosk('b0000000-0000-0000-0000-000000000003');
+ if outcome->>'error' is distinct from 'attendance_subscription_expired' then
+  raise exception 'expired KIOS entry did not return its specific subscription error';
+ end if;
+
+ foreach fn in array array[
+  'private.kiosk_window(time)'::regprocedure,
+  'private.kiosk_window_for_student(uuid,time,date,timestamptz,timestamptz)'::regprocedure
+ ] loop
+  select format('%I.%I',n.nspname,p.proname),pg_get_function_arguments(p.oid)
+  into function_name,args from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.oid=fn;
+  execute 'create or replace function '||function_name||'('||args||') returns text language sql stable security definer set search_path='''' as '||quote_literal('select ''checkout''::text');
+ end loop;
+ outcome:=private.record_student_kiosk('b0000000-0000-0000-0000-000000000004');
+ if outcome->>'action' is distinct from 'check_out' then raise exception 'expired subscription blocked KIOS checkout: %',outcome;end if;
+ if not exists(select 1 from public.attendance_events
+  where student_id='b0000000-0000-0000-0000-000000000004' and source='KIOS' and action='check_out') then
+  raise exception 'expiry KIOS checkout lost its source';
+ end if;
+ if exists(select 1 from public.attendance where student_id='b0000000-0000-0000-0000-000000000003') then
+  raise exception 'rejected entry created an attendance record';
+ end if;
+
+ -- Exercise the real automatic job with one expired and one eligible school.
+ select id into control_year from public.academic_years where school_id=other_sid and is_current limit 1;
+ if control_year is null then
+  insert into public.academic_years(school_id,name,start_date,end_date,is_current)
+  values(other_sid,'CI expiry control year',today-30,today+30,true) returning id into control_year;
+ end if;
+ insert into public.classes(id,school_id,academic_year_id,grade_level,name)
+ values(control_class,other_sid,control_year,'AF1','CI expiry control class');
+ insert into public.enrollments(id,school_id,student_id,class_id,status)
+ values(gen_random_uuid(),other_sid,'b0000000-0000-0000-0000-000000000005',control_class,'active');
+ cron_day:=today+case extract(isodow from today)::integer when 6 then 2 when 7 then 1 else 0 end;
+ perform private.mark_missing_attendance((cron_day+time '09:01') at time zone 'America/Port-au-Prince');
+ if not exists(select 1 from public.attendance
+  where student_id='b0000000-0000-0000-0000-000000000005' and attendance_date=cron_day and status='absent') then
+  raise exception 'eligible school lost automatic absence processing';
+ end if;
+ if exists(select 1 from public.attendance
+  where student_id='b0000000-0000-0000-0000-000000000003' and attendance_date=cron_day) then
+  raise exception 'expired school received an automatic absence';
+ end if;
+ update private.school_paid_subscriptions set ends_at=now()+interval '1 day' where school_id=sid;
+ set local role authenticated;
+ perform public.staff_mark_attendance('b0000000-0000-0000-0000-000000000003',primary_class,'present');
+ reset role;
+ if not exists(select 1 from public.attendance
+  where student_id='b0000000-0000-0000-0000-000000000003' and check_in_at is not null) then
+  raise exception 'renewed subscription did not restore attendance writes';
+ end if;
+end
+$attendance_subscription_expiry_test$;
+
 rollback;

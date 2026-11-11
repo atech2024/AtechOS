@@ -18,6 +18,7 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 - Follow-up `9a42800` makes trial-status ownership authorization unconditional, including before any trial exists, and adds authorized-empty/unauthorized-read regression cases. Its checks are pending at this documentation checkpoint.
 - Implementation, CI, Preview behavior, and Production activation remain separate. The trial interface is Preview-only and flag-controlled. This trial migration has not been applied to Production.
 - Remaining acceptance work includes the complete module write-boundary inventory, paid subscription activation and renewal, server-side student limits, authenticated plan/trial walkthroughs, and safe handling of attendance after expiry. Recording a child's departure or authorized pickup must remain available.
+- Follow-up review found the payment-instruction save RPC outside the finance trial guard. Added it to the existing guarded RPC list with behavioral checks for denial on the Attendance plan, success on the Finance plan, and denial after expiration. The final checks for this follow-up are pending.
 - Next priority is to finish and behaviorally verify these boundaries before enabling trial activation for customers.
 
 ### UX research applied

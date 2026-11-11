@@ -97,7 +97,8 @@ begin
   ('public.review_finance_adjustment(uuid,text,text)','manager'),
   ('public.revoke_finance_adjustment(uuid,text)','manager'),
   ('public.save_finance_settings(text,boolean,boolean,boolean,boolean,boolean)','manager'),
-  ('public.save_finance_payment_methods(jsonb)','manager')
+  ('public.save_finance_payment_methods(jsonb)','manager'),
+  ('public.save_finance_payment_instructions(text,text,text,text)','manager')
  ) as guards(signature,role_check) loop
   select pg_get_functiondef(entry.signature::regprocedure) into src;
   anchor:=format('if auth.uid() is null or sid is null or not private.finance_%s(sid) then raise exception ''not_authorized''; end if;',entry.role_check);

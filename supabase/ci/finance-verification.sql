@@ -315,6 +315,37 @@ begin
   denied:=false;
   begin perform public.submit_family_finance_payment(entry_charge_id,5,'PayPal','CI-PARENT-TRIAL',''); exception when others then denied:=sqlerrm='school_plan_write_restricted'; end;
   if not denied then raise exception 'parent payment must respect the school trial plan';end if;
+  perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);
+  denied:=false;
+  begin
+    perform public.save_finance_payment_instructions('Blocked trial change','','','');
+  exception when others then denied:=sqlerrm='school_plan_write_restricted';end;
+  if not denied then raise exception 'attendance trial changed payment instructions';end if;
+  reset role;
+  if exists(select 1 from public.finance_settings
+    where school_id='fa000000-0000-0000-0000-000000000001'
+      and moncash_payment_instructions='Blocked trial change') then
+    raise exception 'rejected trial update changed payment instructions';
+  end if;
+  update private.school_subscription_trials set plan='school_finance'
+  where school_id='fa000000-0000-0000-0000-000000000001';
+  set local role authenticated;
+  perform public.save_finance_payment_instructions('Allowed trial change','','','');
+  reset role;
+  if not exists(select 1 from public.finance_settings
+    where school_id='fa000000-0000-0000-0000-000000000001'
+      and moncash_payment_instructions='Allowed trial change') then
+    raise exception 'finance trial failed to save payment instructions';
+  end if;
+  update private.school_subscription_trials
+  set started_at=now()-interval '744 hours',ends_at=now()-interval '24 hours'
+  where school_id='fa000000-0000-0000-0000-000000000001';
+  set local role authenticated;
+  denied:=false;
+  begin
+    perform public.save_finance_payment_instructions('Expired trial change','','','');
+  exception when others then denied:=sqlerrm='school_plan_write_restricted';end;
+  if not denied then raise exception 'expired trial changed payment instructions';end if;
   reset role;
   delete from private.school_subscription_trials where school_id='fa000000-0000-0000-0000-000000000001';
   perform set_config('request.jwt.claim.sub','fa300000-0000-0000-0000-000000000001',true);

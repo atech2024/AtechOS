@@ -419,7 +419,7 @@ insert into public.assignment_receipts(assignment_id,student_id,source)
 values('a0000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','teacher');
 
 do $trial_test$
-declare first_plan jsonb; switched jsonb; denied boolean:=false; rejected boolean:=false; competency uuid;
+declare first_plan jsonb; switched jsonb; denied boolean:=false; rejected boolean:=false; competency uuid; coordinator_member uuid;
 begin
  if has_function_privilege('anon','public.choose_school_trial_plan(text)','execute') then raise exception 'anonymous trial write';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
@@ -436,6 +436,18 @@ begin
  end if;
  first_plan:=public.choose_school_trial_plan('attendance');
  reset role;
+ select id into coordinator_member from public.school_members
+ where school_id='10000000-0000-0000-0000-000000000001'
+ and user_id='20000000-0000-0000-0000-000000000008' and role='school_admin';
+ set local role authenticated;
+ perform public.assign_preschool_coordinator(coordinator_member);
+ reset role;
+ if not exists(select 1 from public.preschool_program_settings
+  where school_id='10000000-0000-0000-0000-000000000001'
+   and coordinator_user_id='20000000-0000-0000-0000-000000000008') then
+  raise exception 'attendance plan blocked Kind coordinator administration';
+ end if;
+
  begin
   update public.assignments set title='Disallowed change' where id='a0000000-0000-0000-0000-000000000001';
   raise exception 'attendance plan changed an assignment';
@@ -528,6 +540,7 @@ begin
  reset role;
  if private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') then raise exception 'expired trial must be read-only';end if;
  set local role authenticated;
+ perform public.assign_preschool_coordinator(coordinator_member);
  begin
   perform public.save_preschool_competency(competency,'PS1','language','CI expired trial edit',true);
   raise exception 'expired trial changed a competency through the RPC';

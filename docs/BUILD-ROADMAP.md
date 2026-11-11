@@ -13,6 +13,9 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 
 ### Subscription plans and trial lifecycle — 2026-11-11
 
+- Checkpoint `22ba81f` passed application/build and isolated SQL checks, including new-school trial enrollment and pedagogical write denial. Follow-up review keeps Kind coordinator administration in base operations because it shares a settings row with curriculum preferences. The mixed settings table is excluded from the teaching-write trigger; competency/evaluation writes remain plan-controlled. Added real coordinator-assignment RPC cases for Attendance and expired trials. This follow-up awaits its final checks.
+
+
 - New-school enrollment now wraps the existing audited onboarding RPC and creates the selected 30-day trial in the same transaction. The original seven-argument caller remains supported and starts an Attendance trial. The internal pre-subscription function is no longer callable by authenticated or anonymous clients. Existing schools retain their historical access. Synthetic auth-user tests cover both signatures, plan switching without a new deadline, invalid-plan rollback, and the existing one-school membership restriction. The Preview-controlled onboarding form adds the plan selector and localized labels. Its authenticated walkthrough remains pending before public activation.
 
 

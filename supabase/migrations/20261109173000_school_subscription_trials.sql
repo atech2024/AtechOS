@@ -418,7 +418,7 @@ begin
   'assignments','subjects','class_subjects','school_grading_settings','grading_periods',
   'exam_schedule','teacher_exam_submissions','grade_corrections','grade_deadline_exceptions',
   'preschool_competencies','preschool_evaluations','preschool_student_remarks',
-  'preschool_program_settings','confirmed_official_exam_dates'
+  'confirmed_official_exam_dates'
  ] loop
   if exists(select 1 from information_schema.columns
    where table_schema='public' and table_name=target and column_name='school_id') then

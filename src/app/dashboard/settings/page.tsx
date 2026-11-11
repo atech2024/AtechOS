@@ -5,6 +5,7 @@ import SchoolTrialSettings from '@/components/school-trial-settings'
 import { T } from '@/components/translation-provider'
 import { FinanceReceiptSignatureSettings } from '@/components/finance-payment-receipt'
 import { createClient } from '@/lib/supabase/server'
+import { isSchoolSubscriptionsEnabled } from '@/lib/school-subscriptions-feature'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,11 +51,11 @@ export default async function SettingsPage() {
     </p>
   </main>
   const roles: string[] = Array.isArray(data?.roles) ? data.roles : []
-  const previewTrialEnabled = process.env.VERCEL_ENV !== 'production' && process.env.SCHOOL_TRIAL_PREVIEW === 'true'
-  const trial = previewTrialEnabled && data?.owner && roles.includes('school_admin')
+  const subscriptionsEnabled = isSchoolSubscriptionsEnabled()
+  const trial = subscriptionsEnabled && data?.owner && roles.includes('school_admin')
     ? await db.rpc('school_subscription_trial')
     : null
-  const billingOperator = previewTrialEnabled ? await db.rpc('subscription_billing_operator') : null
+  const billingOperator = subscriptionsEnabled ? await db.rpc('subscription_billing_operator') : null
   const canManageSettings = Boolean(data?.owner || roles.some((role: string) => ['school_admin', 'director'].includes(role)))
   const canManageSignature = Boolean(data?.owner || roles.some((role: string) => ['school_admin', 'director', 'censeur', 'secretary', 'accountant'].includes(role)))
 

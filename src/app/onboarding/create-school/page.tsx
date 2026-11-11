@@ -1,6 +1,7 @@
 import CreateSchoolForm from './form'
+import { isSchoolSubscriptionsEnabled } from '@/lib/school-subscriptions-feature'
 
 export default function OnboardingPage() {
- const trialEnabled = process.env.VERCEL_ENV !== 'production' && process.env.SCHOOL_TRIAL_PREVIEW === 'true'
+ const trialEnabled = isSchoolSubscriptionsEnabled()
  return <CreateSchoolForm trialEnabled={trialEnabled}/>
 }

@@ -5,11 +5,12 @@ import { T } from '@/components/translation-provider'
 import { notFound } from 'next/navigation'
 import SchoolSubscriptionBilling from '@/components/school-subscription-billing'
 import { createClient } from '@/lib/supabase/server'
+import { isSchoolSubscriptionsEnabled } from '@/lib/school-subscriptions-feature'
 
 export const dynamic = 'force-dynamic'
 
 export default async function PlatformBillingPage() {
- if (process.env.VERCEL_ENV === 'production' || process.env.SCHOOL_TRIAL_PREVIEW !== 'true') notFound()
+ if (!isSchoolSubscriptionsEnabled()) notFound()
  const db = await createClient()
  const { data, error } = await db.rpc('subscription_billing_operator')
  if (error || data !== true) notFound()

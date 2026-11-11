@@ -105,7 +105,7 @@ create table public.attendance_events (
  actor_role text,
  action text not null,
  recorded_at timestamptz not null default now(),
- attendance_date date not null
+ attendance_date date not null default ((now() at time zone 'America/Port-au-Prince')::date)
 );
 create table public.student_badges (
  id uuid primary key default gen_random_uuid(),

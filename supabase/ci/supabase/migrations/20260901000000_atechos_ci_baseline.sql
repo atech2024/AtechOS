@@ -105,7 +105,7 @@ create table public.attendance_events (
  actor_role text,
  action text not null,
  recorded_at timestamptz not null default now(),
- attendance_date date not null
+ attendance_date date not null default ((now() at time zone 'America/Port-au-Prince')::date)
 );
 create table public.student_badges (
  id uuid primary key default gen_random_uuid(),
@@ -282,22 +282,37 @@ grant execute on function public.dashboard_summary() to authenticated;
 
 -- Synthetic pre-change attendance RPC: mirrors the authorization and attribution
 -- anchors that the Kind coordinator migration must safely extend.
-create or replace function public.staff_mark_attendance(p_student uuid,p_class uuid,p_status text) returns uuid language plpgsql security definer set search_path='' as $$
-declare s public.students; actor_role text; actor_name text; attendance_id uuid; d date:=(now() at time zone 'America/Port-au-Prince')::date;
+CREATE OR REPLACE FUNCTION public.staff_mark_attendance(p_student uuid, p_class uuid, p_status text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare s public.students; a public.attendance; actor_role text;actor_name text;ts timestamptz:=now();d date:=(now() at time zone 'America/Port-au-Prince')::date;
 begin
  select * into s from public.students where id=p_student and active and school_status='active';
- if s.id is null or not private.has_role(s.school_id,array['school_admin','director','secretary','surveillant','censeur']) then raise exception 'not_authorized'; end if;
- if p_status not in ('present','late','absent','checkout') then raise exception 'invalid_status'; end if;
- select role::text into actor_role from public.school_members where school_id=s.school_id and user_id=auth.uid() and enabled and role in ('school_admin','director','secretary','surveillant','censeur') order by role limit 1;
- if actor_role is null then raise exception 'not_authorized'; end if;
+ if s.id is null or not private.has_role(s.school_id,array['school_admin','director','secretary','surveillant','censeur']) then raise exception 'not_authorized';end if;
+ if p_status not in ('present','late','absent','checkout') then raise exception 'invalid_status';end if;
+ if not exists(select 1 from public.enrollments e join public.classes c on c.id=e.class_id join public.academic_years y on y.id=c.academic_year_id where e.student_id=s.id and e.class_id=p_class and e.status='active' and c.school_id=s.school_id and c.enabled and y.is_current) then raise exception 'current_enrollment_required';end if;
  select full_name into actor_name from public.users where id=auth.uid();
- insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,recorded_by)
- values(s.school_id,s.id,p_class,d,p_status,case when p_status<>'absent' and p_status<>'checkout' then now() end,auth.uid())
- on conflict(student_id,attendance_date) do update set status=excluded.status,check_in_at=coalesce(attendance.check_in_at,excluded.check_in_at),recorded_by=auth.uid(),updated_at=now() returning id into attendance_id;
- insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action,attendance_date)
- values(attendance_id,s.id,'STAFF',auth.uid(),coalesce(actor_name,auth.uid()::text),actor_role,p_status,d);
- return attendance_id;
-end $$;
+ if exists(select 1 from public.schools where id=s.school_id and owner_user_id=auth.uid()) then actor_role:='school_admin';else
+ select role::text into actor_role from public.school_members where school_id=s.school_id and user_id=auth.uid() and enabled and role in ('school_admin','director','secretary','surveillant','censeur') order by case role when 'school_admin' then 0 when 'director' then 1 when 'secretary' then 2 else 3 end limit 1;end if;
+ perform pg_advisory_xact_lock(hashtextextended(s.id::text||d::text,0));
+ select * into a from public.attendance where student_id=s.id and attendance_date=d for update;
+ if p_status='checkout' then
+  if a.check_in_at is null then raise exception 'check_in_required';end if;
+  if a.check_out_at is not null then return a.id;end if;
+  update public.attendance set check_out_at=ts,recorded_by=auth.uid(),updated_at=ts where id=a.id returning * into a;
+ else
+  if a.check_out_at is not null then raise exception 'attendance_already_complete';end if;
+  insert into public.attendance(school_id,student_id,class_id,attendance_date,status,check_in_at,recorded_by)
+  values(s.school_id,s.id,p_class,d,p_status,case when p_status<>'absent' then ts end,auth.uid())
+  on conflict(student_id,attendance_date) do update set status=excluded.status,check_in_at=case when excluded.status='absent' then null else coalesce(attendance.check_in_at,excluded.check_in_at) end,recorded_by=auth.uid(),updated_at=ts returning * into a;
+ end if;
+ insert into public.attendance_events(attendance_id,student_id,source,actor_id,actor_name,actor_role,action) values(a.id,s.id,'STAFF',auth.uid(),coalesce(actor_name,auth.uid()::text),actor_role,p_status);
+ return a.id;
+end $function$;
+
 revoke all on function public.staff_mark_attendance(uuid,uuid,text) from public,anon,authenticated;
 grant execute on function public.staff_mark_attendance(uuid,uuid,text) to authenticated;
 
@@ -434,3 +449,88 @@ begin
  if nullif(p_new_pin,'') is not null and p_new_pin !~ '^[0-9]{6,12}$' then return jsonb_build_object('error','invalid_pin');end if;
  return jsonb_build_object('ok',true);
 end $$;
+
+-- Assignment relations mirror the audited tenant and parent keys so the general
+-- plan tests exercise real parent/receipt writes and cascading deletion.
+-- Teacher/student API authorization remains covered by the separate fixtures.
+create table public.assignments (
+ id uuid primary key default gen_random_uuid(),
+ school_id uuid not null references public.schools(id),
+ class_id uuid not null references public.classes(id),
+ subject_id uuid references public.subjects(id),
+ teacher_id uuid references public.users(id),
+ title text not null,
+ description text,
+ due_at timestamptz,
+ attachment_url text,
+ created_at timestamptz not null default now(),
+ grading_period_id uuid references public.grading_periods(id),
+ max_score numeric,
+ online_submission boolean not null default false
+);
+create table public.assignment_receipts (
+ assignment_id uuid not null references public.assignments(id) on delete cascade,
+ student_id uuid not null references public.students(id) on delete cascade,
+ received_at timestamptz not null default now(),
+ source text not null check(source in ('teacher','online')),
+ recorded_by uuid references public.users(id),
+ response text,
+ primary key(assignment_id,student_id)
+);
+alter table public.assignments enable row level security;
+alter table public.assignment_receipts enable row level security;
+revoke all on public.assignments,public.assignment_receipts from public,anon,authenticated;
+
+-- Columns and the legacy RPC used by subscription-onboarding integration checks.
+alter table public.schools alter column id set default gen_random_uuid();
+alter table public.schools add column email text;
+alter table public.users add column phone text;
+alter table public.users add column updated_at timestamptz not null default now();
+CREATE OR REPLACE FUNCTION public.create_school_onboarding(p_school_name text, p_school_code text, p_school_email text DEFAULT NULL::text, p_school_phone text DEFAULT NULL::text, p_school_address text DEFAULT NULL::text, p_admin_full_name text DEFAULT NULL::text, p_admin_phone text DEFAULT NULL::text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_user_id uuid := auth.uid();
+  v_school_id uuid;
+begin
+  if v_user_id is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  if nullif(trim(p_school_name), '') is null then
+    raise exception 'school_name_required';
+  end if;
+  if nullif(trim(p_school_code), '') is null then
+    raise exception 'school_code_required';
+  end if;
+  if exists (select 1 from public.schools where lower(code) = lower(trim(p_school_code))) then
+    raise exception 'school_code_already_exists';
+  end if;
+  if exists (select 1 from public.school_members where user_id = v_user_id) then
+    raise exception 'user_already_belongs_to_school';
+  end if;
+
+  insert into public.schools (name, code, email, phone, address)
+  values (trim(p_school_name), upper(trim(p_school_code)), nullif(trim(p_school_email), ''), nullif(trim(p_school_phone), ''), nullif(trim(p_school_address), ''))
+  returning id into v_school_id;
+
+  insert into public.users (id, full_name, email, phone)
+  select v_user_id, coalesce(nullif(trim(p_admin_full_name), ''), coalesce(au.raw_user_meta_data->>'full_name', ''), au.email), au.email, nullif(trim(p_admin_phone), '')
+  from auth.users au
+  where au.id = v_user_id
+  on conflict (id) do update
+    set full_name = excluded.full_name,
+        email = coalesce(public.users.email, excluded.email),
+        phone = coalesce(public.users.phone, excluded.phone),
+        updated_at = now();
+
+  update public.schools set owner_user_id=v_user_id where id=v_school_id;
+  insert into public.school_members (school_id, user_id, role)
+  values (v_school_id, v_user_id, 'school_admin');
+
+  return v_school_id;
+end;
+$function$

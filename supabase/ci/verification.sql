@@ -190,8 +190,16 @@ begin
  if not exists(select 1 from jsonb_array_elements(ps_staff_labels) as staff_label(value)
      where staff_label.value->>'id'='20000000-0000-0000-0000-000000000004' and staff_label.value->>'label'='Enseignante titulaire')
    or ps_staff_labels::text like '%sex%' then raise exception 'staff gendered label or profile privacy contract failed';end if;
- perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','late');
- if not exists(select 1 from public.attendance_events where student_id='50000000-0000-0000-0000-000000000001' and actor_role='teacher' and action='late') then raise exception 'Kind coordinator attendance action was not attributed';end if;
+ failed:=false;
+ begin perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','late');
+ exception when others then failed:=sqlerrm='attendance_already_complete';end;
+ if not failed then raise exception 'Kind coordinator changed a completed pickup attendance';end if;
+ insert into public.students(id,school_id,first_name,last_name,atechos_id)
+ values('b5000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','Coordinator','Attendance CI','CI-COORDINATOR-ATTENDANCE');
+ insert into public.enrollments(id,school_id,student_id,class_id,status)
+ values('b6000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','b5000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002','active');
+ perform public.staff_mark_attendance('b5000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002','late');
+ if not exists(select 1 from public.attendance_events where student_id='b5000000-0000-0000-0000-000000000001' and actor_role='teacher' and action='late') then raise exception 'Kind coordinator attendance action was not attributed';end if;
  failed:=false;begin perform public.staff_mark_attendance('50000000-0000-0000-0000-000000000006','40000000-0000-0000-0000-000000000006','present');exception when others then failed:=sqlerrm='not_authorized';end;
  if not failed then raise exception 'Kind coordinator marked non-Kind attendance';end if;
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
@@ -363,7 +371,7 @@ begin
  perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
  update public.attendance set status='late',late_minutes=8 where id='80000000-0000-0000-0000-000000000001';
  summary:=public.dashboard_summary();
- if summary->>'present'<>'1' or summary->>'late'<>'1' then raise exception 'school-wide present total must include late arrivals and expose lateness as a subset: %',summary;end if;
+ if summary->>'present'<>'2' or summary->>'late'<>'2' then raise exception 'school-wide present total must include late arrivals and expose lateness as a subset: %',summary;end if;
  perform public.activate_school_section('11000000-0000-0000-0000-000000000001','primary',true);
  select id into nonpreschool_class from public.classes where school_id='10000000-0000-0000-0000-000000000001' and (grade_level_id='30000000-0000-0000-0000-000000000002' or grade_level='AF1') and academic_year_id='11000000-0000-0000-0000-000000000001' limit 1;
  insert into public.students(id,school_id,first_name,last_name,atechos_id) values('50000000-0000-0000-0000-000000000007','10000000-0000-0000-0000-000000000001','Primary','CI','AOS-CI-KIOS');
@@ -402,5 +410,697 @@ begin
  if not denied then raise exception 'parent read KIOS schedule settings';end if;
 end
 $kiosk_schedule_ci$;
+
+
+-- Test the school trial with synthetic school records in the enclosing rollback.
+update public.schools set owner_user_id='20000000-0000-0000-0000-000000000008' where id='10000000-0000-0000-0000-000000000001';
+create temporary table trial_grade_probe (school_id uuid, marker integer);
+insert into trial_grade_probe values ('10000000-0000-0000-0000-000000000001',1);
+create trigger trial_grade_probe_guard
+after insert or update or delete on trial_grade_probe
+for each row execute function private.enforce_trial_school_write();
+
+insert into public.assignments(id,school_id,class_id,title)
+values('a0000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',
+ '40000000-0000-0000-0000-000000000001','CI trial assignment');
+insert into public.assignment_receipts(assignment_id,student_id,source)
+values('a0000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','teacher');
+
+do $trial_test$
+declare first_plan jsonb; switched jsonb; denied boolean:=false; rejected boolean:=false; competency uuid; coordinator_member uuid;
+begin
+ if has_function_privilege('anon','public.choose_school_trial_plan(text)','execute') then raise exception 'anonymous trial write';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ set local role authenticated;
+ begin
+  perform public.school_subscription_trial();
+  raise exception 'parent read trial status before trial creation';
+ exception when others then
+  if sqlerrm is distinct from 'not_authorized' then raise;end if;
+ end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ if public.school_subscription_trial() is not null then
+  raise exception 'new school must have no trial status';
+ end if;
+ first_plan:=public.choose_school_trial_plan('attendance');
+ reset role;
+ select id into coordinator_member from public.school_members
+ where school_id='10000000-0000-0000-0000-000000000001'
+ and user_id='20000000-0000-0000-0000-000000000008' and role='school_admin';
+ set local role authenticated;
+ perform public.assign_preschool_coordinator(coordinator_member);
+ reset role;
+ if not exists(select 1 from public.preschool_program_settings
+  where school_id='10000000-0000-0000-0000-000000000001'
+   and coordinator_user_id='20000000-0000-0000-0000-000000000008') then
+  raise exception 'attendance plan blocked Kind coordinator administration';
+ end if;
+
+ begin
+  update public.assignments set title='Disallowed change' where id='a0000000-0000-0000-0000-000000000001';
+  raise exception 'attendance plan changed an assignment';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ begin
+  update public.assignment_receipts set response='Disallowed receipt change' where assignment_id='a0000000-0000-0000-0000-000000000001';
+  raise exception 'attendance plan changed an assignment receipt';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ begin
+  delete from public.assignments where id='a0000000-0000-0000-0000-000000000001';
+  raise exception 'attendance plan deleted an assignment';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ if not exists(select 1 from public.assignment_receipts where assignment_id='a0000000-0000-0000-0000-000000000001') then
+  raise exception 'rejected parent delete lost its receipt';
+ end if;
+ set local role authenticated;
+ begin
+  perform public.save_preschool_competency(null,'PS1','language','CI blocked trial competency',true);
+  raise exception 'attendance plan created a competency through the RPC';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ reset role;
+
+ begin
+  update trial_grade_probe set marker=2;
+  raise exception 'attendance plan allowed a grade update';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
+ begin
+  delete from trial_grade_probe;
+  raise exception 'attendance plan allowed a grade deletion';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
+ begin
+  insert into trial_grade_probe values('10000000-0000-0000-0000-000000000001',3);
+  raise exception 'attendance plan allowed a grade insertion';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
+ set local role authenticated;
+
+ reset role;
+ begin
+  insert into public.bulletin_versions(school_id,student_id,class_id,period_id,version,payload)
+  select school_id,student_id,class_id,period_id,version+100,payload
+  from public.bulletin_versions
+  where school_id='10000000-0000-0000-0000-000000000001' limit 1;
+  raise exception 'attendance trial must block bulletin publication';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
+ set local role authenticated;
+ begin
+  perform public.create_finance_fee_plan(null,null,'invalid','', '[]'::jsonb);
+  raise exception 'fee plan probe must fail';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
+ reset role;
+ if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') or private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') then raise exception 'attendance trial scope incorrect';end if;
+ set local role authenticated;
+ perform public.choose_school_trial_plan('school');
+ competency:=public.save_preschool_competency(null,'PS1','language','CI allowed trial competency',true);
+ perform public.save_preschool_competency(competency,'PS1','language','CI updated trial competency',true);
+ reset role;
+ update public.assignments set title='Allowed school plan change' where id='a0000000-0000-0000-0000-000000000001';
+ update public.assignment_receipts set response='Allowed school plan receipt' where assignment_id='a0000000-0000-0000-0000-000000000001';
+ delete from public.assignments where id='a0000000-0000-0000-0000-000000000001';
+ if exists(select 1 from public.assignment_receipts where assignment_id='a0000000-0000-0000-0000-000000000001') then
+  raise exception 'allowed assignment delete did not cascade';
+ end if;
+ update trial_grade_probe set marker=2;
+ if not exists(select 1 from trial_grade_probe where marker=2) then raise exception 'school plan must allow grade changes';end if;
+ set local role authenticated;
+ reset role;
+ if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','school') or private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') then raise exception 'school trial scope incorrect';end if;
+ set local role authenticated;
+ switched:=public.choose_school_trial_plan('school_finance');
+ if switched->>'plan' is distinct from 'school_finance'
+    or switched->>'started_at' is distinct from first_plan->>'started_at'
+    or switched->>'ends_at' is distinct from first_plan->>'ends_at'
+    or (switched->>'ends_at')::timestamptz-(switched->>'started_at')::timestamptz<>interval '720 hours' then
+   raise exception 'plan switching must preserve the 30-day trial';
+ end if;
+ reset role;
+ if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') or has_function_privilege('authenticated','private.school_trial_allows_write(uuid,text)','execute') then raise exception 'finance trial scope or helper ACL incorrect';end if;
+ update private.school_subscription_trials set started_at=now()-interval '744 hours',ends_at=now()-interval '24 hours' where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
+ reset role;
+ if private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') then raise exception 'expired trial must be read-only';end if;
+ set local role authenticated;
+ perform public.assign_preschool_coordinator(coordinator_member);
+ begin
+  perform public.save_preschool_competency(competency,'PS1','language','CI expired trial edit',true);
+  raise exception 'expired trial changed a competency through the RPC';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ reset role;
+ if not exists(select 1 from public.preschool_competencies where id=competency and label='CI updated trial competency') then
+  raise exception 'rejected competency update changed its saved value';
+ end if;
+ begin
+  delete from public.preschool_competencies where id=competency;
+  raise exception 'expired trial deleted a competency';
+ exception when others then if sqlerrm<>'school_plan_write_restricted' then raise;end if;end;
+ set local role authenticated;
+
+ begin
+  perform public.create_finance_fee_plan(null,null,'invalid','', '[]'::jsonb);
+  raise exception 'fee plan probe must fail';
+ exception when others then
+  if sqlerrm is distinct from 'school_plan_write_restricted' then raise;end if;
+ end;
+ begin perform public.choose_school_trial_plan('school');exception when others then rejected:=sqlerrm='school_trial_expired';end;
+ if not rejected then raise exception 'expired trial must not restart';end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ begin perform public.choose_school_trial_plan('school');exception when others then denied:=sqlerrm='not_authorized';end;
+ if not denied then raise exception 'linked parent cannot manage subscription trials';end if;
+ reset role;
+end
+$trial_test$;
+
+
+-- All subscription billing fixtures are synthetic and roll back.
+
+ do $subscription_capacity_test$
+declare existing_active integer; additions integer;
+begin
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+select count(*) into existing_active from public.students
+ where school_id='10000000-0000-0000-0000-000000000001' and active and school_status='active';
+ additions:=150-existing_active;
+ if additions<1 then raise exception 'CI school unexpectedly starts at the capacity boundary';end if;
+ insert into public.students(id,school_id,first_name,last_name,atechos_id)
+ select gen_random_uuid(),'10000000-0000-0000-0000-000000000001',
+  'Capacity','CI '||n,'CI-CAPACITY-'||n from generate_series(1,additions) n;
+ begin
+  insert into public.students(id,school_id,first_name,last_name,atechos_id)
+  values(gen_random_uuid(),'10000000-0000-0000-0000-000000000001','Capacity','Over','CI-CAPACITY-OVER');
+  raise exception 'subscribed school exceeded 150 active students';
+ exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
+ -- Inactive departures free capacity, after which one new active student fits.
+ update public.students set active=false where school_id='10000000-0000-0000-0000-000000000001'
+ and atechos_id='CI-CAPACITY-'||additions;
+ insert into public.students(id,school_id,first_name,last_name,atechos_id)
+ values(gen_random_uuid(),'10000000-0000-0000-0000-000000000001','Capacity','Replacement','CI-CAPACITY-REPLACEMENT');
+ begin
+  update public.students set active=true where school_id='10000000-0000-0000-0000-000000000001'
+  and atechos_id='CI-CAPACITY-'||additions;
+  raise exception 'reactivation exceeded 150 active students';
+ exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
+ delete from public.students where school_id='10000000-0000-0000-0000-000000000001'
+ and atechos_id like 'CI-CAPACITY-%';
+
+end
+$subscription_capacity_test$;
+
+
+insert into private.subscription_billing_operators(user_id)
+values('20000000-0000-0000-0000-000000000008');
+insert into public.users(id,full_name) values('20000000-0000-0000-0000-000000000009','Other School Owner');
+insert into public.school_members(school_id,user_id,role,enabled)
+values('10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000009','school_admin',true);
+update public.schools set owner_user_id='20000000-0000-0000-0000-000000000009'
+where id='10000000-0000-0000-0000-000000000002';
+
+do $subscription_billing_test$
+declare invoice uuid; renewal uuid; different_plan uuid; workspace jsonb; first_end timestamptz; failed boolean;
+begin
+ if has_function_privilege('anon','public.create_school_subscription_invoice(text,text,text,text)','execute')
+ or has_table_privilege('authenticated','private.school_subscription_invoices','select')
+ or has_table_privilege('authenticated','private.subscription_billing_operators','insert') then
+  raise exception 'subscription billing ACL is unsafe';
+ end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ set local role authenticated;
+ begin
+  perform public.subscription_billing_admin_workspace();
+  raise exception 'parent reached platform billing';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ begin
+  perform public.create_school_subscription_invoice('attendance','HTG','monthly','moncash');
+  raise exception 'parent created subscription invoice';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ perform public.save_subscription_payment_method('moncash','CI recipient','+50937000001',true);
+ perform public.save_subscription_payment_method('paypal','CI USD recipient','billing-ci@example.invalid',true);
+ invoice:=public.create_school_subscription_invoice('attendance','HTG','monthly','moncash');
+ if public.create_school_subscription_invoice('attendance','HTG','monthly','moncash')<>invoice then
+  raise exception 'retry created duplicate invoice';
+ end if;
+ begin
+  perform public.create_school_subscription_invoice('school','USD','monthly','paypal');
+  raise exception 'two invoices opened for the same school';
+ exception when others then if sqlerrm<>'subscription_invoice_pending' then raise;end if;end;
+ perform public.save_subscription_payment_method('moncash','Changed recipient','+50937000002',true);
+ workspace:=public.school_subscription_billing_workspace();
+ if workspace->'invoices'->0->>'amount'<>'1950.00'
+ or workspace->'invoices'->0->'destination'->>'account'<>'+50937000001' then
+  raise exception 'invoice price or destination snapshot changed';
+ end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000009',true);
+ workspace:=public.school_subscription_billing_workspace();
+ if jsonb_array_length(workspace->'invoices')<>0 then raise exception 'other school saw subscription invoice';end if;
+ begin
+  perform public.submit_school_subscription_payment(invoice,'CI-SUB-OTHER-SCHOOL');
+  raise exception 'other school submitted subscription payment';
+ exception when others then if sqlerrm<>'subscription_invoice_not_pending' then raise;end if;end;
+ begin
+  perform public.save_subscription_payment_method('moncash','Hijacked recipient','+50937000003',true);
+  raise exception 'school owner changed platform destination';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ perform public.submit_school_subscription_payment(invoice,'CI-SUB-001');
+ reset role;
+ if exists(select 1 from private.school_paid_subscriptions where school_id='10000000-0000-0000-0000-000000000001') then
+  raise exception 'payment claim activated subscription';
+ end if;
+ set local role authenticated;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000009',true);
+ begin
+  perform public.review_school_subscription_payment(invoice,true,1950,'HTG','CI bank transaction verified');
+  raise exception 'school owner activated subscription';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ begin
+  perform public.review_school_subscription_payment(invoice,true,1950,'USD','CI wrong currency');
+  raise exception 'wrong currency activated subscription';
+ exception when others then if sqlerrm<>'subscription_payment_mismatch' then raise;end if;end;
+ begin
+  perform public.review_school_subscription_payment(invoice,true,1900,'HTG','CI wrong amount');
+  raise exception 'wrong amount activated subscription';
+ exception when others then if sqlerrm<>'subscription_payment_mismatch' then raise;end if;end;
+ perform public.review_school_subscription_payment(invoice,true,1950,'HTG','CI provider transaction verified');
+ begin
+  perform public.review_school_subscription_payment(invoice,true,1950,'HTG','CI repeated approval');
+  raise exception 'repeat review extended subscription';
+ exception when others then if sqlerrm<>'subscription_invoice_not_submitted' then raise;end if;end;
+ reset role;
+ if not private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance')
+ or private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','finance') then
+  raise exception 'paid subscription module boundaries incorrect';
+ end if;
+ select ends_at into first_end from private.school_paid_subscriptions where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
+ renewal:=public.create_school_subscription_invoice('attendance','HTG','yearly','moncash');
+ begin
+  perform public.submit_school_subscription_payment(renewal,' ci-sub-001 ');
+  raise exception 'transaction reference reused';
+ exception when others then if sqlerrm<>'subscription_reference_used' then raise;end if;end;
+ perform public.submit_school_subscription_payment(renewal,'CI-SUB-002');
+ perform public.review_school_subscription_payment(renewal,true,19500,'HTG','CI annual renewal verified');
+ reset role;
+ if (select ends_at from private.school_paid_subscriptions where school_id='10000000-0000-0000-0000-000000000001')<>first_end+interval '1 year' then
+  raise exception 'renewal lost the remaining subscription period';
+ end if;
+ set local role authenticated;
+ begin
+  perform public.create_school_subscription_invoice('school','USD','monthly','paypal');
+  raise exception 'unsupported plan change requested payment';
+ exception when others then if sqlerrm<>'subscription_active_plan_change_requires_review' then raise;end if;end;
+ reset role;
+ update private.school_paid_subscriptions set starts_at=now()-interval '2 months',ends_at=now()-interval '1 month'
+ where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
+ different_plan:=public.create_school_subscription_invoice('school','USD','monthly','paypal');
+ reset role;
+ update private.school_paid_subscriptions set ends_at=first_end+interval '1 year'
+ where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
+ workspace:=public.school_subscription_billing_workspace();
+ if (select (value->>'amount')::numeric from jsonb_array_elements(workspace->'invoices')
+  where value->>'id'=different_plan::text) is distinct from 25::numeric then
+  raise exception 'USD subscription quote incorrect';
+ end if;
+ perform public.submit_school_subscription_payment(different_plan,'CI-USD-SUB');
+ begin
+  perform public.review_school_subscription_payment(different_plan,true,25,'USD','CI plan change verified');
+  raise exception 'active paid plan replaced without commercial review';
+ exception when others then if sqlerrm<>'subscription_active_plan_change_requires_review' then raise;end if;end;
+ perform public.review_school_subscription_payment(different_plan,false,null,'USD','CI rejected pending commercial review');
+ different_plan:=public.create_school_subscription_invoice('attendance','USD','yearly','paypal');
+ perform public.cancel_school_subscription_invoice(different_plan);
+ different_plan:=public.create_school_subscription_invoice('attendance','USD','yearly','paypal');
+ reset role;
+ update private.school_subscription_invoices set expires_at=now()-interval '1 day' where id=different_plan;
+ set local role authenticated;
+ begin
+  perform public.submit_school_subscription_payment(different_plan,'CI-EXPIRED-SUB');
+  raise exception 'expired quote accepted payment submission';
+ exception when others then if sqlerrm<>'subscription_invoice_not_pending' then raise;end if;end;
+ reset role;
+ update private.school_paid_subscriptions set starts_at=now()-interval '2 months',ends_at=now()-interval '1 month'
+ where school_id='10000000-0000-0000-0000-000000000001';
+ if private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') then
+  raise exception 'expired paid subscription regained grandfather access';
+ end if;
+ delete from private.school_subscription_trials where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
+ begin
+  perform public.choose_school_trial_plan('school_finance');
+  raise exception 'paid school started a new free trial';
+ exception when others then if sqlerrm<>'school_trial_unavailable' then raise;end if;end;
+ reset role;
+
+ insert into public.students(id,school_id,first_name,last_name,atechos_id,active,school_status)
+ select gen_random_uuid(),'10000000-0000-0000-0000-000000000002','Billing','CI','CI-SUB-STUDENT-'||n,true,'active'
+ from generate_series(1,151) n;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000009',true);
+ set local role authenticated;
+ begin
+  perform public.create_school_subscription_invoice('attendance','USD','monthly','paypal');
+  raise exception 'school above launch capacity received standard invoice';
+ exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
+ reset role;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ update private.subscription_billing_operators set enabled=false;
+ set local role authenticated;
+ if public.subscription_billing_operator() then raise exception 'disabled platform operator retained access';end if;
+ begin
+  perform public.subscription_billing_admin_workspace();
+  raise exception 'disabled operator read billing';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ reset role;
+end
+$subscription_billing_test$;
+
+
+-- Exercise the ordinary onboarding entry points with isolated auth users.
+insert into auth.users(id,email) values
+ ('20000000-0000-0000-0000-000000000010','trial-onboarding-ci@example.invalid'),
+ ('20000000-0000-0000-0000-000000000011','trial-legacy-ci@example.invalid');
+
+do $subscription_onboarding_test$
+declare sid uuid; trial jsonb; original_end text;
+begin
+ if has_function_privilege('authenticated','public.create_school_onboarding_before_subscription(text,text,text,text,text,text,text)','execute')
+ or has_function_privilege('anon','public.create_school_onboarding(text,text,text,text,text,text,text,text)','execute') then
+  raise exception 'subscription onboarding bypass is exposed';
+ end if;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000010',true);
+ set local role authenticated;
+ begin
+  perform public.create_school_onboarding('Invalid trial school','CI-TRIAL-INVALID',null,null,null,'CI owner',null,'invalid');
+  raise exception 'invalid onboarding trial plan accepted';
+ exception when others then if sqlerrm<>'invalid_trial_plan' then raise;end if;end;
+ sid:=public.create_school_onboarding('Selected trial school','CI-TRIAL-SELECTED',null,null,null,'CI owner',null,'school_finance');
+ trial:=public.school_subscription_trial();
+ if trial->>'plan'<>'school_finance' or (trial->>'active')::boolean is distinct from true
+ or (trial->>'ends_at')::timestamptz-(trial->>'started_at')::timestamptz<>interval '720 hours' then
+  raise exception 'new school did not receive its selected 30-day trial';
+ end if;
+ original_end:=trial->>'ends_at';
+ perform public.choose_school_trial_plan('school');
+ trial:=public.school_subscription_trial();
+ if trial->>'ends_at'<>original_end then raise exception 'onboarding plan switch restarted the trial';end if;
+ reset role;
+ if exists(select 1 from public.schools where code='CI-TRIAL-INVALID')
+ or not exists(select 1 from private.school_subscription_trials where school_id=sid and plan='school') then
+  raise exception 'school creation and trial enrollment are not atomic';
+ end if;
+ set local role authenticated;
+ begin
+  perform public.create_school_onboarding('Duplicate school','CI-TRIAL-DUPLICATE');
+  raise exception 'existing member created another trial school';
+ exception when others then if sqlerrm<>'user_already_belongs_to_school' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000011',true);
+ sid:=public.create_school_onboarding('Legacy client school','CI-TRIAL-LEGACY');
+ trial:=public.school_subscription_trial();
+ if trial->>'plan'<>'attendance' then raise exception 'legacy onboarding bypassed the default trial';end if;
+ reset role;
+ if private.school_trial_allows_write(sid,'finance') or not private.school_trial_allows_write(sid,'attendance') then
+  raise exception 'legacy onboarding received incorrect module access';
+ end if;
+end
+$subscription_onboarding_test$;
+
+
+-- Expired subscriptions keep checkout and authorized Kind pickup operational.
+-- The scan window is controlled only inside this rollback fixture.
+do $attendance_subscription_expiry_test$
+declare
+ sid uuid:='10000000-0000-0000-0000-000000000001';
+ other_sid uuid:='10000000-0000-0000-0000-000000000002';
+ today date:=(now() at time zone 'America/Port-au-Prince')::date;
+ primary_class uuid; control_year uuid; control_class uuid:=gen_random_uuid();
+ token text:=encode(extensions.gen_random_bytes(32),'hex');
+ adult uuid; outcome jsonb; arrival timestamptz:=now()-interval '1 hour';
+ cron_day date; fn regprocedure; args text; function_name text;
+begin
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ select c.id into primary_class from public.classes c join public.academic_years y on y.id=c.academic_year_id
+ where c.school_id=sid and c.grade_level='AF1' and c.enabled and y.is_current limit 1;
+ if primary_class is null then raise exception 'expiry test needs an active Primary class';end if;
+ update private.school_paid_subscriptions set plan='attendance',starts_at=now()-interval '1 day',ends_at=now()+interval '1 day'
+ where school_id=sid;
+ insert into public.students(id,school_id,first_name,last_name,atechos_id) values
+ ('b0000000-0000-0000-0000-000000000001',sid,'Kind','Expiry','CI-EXPIRY-KIND'),
+ ('b0000000-0000-0000-0000-000000000002',sid,'Staff','Checkout','CI-EXPIRY-STAFF'),
+ ('b0000000-0000-0000-0000-000000000003',sid,'New','Arrival','CI-EXPIRY-ARRIVAL'),
+ ('b0000000-0000-0000-0000-000000000004',sid,'KIOS','Checkout','CI-EXPIRY-KIOS'),
+ ('b0000000-0000-0000-0000-000000000005',other_sid,'Active','Control','CI-EXPIRY-CONTROL');
+ insert into public.enrollments(id,school_id,student_id,class_id,status) values
+ (gen_random_uuid(),sid,'b0000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','active'),
+ (gen_random_uuid(),sid,'b0000000-0000-0000-0000-000000000002',primary_class,'active'),
+ (gen_random_uuid(),sid,'b0000000-0000-0000-0000-000000000003',primary_class,'active'),
+ (gen_random_uuid(),sid,'b0000000-0000-0000-0000-000000000004',primary_class,'active');
+ insert into public.attendance(school_id,student_id,class_id,attendance_date,check_in_at,status,late_minutes) values
+ (sid,'b0000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',today,arrival,'present',0),
+ (sid,'b0000000-0000-0000-0000-000000000002',primary_class,today,arrival,'late',5),
+ (sid,'b0000000-0000-0000-0000-000000000004',primary_class,today,arrival,'present',0);
+ insert into public.student_badges(id,school_id,student_id,badge_uid) values
+ ('b3000000-0000-0000-0000-000000000001',sid,'b0000000-0000-0000-0000-000000000001','CI-EXPIRY-BADGE');
+ insert into private.badge_token_history(token_hash,badge_id)
+ values(encode(extensions.digest(token,'sha256'),'hex'),'b3000000-0000-0000-0000-000000000001');
+ update private.school_paid_subscriptions set ends_at=now()-interval '1 second' where school_id=sid;
+
+ -- Changing arrival data while claiming to check out must still be denied.
+ begin
+  update public.attendance set check_out_at=now(),check_in_at=now()
+  where student_id='b0000000-0000-0000-0000-000000000002' and attendance_date=today;
+  raise exception 'checkout exception changed the original arrival';
+ exception when others then if sqlerrm<>'attendance_subscription_expired' then raise;end if;end;
+ begin
+  update public.attendance set check_out_at=now(),status='present'
+  where student_id='b0000000-0000-0000-0000-000000000002' and attendance_date=today;
+  raise exception 'checkout exception changed the original lateness status';
+ exception when others then if sqlerrm<>'attendance_subscription_expired' then raise;end if;end;
+ set local role authenticated;
+ begin
+  perform public.staff_mark_attendance('b0000000-0000-0000-0000-000000000003',primary_class,'present');
+  raise exception 'expired subscription accepted a new staff check-in';
+ exception when others then if sqlerrm<>'attendance_subscription_expired' then raise;end if;end;
+ perform public.staff_mark_attendance('b0000000-0000-0000-0000-000000000002',primary_class,'checkout');
+ adult:=public.save_kindergarten_pickup_authorization('b0000000-0000-0000-0000-000000000001',null,'CI authorized adult','guardian','+50937000001',true);
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000002',true);
+ begin
+  perform public.complete_kindergarten_pickup('AOSQ1.'||token,adult,'CI expiry pickup');
+  raise exception 'expiry bypassed Kind pickup authorization';
+ exception when others then if sqlerrm<>'not_authorized' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
+ outcome:=public.complete_kindergarten_pickup('AOSQ1.'||token,adult,'CI expiry pickup');
+ if not (outcome ? 'pickup_id') then raise exception 'expired subscription blocked authorized Kind pickup';end if;
+ reset role;
+ if not exists(select 1 from public.attendance
+  where student_id='b0000000-0000-0000-0000-000000000002' and attendance_date=today
+   and check_in_at=arrival and check_out_at is not null and status='late' and late_minutes=5) then
+  raise exception 'staff checkout lost its original attendance facts';
+ end if;
+ if not exists(select 1 from public.attendance_events
+  where student_id='b0000000-0000-0000-0000-000000000002'
+   and source='STAFF' and actor_id='20000000-0000-0000-0000-000000000008' and action='checkout') then
+  raise exception 'expiry checkout lost staff attribution';
+ end if;
+ if not exists(select 1 from public.attendance_events
+  where student_id='b0000000-0000-0000-0000-000000000001'
+   and source='STAFF' and actor_id='20000000-0000-0000-0000-000000000008' and action='kindergarten_pickup_check_out') then
+  raise exception 'expiry Kind pickup lost staff attribution';
+ end if;
+ outcome:=private.record_student_kiosk('b0000000-0000-0000-0000-000000000003');
+ if outcome->>'error' is distinct from 'attendance_subscription_expired' then
+  raise exception 'expired KIOS entry did not return its specific subscription error';
+ end if;
+
+ foreach fn in array array[
+  'private.kiosk_window(time)'::regprocedure,
+  'private.kiosk_window_for_student(uuid,time,date,timestamptz,timestamptz)'::regprocedure
+ ] loop
+  select format('%I.%I',n.nspname,p.proname),pg_get_function_arguments(p.oid)
+  into function_name,args from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.oid=fn;
+  execute 'create or replace function '||function_name||'('||args||') returns text language sql stable security definer set search_path='''' as '||quote_literal('select ''checkout''::text');
+ end loop;
+ outcome:=private.record_student_kiosk('b0000000-0000-0000-0000-000000000004');
+ if outcome->>'action' is distinct from 'check_out' then raise exception 'expired subscription blocked KIOS checkout: %',outcome;end if;
+ if not exists(select 1 from public.attendance_events
+  where student_id='b0000000-0000-0000-0000-000000000004' and source='KIOS' and action='check_out') then
+  raise exception 'expiry KIOS checkout lost its source';
+ end if;
+ if exists(select 1 from public.attendance where student_id='b0000000-0000-0000-0000-000000000003') then
+  raise exception 'rejected entry created an attendance record';
+ end if;
+
+ -- Exercise the real automatic job with one expired and one eligible school.
+ select id into control_year from public.academic_years where school_id=other_sid and is_current limit 1;
+ if control_year is null then
+  insert into public.academic_years(school_id,name,start_date,end_date,is_current)
+  values(other_sid,'CI expiry control year',today-30,today+30,true) returning id into control_year;
+ end if;
+ insert into public.classes(id,school_id,academic_year_id,grade_level,name)
+ values(control_class,other_sid,control_year,'AF1','CI expiry control class');
+ insert into public.enrollments(id,school_id,student_id,class_id,status)
+ values(gen_random_uuid(),other_sid,'b0000000-0000-0000-0000-000000000005',control_class,'active');
+ cron_day:=today+case extract(isodow from today)::integer when 6 then 2 when 7 then 1 else 0 end;
+ perform private.mark_missing_attendance((cron_day+time '09:01') at time zone 'America/Port-au-Prince');
+ if not exists(select 1 from public.attendance
+  where student_id='b0000000-0000-0000-0000-000000000005' and attendance_date=cron_day and status='absent') then
+  raise exception 'eligible school lost automatic absence processing';
+ end if;
+ if exists(select 1 from public.attendance
+  where student_id='b0000000-0000-0000-0000-000000000003' and attendance_date=cron_day) then
+  raise exception 'expired school received an automatic absence';
+ end if;
+ update private.school_paid_subscriptions set ends_at=now()+interval '1 day' where school_id=sid;
+ set local role authenticated;
+ perform public.staff_mark_attendance('b0000000-0000-0000-0000-000000000003',primary_class,'present');
+ reset role;
+ if not exists(select 1 from public.attendance
+  where student_id='b0000000-0000-0000-0000-000000000003' and check_in_at is not null) then
+  raise exception 'renewed subscription did not restore attendance writes';
+ end if;
+end
+$attendance_subscription_expiry_test$;
+
+
+-- Exercise the added boundary on real storage.objects RLS, without broadening
+-- production permissions. Controlled permissive policies below exist only in
+-- this rollback transaction: the migration's restrictive policies must still win.
+insert into storage.buckets(id,name) values
+ ('assignment-files','assignment-files'),('teacher-exam-files','teacher-exam-files'),
+ ('finance-proofs','finance-proofs'),('ci-unrelated-files','ci-unrelated-files')
+on conflict(id) do nothing;
+grant select,insert,update on storage.objects to authenticated;
+create policy ci_subscription_storage_insert on storage.objects for insert to authenticated
+with check ((storage.foldername(name))[2]=auth.uid()::text
+ and private.has_role(((storage.foldername(name))[1])::uuid,array['school_admin','teacher','parent']));
+create policy ci_subscription_storage_read on storage.objects for select to authenticated
+using ((storage.foldername(name))[2]=auth.uid()::text);
+create policy ci_subscription_storage_update on storage.objects for update to authenticated
+using ((storage.foldername(name))[2]=auth.uid()::text)
+with check ((storage.foldername(name))[2]=auth.uid()::text);
+
+do $subscription_storage_test$
+declare
+ sid uuid:='10000000-0000-0000-0000-000000000001';
+ actor uuid:='20000000-0000-0000-0000-000000000008';
+ parent_actor uuid:='20000000-0000-0000-0000-000000000002';
+ other_sid uuid:='10000000-0000-0000-0000-000000000002';
+ bucket text; path text; existing_id uuid; changed integer;
+begin
+ if private.subscription_storage_write_allowed('assignment-files','invalid/path')
+ or private.subscription_storage_write_allowed('finance-proofs',null) then
+  raise exception 'malformed file path received plan access';end if;
+ if has_function_privilege('anon','private.subscription_storage_write_allowed(text,text)','execute') then
+  raise exception 'anonymous subscription storage helper access';end if;
+ perform set_config('request.jwt.claim.sub',actor::text,true);
+ update private.school_paid_subscriptions set plan='attendance',starts_at=now()-interval '1 day',ends_at=now()+interval '1 day'
+ where school_id=sid;
+ foreach bucket in array array['assignment-files','teacher-exam-files','finance-proofs'] loop
+  path:=sid::text||'/'||actor::text||'/attendance-denied-'||bucket;
+  set local role authenticated;
+  begin
+   insert into storage.objects(bucket_id,name) values(bucket,path);
+   raise exception 'Attendance plan accepted restricted file: %',bucket;
+  exception when insufficient_privilege then null;end;
+  reset role;
+ end loop;
+ update private.school_paid_subscriptions set plan='school' where school_id=sid;
+ foreach bucket in array array['assignment-files','teacher-exam-files'] loop
+  path:=sid::text||'/'||actor::text||'/school-allowed-'||bucket;
+  set local role authenticated;
+  insert into storage.objects(bucket_id,name) values(bucket,path);
+  reset role;
+ end loop;
+ set local role authenticated;
+ begin
+  insert into storage.objects(bucket_id,name) values('finance-proofs',sid::text||'/'||actor::text||'/school-finance-denied');
+  raise exception 'School plan accepted a finance proof';
+ exception when insufficient_privilege then null;end;
+ reset role;
+ update private.school_paid_subscriptions set plan='school_finance' where school_id=sid;
+ set local role authenticated;
+ insert into storage.objects(bucket_id,name) values('finance-proofs',sid::text||'/'||actor::text||'/finance-allowed');
+ -- UPDATE supports replacement only while the plan and original authorization allow it.
+ update storage.objects set metadata='{"ci":"active replacement"}'::jsonb
+ where bucket_id='assignment-files' and name=sid::text||'/'||actor::text||'/school-allowed-assignment-files';
+ get diagnostics changed=row_count;
+ if changed<>1 then raise exception 'active plan could not replace an authorized file';end if;
+ begin
+  insert into storage.objects(bucket_id,name) values('assignment-files',other_sid::text||'/'||actor::text||'/cross-school');
+  raise exception 'storage subscription guard accepted a nonmember tenant';
+ exception when insufficient_privilege then null;end;
+ begin
+  insert into storage.objects(bucket_id,name) values('assignment-files',sid::text||'/'||parent_actor::text||'/wrong-owner');
+  raise exception 'subscription entitlement replaced file ownership authorization';
+ exception when insufficient_privilege then null;end;
+ reset role;
+ perform set_config('request.jwt.claim.sub',parent_actor::text,true);
+ set local role authenticated;
+ insert into storage.objects(bucket_id,name) values('finance-proofs',sid::text||'/'||parent_actor::text||'/parent-allowed');
+ reset role;
+ perform set_config('request.jwt.claim.sub',actor::text,true);
+ update private.school_paid_subscriptions set ends_at=now()-interval '1 second' where school_id=sid;
+ set local role authenticated;
+ select id into existing_id from storage.objects
+ where bucket_id='assignment-files' and name=sid::text||'/'||actor::text||'/school-allowed-assignment-files';
+ if existing_id is null then raise exception 'expiry removed existing file read access';end if;
+ update storage.objects set metadata='{"ci":"expired replacement"}'::jsonb where id=existing_id;
+ get diagnostics changed=row_count;
+ if changed<>0 then raise exception 'expiry accepted file replacement';end if;
+ foreach bucket in array array['assignment-files','teacher-exam-files','finance-proofs'] loop
+  begin
+   insert into storage.objects(bucket_id,name) values(bucket,sid::text||'/'||actor::text||'/expired-'||bucket);
+   raise exception 'expired plan accepted a file: %',bucket;
+  exception when insufficient_privilege then null;end;
+ end loop;
+ -- A rename out of a guarded bucket cannot evade its old-row condition.
+ update storage.objects set bucket_id='ci-unrelated-files' where id=existing_id;
+ get diagnostics changed=row_count;
+ if changed<>0 then raise exception 'expired file moved out of a guarded bucket';end if;
+ -- Unrelated profile/photo buckets are outside this module rule.
+ insert into storage.objects(bucket_id,name) values('ci-unrelated-files',sid::text||'/'||actor::text||'/unaffected');
+ begin
+  update storage.objects set bucket_id='assignment-files'
+  where bucket_id='ci-unrelated-files' and name=sid::text||'/'||actor::text||'/unaffected';
+  raise exception 'expired file moved into a guarded bucket';
+ exception when insufficient_privilege then null;end;
+ reset role;
+ perform set_config('request.jwt.claim.sub',parent_actor::text,true);
+ set local role authenticated;
+ begin
+  insert into storage.objects(bucket_id,name) values('finance-proofs',sid::text||'/'||parent_actor::text||'/parent-expired');
+  raise exception 'expired plan accepted a parent proof';
+ exception when insufficient_privilege then null;end;
+ reset role;
+ perform set_config('request.jwt.claim.sub',actor::text,true);
+ update private.school_paid_subscriptions set ends_at=now()+interval '1 day' where school_id=sid;
+ update public.school_members set enabled=false where school_id=sid and user_id=actor;
+ set local role authenticated;
+ if private.subscription_storage_write_allowed('assignment-files',sid::text||'/'||actor::text||'/disabled') then
+  raise exception 'disabled membership retained storage plan access';end if;
+ reset role;
+ update public.school_members set enabled=true where school_id=sid and user_id=actor;
+ set local role authenticated;
+ update storage.objects set metadata='{"ci":"renewed"}'::jsonb where id=existing_id;
+ get diagnostics changed=row_count;
+ if changed<>1 then raise exception 'renewal did not restore permitted replacement';end if;
+ reset role;
+ perform set_config('request.jwt.claim.sub',parent_actor::text,true);
+ set local role authenticated;
+ begin
+  insert into storage.objects(bucket_id,name) values('assignment-files',sid::text||'/'||actor::text||'/parent-wrong-owner');
+  raise exception 'active paid plan bypassed original owner restriction';
+ exception when insufficient_privilege then null;end;
+ reset role;
+end
+$subscription_storage_test$;
 
 rollback;

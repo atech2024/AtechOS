@@ -50,7 +50,7 @@ const schoolPlans = {
   "fr": {
     "title": "Trois offres pour votre école",
     "trial": "Essayez l’offre de votre choix pendant 30 jours",
-    "note": "Pendant l’essai, accédez à toutes les fonctions de l’offre choisie. Changez d’offre en cours d’essai en gardant la même date de fin. À l’échéance, choisissez votre abonnement. Vos données restent consultables et les modules non inclus passent en lecture seule.",
+    "note": "Pendant l’essai, accédez à toutes les fonctions de l’offre choisie. Changez d’offre en cours d’essai en gardant la même date de fin. À l’échéance, choisissez votre abonnement. Vos données restent consultables et les modules non inclus passent en lecture seule. Les sorties des élèves déjà présents et leur récupération par une personne autorisée restent disponibles.",
     "plans": [
       [
         "Présences",
@@ -69,7 +69,7 @@ const schoolPlans = {
   "ht": {
     "title": "Twa plan pou lekòl ou",
     "trial": "Eseye nenpòt plan pandan 30 jou",
-    "note": "Pandan esè a, ou jwenn tout fonksyon plan ou chwazi a. Ou ka chanje plan pandan esè a pandan menm dat fen an rete valab. Lè esè a fini, chwazi abònman ou. Done ou yo rete disponib pou konsilte, epi modil ki pa nan abònman an pase an lekti sèlman.",
+    "note": "Pandan esè a, ou jwenn tout fonksyon plan ou chwazi a. Ou ka chanje plan pandan esè a pandan menm dat fen an rete valab. Lè esè a fini, chwazi abònman ou. Done ou yo rete disponib pou konsilte, epi modil ki pa nan abònman an pase an lekti sèlman. Sòti elèv ki deja prezan ak rekiperasyon timoun pa moun otorize rete disponib.",
     "plans": [
       [
         "Prezans",
@@ -88,7 +88,7 @@ const schoolPlans = {
   "en": {
     "title": "Three plans for your school",
     "trial": "Try any plan for 30 days",
-    "note": "During the trial, use every feature in your chosen plan. You can switch plans and keep the same end date. At the end, choose a subscription. Your data remains available to view, and modules outside your subscription become read-only.",
+    "note": "During the trial, use every feature in your chosen plan. You can switch plans and keep the same end date. At the end, choose a subscription. Your data remains available to view, and modules outside your subscription become read-only. Check-outs and authorized pickup remain available for students already checked in.",
     "plans": [
       [
         "Attendance",

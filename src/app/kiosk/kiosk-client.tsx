@@ -24,6 +24,7 @@ function getScanHistoryStatus(result:Result) {
 }
 const messages:Record<string,string> = { check_in:'Check-in recorded.',check_out:'Check-out recorded.',duplicate_scan:'Already checked in. Check-out opens at the scheduled time.',already_complete:'Attendance already complete for today.',already_picked_up_by_parent:'This student has already been collected by a parent or authorized adult today.' }
 const scanErrors:Record<string,string> = {
+ attendance_subscription_expired:"New check-in recording is paused. Contact school administration. Check-outs remain available.",
  kiosk_wrong_section_preschool:"This KIOS is reserved for Preschool / Kind. Use the KIOS for your section.",
  kiosk_wrong_section_primary:"This KIOS is reserved for 1 AF–6 AF. Use the KIOS for your section.",
  kiosk_wrong_section_fundamental:"This KIOS is reserved for 7 AF–9 AF. Use the KIOS for your section.",

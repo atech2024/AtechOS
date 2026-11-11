@@ -40,6 +40,11 @@ language plpgsql security definer set search_path='' as $$
 declare sid uuid:=private.school_trial_owner_id(); trial private.school_subscription_trials; at_time timestamptz:=statement_timestamp();
 begin
  if p_plan is null or p_plan not in ('attendance','school','school_finance') then raise exception 'invalid_trial_plan';end if;
+ perform 1 from public.schools where id=sid for update;
+ if exists(select 1 from private.school_paid_subscriptions where school_id=sid)
+ and not exists(select 1 from private.school_subscription_trials where school_id=sid) then
+  raise exception 'school_trial_unavailable';
+ end if;
  insert into private.school_subscription_trials(school_id,plan,started_at,ends_at)
  values(sid,p_plan,at_time,at_time+interval '720 hours')
  on conflict(school_id) do update set plan=excluded.plan
@@ -180,8 +185,8 @@ create table private.school_subscription_invoices (
  destination jsonb not null,
  status text not null default 'pending' check (status in ('pending','submitted','paid','rejected','cancelled')),
  created_by uuid not null references public.users(id),
- created_at timestamptz not null default now(),
- expires_at timestamptz not null default now()+interval '7 days',
+ created_at timestamptz not null default clock_timestamp(),
+ expires_at timestamptz not null default clock_timestamp()+interval '7 days',
  reference text,
  reference_key text generated always as (lower(regexp_replace(trim(reference),'[[:space:]]','','g'))) stored,
  submitted_at timestamptz,
@@ -252,6 +257,10 @@ begin
   raise exception 'invalid_subscription_selection';
  end if;
  perform 1 from public.schools where id=sid for update;
+ if exists(select 1 from private.school_paid_subscriptions
+  where school_id=sid and ends_at>clock_timestamp() and plan<>p_plan) then
+  raise exception 'subscription_active_plan_change_requires_review';
+ end if;
  update private.school_subscription_invoices set status='cancelled'
  where school_id=sid and status='pending' and expires_at<=clock_timestamp();
  select * into existing from private.school_subscription_invoices

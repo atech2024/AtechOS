@@ -197,7 +197,7 @@ export default function SchoolSubscriptionBilling({ operator = false }: { operat
   </p>}
   {workspace && !operator && !openInvoice && <form onSubmit={createInvoice} className="grid gap-4 sm:grid-cols-2">
    <label className="grid gap-1.5 text-sm font-medium">{text.plan}
-    <select name="plan" className={field} disabled={busy}>{schoolPlanIds.map(plan => <option key={plan} value={plan}>{text[plan]}</option>)}</select>
+    <select name="plan" defaultValue={workspace.subscription?.plan ?? 'attendance'} className={field} disabled={busy}>{schoolPlanIds.map(plan => <option key={plan} value={plan}>{text[plan]}</option>)}</select>
    </label>
    <label className="grid gap-1.5 text-sm font-medium">{text.currency}
     <select value={currency} onChange={event => setCurrency(event.target.value)} className={field} disabled={busy}><option>HTG</option><option>USD</option></select>

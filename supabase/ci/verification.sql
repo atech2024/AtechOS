@@ -608,18 +608,33 @@ begin
   raise exception 'renewal lost the remaining subscription period';
  end if;
  set local role authenticated;
+ begin
+  perform public.create_school_subscription_invoice('school','USD','monthly','paypal');
+  raise exception 'unsupported plan change requested payment';
+ exception when others then if sqlerrm<>'subscription_active_plan_change_requires_review' then raise;end if;end;
+ reset role;
+ update private.school_paid_subscriptions set starts_at=now()-interval '2 months',ends_at=now()-interval '1 month'
+ where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
  different_plan:=public.create_school_subscription_invoice('school','USD','monthly','paypal');
+ reset role;
+ update private.school_paid_subscriptions set ends_at=first_end+interval '1 year'
+ where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
  workspace:=public.school_subscription_billing_workspace();
- if workspace->'invoices'->0->>'amount'<>'25.00' then raise exception 'USD subscription quote incorrect';end if;
+ if (select (value->>'amount')::numeric from jsonb_array_elements(workspace->'invoices')
+  where value->>'id'=different_plan::text) is distinct from 25::numeric then
+  raise exception 'USD subscription quote incorrect';
+ end if;
  perform public.submit_school_subscription_payment(different_plan,'CI-USD-SUB');
  begin
   perform public.review_school_subscription_payment(different_plan,true,25,'USD','CI plan change verified');
   raise exception 'active paid plan replaced without commercial review';
  exception when others then if sqlerrm<>'subscription_active_plan_change_requires_review' then raise;end if;end;
  perform public.review_school_subscription_payment(different_plan,false,null,'USD','CI rejected pending commercial review');
- different_plan:=public.create_school_subscription_invoice('school','USD','yearly','paypal');
+ different_plan:=public.create_school_subscription_invoice('attendance','USD','yearly','paypal');
  perform public.cancel_school_subscription_invoice(different_plan);
- different_plan:=public.create_school_subscription_invoice('school','USD','yearly','paypal');
+ different_plan:=public.create_school_subscription_invoice('attendance','USD','yearly','paypal');
  reset role;
  update private.school_subscription_invoices set expires_at=now()-interval '1 day' where id=different_plan;
  set local role authenticated;
@@ -633,6 +648,25 @@ begin
  if private.school_trial_allows_write('10000000-0000-0000-0000-000000000001','attendance') then
   raise exception 'expired paid subscription regained grandfather access';
  end if;
+ delete from private.school_subscription_trials where school_id='10000000-0000-0000-0000-000000000001';
+ set local role authenticated;
+ begin
+  perform public.choose_school_trial_plan('school_finance');
+  raise exception 'paid school started a new free trial';
+ exception when others then if sqlerrm<>'school_trial_unavailable' then raise;end if;end;
+ reset role;
+
+ insert into public.students(id,school_id,first_name,last_name,atechos_id,active,school_status)
+ select gen_random_uuid(),'10000000-0000-0000-0000-000000000002','Billing','CI','CI-SUB-STUDENT-'||n,true,'active'
+ from generate_series(1,151) n;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000009',true);
+ set local role authenticated;
+ begin
+  perform public.create_school_subscription_invoice('attendance','USD','monthly','paypal');
+  raise exception 'school above launch capacity received standard invoice';
+ exception when others then if sqlerrm<>'subscription_quote_required' then raise;end if;end;
+ reset role;
+ perform set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000008',true);
  update private.subscription_billing_operators set enabled=false;
  set local role authenticated;
  if public.subscription_billing_operator() then raise exception 'disabled platform operator retained access';end if;

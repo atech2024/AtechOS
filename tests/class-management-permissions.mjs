@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+
+const page=readFileSync('src/components/classes-workspace.tsx','utf8')
+const translations=readFileSync('src/lib/translations-extra.ts','utf8')
+const baseTranslations=readFileSync('src/lib/translations.ts','utf8')
+const foundations=readFileSync('supabase/migrations/20260922211050_school_platform_foundations.sql','utf8')
+const censeurStructure=readFileSync('supabase/migrations/20261012160345_censeur_class_structure_management.sql','utf8')
+
+assert.match(page,/getSupabase\(\)\.rpc\('school_context'\)/,'page gets authorized roles from the server context')
+assert.match(page,/\['school_admin', 'director', 'secretary', 'censeur'\]\.includes\(role\)/,'admin, director, secretary and Censeur can manage classes and sections')
+assert.match(page,/\['school_admin', 'director'\]\.includes\(role\)/,'only admin and director can manage academic years')
+assert.match(page,/canManageAcademicYears && <button onClick=\{\(\) => setYearOpen\(true\)\}/,'authorized users have a reachable create academic year button')
+assert.match(page,/yearOpen && canManageAcademicYears && <Modal title=\{<T text="Create academic year"\/>\}/,'year creation modal is role-gated and localized')
+assert.match(page,/schoolDate\(y\.start_date, locale\).*schoolDate\(y\.end_date, locale\)/,'school-year dates use the localized long-date formatter')
+for(const label of ['Manage official grade levels, cycles, classes and school years.','configured grade levels','Current','Current year','No room','Grade level not set'])assert.match(baseTranslations,new RegExp(`'${label}':\\[`),`${label} has French and Haitian Creole translations`)
+assert.match(page,/canManageStructure && yearId && <button onClick=\{\(\) => setClassOpen\(true\)\}/,'class creation requires both an authorized role and a selected academic year')
+assert.match(page,/!loading && !error && years\.length === 0 && <section role="status"/,'an empty academic-year state is shown only after loading succeeds')
+assert.match(page,/No academic year has been created yet\./,'the empty state tells staff when no year exists')
+assert.ok(baseTranslations.includes("'Create an academic year before activating sections or adding classes.':['"),'the no-year guidance is translated')
+assert.match(page,/canManageStructure && <button disabled=\{!yearId \|\| saving\}/,'section activation is hidden from roles without permission')
+assert.match(page,/You can view classes and school sections here, but your role cannot change them\./,'read-only users get an explanation')
+assert.match(foundations,/create policy config_write on public\.%I for all to authenticated using\(private\.has_role\(school_id,array\[''school_admin'',''director''\]\)\)/,'academic-year writes require admin or director role')
+assert.match(censeurStructure,/create policy classes_write on public\.classes for all to authenticated[\s\S]*?array\['school_admin','director','secretary','censeur'\]/,'Censeur class writes remain school-scoped')
+assert.match(censeurStructure,/create policy classes_censeur_structure_read on public\.classes for select[\s\S]*?array\['censeur'\]/,'Censeur class list read is scoped to their school')
+assert.match(censeurStructure,/create policy academic_years_censeur_read on public\.academic_years for select[\s\S]*?array\['censeur'\]/,'Censeur can read school years without a write policy')
+assert.match(censeurStructure,/create or replace function public\.create_class\([\s\S]*?m\.role = any\(array\['school_admin', 'director', 'secretary', 'censeur'\]\)/,'create_class RPC authorizes Censeur while preserving section checks')
+assert.match(censeurStructure,/new_rule text := 'private\.has_role\(sid, array\[''school_admin'', ''director'', ''secretary'', ''censeur''\]\)'/,'section activation RPC authorizes Censeur')
+assert.doesNotMatch(censeurStructure,/academic_years[\s\S]{0,120}(?:insert|update|delete)/i,'Censeur migration does not add academic-year writes')
+assert.ok(baseTranslations.includes("'+ Academic year':['"),'create academic year action is translated')
+for(const key of ['Activate classes','Deactivate','Create academic year','Create year','Create class','Class name','Room','Set as current academic year']) assert.ok(baseTranslations.includes(`'${key}':['`),`${key} is translated`)
+assert.ok(translations.includes("'You can view classes and school sections here, but your role cannot change them.':['"),'read-only message is translated')
+
+console.log('PASS class management is granted to Censeur while academic-year creation stays limited to admin/director.')
+

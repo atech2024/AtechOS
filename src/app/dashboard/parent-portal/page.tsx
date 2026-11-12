@@ -1,0 +1,92 @@
+'use client'
+import {T,useLocale} from '@/components/translation-provider'
+import {translate} from '@/lib/translations'
+import ExamCalendar from '@/components/exam-calendar'
+import {schoolDateTime} from '@/lib/school-date'
+import {useEffect,useRef,useState} from 'react'
+import {createClient} from '@/lib/supabase/client'
+import {ReportPanel,type ReportStudent} from '@/components/report-card'
+import KindergartenPickupFamily from '@/components/kindergarten-pickup-family'
+import KindergartenRelocationFamily from '@/components/kindergarten-relocation-family'
+import FamilyFinancePanel from '@/components/family-finance-panel'
+import FamilyAttendancePanel from '@/components/family-attendance-panel'
+import {FamilyHomeArrivalPanel} from '@/components/home-arrival-panel'
+import FamilyNotificationFeed from '@/components/family-notification-feed'
+import {ParentBadge} from '@/components/badge-history'
+import FamilyChildrenOverview from '@/components/family-children-overview'
+import FamilySchoolCalendar from '@/components/family-school-calendar'
+import FamilyStudentSanctions from '@/components/family-student-sanctions'
+import {privateAssignmentAttachmentError} from '@/lib/assignment-attachments'
+import {BookOpenCheck, CalendarCheck, CalendarDays, ClipboardList, CreditCard, FileText, LoaderCircle, ShieldCheck, UsersRound} from 'lucide-react'
+type Assignment={assignment_id:string;subject_name:string;title:string;description:string|null;due_at:string|null;attachment_url:string|null}
+type FamilyStudent=ReportStudent & {photo_url?:string|null}
+type ChildActivity={assignments:Assignment[]}
+export default function ParentPortalPage(){
+ const locale=useLocale()
+ const [children,setChildren]=useState<FamilyStudent[]>([]),[childId,setChildId]=useState(''),[activity,setActivity]=useState<ChildActivity & {childId:string}>({childId:'',assignments:[]}),[loading,setLoading]=useState(true),[error,setError]=useState(''),[photo,setPhoto]=useState({childId:'',url:''}),[attachmentLink,setAttachmentLink]=useState<{assignmentId:string;url:string}|null>(null),[attachmentLoadingId,setAttachmentLoadingId]=useState('')
+ const attachmentRequest=useRef(0)
+ useEffect(()=>()=>{attachmentRequest.current++},[])
+ function selectChild(id:string){attachmentRequest.current++;setAttachmentLink(null);setAttachmentLoadingId('');setError('');setChildId(id)}
+ const assignments=activity.childId===childId?activity.assignments:[]
+ const photoUrl=photo.childId===childId?photo.url:''
+ const selectedChild=children.find(child=>child.id===childId)
+ useEffect(()=>{let active=true;createClient().rpc('family_bulletin_data').then(({data,error})=>{if(!active)return;if(error)setError('Could not load linked children.');else{setChildren(data?.students||[]);setChildId(data?.students?.[0]?.id||'')}setLoading(false)});return()=>{active=false}},[])
+ useEffect(()=>{let active=true;setActivity({childId,assignments:[]});setAttachmentLink(null);setAttachmentLoadingId('');if(childId)createClient().rpc('family_child_activity',{p_student:childId}).then(({data,error})=>{if(!active)return;if(error)setError('Could not load assignments for this student.');else{setError('');setActivity({childId,assignments:data?.assignments||[]})}});return()=>{active=false}},[childId])
+ useEffect(()=>{let active=true;setPhoto({childId,url:''});if(!childId)return()=>{active=false};const client=createClient();void(async()=>{const {data,error}=await client.from('students').select('photo_url').eq('id',childId).maybeSingle();if(!active||error||!data?.photo_url)return;const path=data.photo_url;if(/^https?:\/\//i.test(path)){setPhoto({childId,url:path});return}const {data:signed,error:signedError}=await client.storage.from('student-photos').createSignedUrl(path,3600);if(active&&!signedError)setPhoto({childId,url:signed?.signedUrl||''})})();return()=>{active=false}},[childId])
+ async function openAttachment(assignmentId:string,path:string){const request=++attachmentRequest.current;setError('');setAttachmentLink(null);setAttachmentLoadingId(assignmentId);try{const {data,error}=await createClient().storage.from('assignment-files').createSignedUrl(path,60);if(request!==attachmentRequest.current)return;if(error||!data?.signedUrl){setError(privateAssignmentAttachmentError(error?.message||''));return}setAttachmentLink({assignmentId,url:data.signedUrl})}catch(error){if(request===attachmentRequest.current)setError(privateAssignmentAttachmentError(error instanceof Error?error.message:''))}finally{if(request===attachmentRequest.current)setAttachmentLoadingId('')}}
+
+ return <main className="family-portal mx-auto max-w-6xl space-y-5 p-4 sm:space-y-6 sm:p-6 lg:p-8">
+  <header className="family-portal__header print:hidden">
+   <div>
+    <h1 className="family-portal__title"><T text="Parent portal"/></h1>
+    <p className="family-portal__subtitle"><T text="View published report cards, exams, and attendance for your children."/></p>
+   </div>
+   {!loading&&children.length>1&&<label className="family-portal__child-picker print:hidden">
+    <span><UsersRound aria-hidden="true" className="h-4 w-4"/><T text="Child"/></span>
+    <select value={childId} onChange={e=>selectChild(e.target.value)} className="min-h-11 w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none transition-colors focus-visible:border-blue-600 focus-visible:ring-2 focus-visible:ring-blue-100">
+     {children.map(c=><option key={c.id} value={c.id}>{c.first_name} {c.last_name} · {c.atechos_id}</option>)}
+    </select>
+   </label>}
+  </header>
+  {error&&<p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><T text={error}/></p>}
+  {loading?<div role="status" className="family-portal__state"><LoaderCircle aria-hidden="true" className="h-5 w-5 text-blue-700 motion-safe:animate-spin"/><T text="Loading..."/></div>:!children.length?<div role="status" className="family-portal__state family-portal__state--empty"><UsersRound aria-hidden="true" className="h-6 w-6 text-blue-700"/><T text="No children are linked to this account."/></div>:<>
+   <nav aria-label={translate('Family portal quick navigation',locale)} className="family-portal__quick-nav print:hidden">
+    <a className="family-portal__quick-link" href="#family-attendance"><CalendarCheck aria-hidden="true" className="h-4 w-4"/><T text="Attendance"/></a>
+    <a className="family-portal__quick-link" href="#family-calendar"><CalendarDays aria-hidden="true" className="h-4 w-4"/><T text="Calendar"/></a>
+    <a className="family-portal__quick-link" href="#family-sanctions"><ShieldCheck aria-hidden="true" className="h-4 w-4"/><T text="Follow-up and sanctions"/></a>
+    <a className="family-portal__quick-link" href="#exam-calendar"><BookOpenCheck aria-hidden="true" className="h-4 w-4"/><T text="Exams and school calendar"/></a>
+    <a className="family-portal__quick-link" href="#family-finance"><CreditCard aria-hidden="true" className="h-4 w-4"/><T text="Finance"/></a>
+    <a className="family-portal__quick-link" href="#family-reports"><FileText aria-hidden="true" className="h-4 w-4"/><T text="Report cards"/></a>
+    <a className="family-portal__quick-link" href="#family-assignments"><ClipboardList aria-hidden="true" className="h-4 w-4"/><T text="Assignments"/></a>
+   </nav>
+   <FamilyChildrenOverview students={children} selectedId={childId} onSelect={selectChild}/>
+   {selectedChild&&<section aria-labelledby="family-student-profile-heading" className="family-portal__student-profile mb-5 grid items-center gap-5 rounded-2xl bg-white p-5 sm:grid-cols-[8rem_1fr]">
+    <div className="flex justify-center">{photoUrl?<img src={photoUrl} alt={`${selectedChild.first_name} ${selectedChild.last_name}`} referrerPolicy="no-referrer" loading="lazy" className="h-28 w-28 rounded-2xl object-cover ring-4 ring-blue-50"/>:<div aria-hidden="true" className="flex h-28 w-28 items-center justify-center rounded-2xl bg-blue-50 text-3xl font-bold text-blue-700">{`${selectedChild.first_name[0]||''}${selectedChild.last_name[0]||''}`}</div>}</div>
+    <div><p className="text-sm font-semibold uppercase tracking-wide text-blue-700"><T text="Student profile"/></p><h2 id="family-student-profile-heading" className="mt-1 text-2xl font-bold text-slate-900">{selectedChild.first_name} {selectedChild.last_name}</h2><p className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">AtechOS ID · {selectedChild.atechos_id}</p></div>
+   </section>}
+   {selectedChild&&<ParentBadge key={childId+'badge'} studentId={childId} student={selectedChild} photoUrl={photoUrl}/>}
+   <FamilyNotificationFeed/>
+   <section id="family-calendar" className="scroll-mt-24"><FamilySchoolCalendar key={childId} studentId={childId}/></section>
+   <section id="family-sanctions" className="scroll-mt-24"><FamilyStudentSanctions key={childId} studentId={childId}/></section>
+   <section id="family-attendance" className="scroll-mt-24"><FamilyAttendancePanel key={childId+'attendance'} studentId={childId}/><FamilyHomeArrivalPanel key={childId+'home-arrival'} studentId={childId}/></section>
+   <KindergartenPickupFamily/>
+   <KindergartenRelocationFamily/>
+   <section id="exam-calendar" className="scroll-mt-24"><ExamCalendar key={childId+"calendar"} studentId={childId}/></section>
+   <section id="family-finance" className="scroll-mt-24"><FamilyFinancePanel key={childId+"finance"} studentId={childId}/></section>
+   <section id="family-reports" className="scroll-mt-24"><ReportPanel key={childId} studentId={childId}/></section>
+   <section id="family-assignments" className="family-portal__assignments mt-6 scroll-mt-24 print:hidden">
+    <h2 className="family-portal__assignments-heading mb-3 text-2xl font-bold tracking-tight text-slate-950"><ClipboardList aria-hidden="true" className="h-5 w-5 text-blue-700"/><T text="Assignments"/></h2>
+    {assignments.map(a=><article key={a.assignment_id} className="family-portal__assignment-card my-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+     <h3 className="font-semibold text-slate-950">{a.title}</h3>
+     <p className="family-portal__assignment-meta mt-1 text-sm text-slate-600"><CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-blue-700"/><span>{a.subject_name} · {a.due_at?schoolDateTime(a.due_at):<T text="No due date"/>}</span></p>
+     <p className="mt-3 whitespace-pre-wrap text-slate-700">{a.description}</p>
+     {a.attachment_url&&<div className="mt-3 flex flex-wrap items-center gap-3"><button type="button" disabled={attachmentLoadingId===a.assignment_id} className="inline-flex min-h-11 items-center rounded-xl px-3 font-semibold text-blue-700 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60" onClick={()=>openAttachment(a.assignment_id,a.attachment_url!)}><T text={attachmentLoadingId===a.assignment_id?'Preparing private link…':'Prepare private attachment'}/></button>{attachmentLink?.assignmentId===a.assignment_id&&<a href={attachmentLink.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl px-3 font-semibold text-blue-700 underline decoration-blue-300 underline-offset-4 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><T text="Open attachment"/></a>}</div>}
+    </article>)}
+    {!assignments.length&&<p role="status" className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-slate-600"><T text="No current assignments."/></p>}
+   </section>
+  </>}
+ </main>
+
+}
+
+

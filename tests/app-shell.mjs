@@ -6,7 +6,7 @@ import ts from 'typescript'
 import React from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 const require=createRequire(import.meta.url)
-function compile(path,imports={}){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,URLSearchParams,require:n=>imports[n]||require(n)});return exports}
+function compile(path,imports={}){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,URLSearchParams,process,require:n=>imports[n]||require(n)});return exports}
 const nav=compile('src/lib/navigation.ts')
 assert.ok(nav.navigation.every(item=>item.group),'Every destination must belong to a product domain group.')
 for(const item of nav.navigation)assert.ok(existsSync('src/app'+item.href+'/page.tsx'),item.href+' must resolve to a real page')

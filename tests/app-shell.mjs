@@ -98,7 +98,7 @@ const dashboardDb = {
   rpc: async name => name === 'school_context'
     ? { data: { roles: [activeRole], school_name: 'Fixture School', owner: activeOwner }, error: null }
     : name === 'school_subscription_trial'
-      ? (trialRpcCalls++, { data: { plan: 'school', ends_at: '2026-10-25T00:00:00.000Z', active: true }, error: null })
+      ? (trialRpcCalls++, { data: { plan: 'school', ends_at: new Date(Date.now() + 7 * 86_400_000).toISOString(), active: true }, error: null })
       : { data: activeRole === 'parent'
         ? { students: null, present: null, late: null, absent: null, date: null, school_scope: false, draft_grades: 0 }
         : { students: 20, present: 18, late: 1, absent: 1, date: '2026-10-18', school_scope: false, draft_grades: 0 }, error: null },

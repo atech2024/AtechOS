@@ -92,9 +92,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   if (roles.includes('accountant')) redirect('/dashboard/finance')
 
   const subscriptionsEnabled = isSchoolSubscriptionsEnabled()
-  const trialResponse = subscriptionsEnabled && context.data?.owner && roles.includes('school_admin')
-    ? await db.rpc('school_subscription_trial')
-    : null
+  const canReadTrialStatus = Boolean(context.data?.owner) && roles.includes('school_admin') &&
+    (subscriptionsEnabled || process.env.VERCEL_ENV === 'preview')
+  const trialResponse = canReadTrialStatus ? await db.rpc('school_subscription_trial') : null
   const trial = trialResponse && !trialResponse.error && trialResponse.data
     ? trialResponse.data as { plan: string; ends_at: string; active: boolean }
     : null
@@ -139,9 +139,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 ) : <p className="mt-1 text-sm text-slate-600"><T text="Choose a subscription to keep the school modules active." /></p>}
               </div>
             </div>
-            <Link href={selectedYear ? `/dashboard/settings?year=${encodeURIComponent(selectedYear)}` : '/dashboard/settings'} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white transition hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">
-              <T text="Manage trial and subscription" />
-            </Link>
+            {subscriptionsEnabled && (
+              <Link href={selectedYear ? `/dashboard/settings?year=${encodeURIComponent(selectedYear)}` : '/dashboard/settings'} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white transition hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">
+                <T text="Manage trial and subscription" />
+              </Link>
+            )}
           </div>
         </section>
       )}

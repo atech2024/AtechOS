@@ -330,3 +330,9 @@ Bulletin publication boundary follow-up: the existing calculated report is still
 - 2026-10-22 Coordinator eligibility correction: PR #164 expands assignment to enabled same-school staff roles while excluding parents, students, and cross-school members, and preserves each person's base staff role. Its GitHub application and isolated Supabase migration workflows passed, and Vercel marked the Preview Ready. A follow-up invitation-guidance UI fix is local only; its targeted regression test and translation audit pass, while full CI/build and authenticated Preview review for that follow-up are pending. No Production migration or deployment has been performed. BUILD 05 remains IN PROGRESS.
 
 - 2026-10-23 Staff directory simplification: remove the duplicate coordinator assignment panel and invitation guidance while keeping coordinator visibility and staff-row assignment. No database change. BUILD 05 remains IN PROGRESS pending CI, Preview, and Production verification.
+
+
+### School subscription trial countdown Preview follow-up — 2026-11-12
+
+- Preview can show the authenticated school owner a read-only trial plan and remaining-days status while the dashboard/settings subscription feature gate is off. Plan changes, billing links, and subscription management remain behind the explicit feature gate; Production keeps its existing environment gate. The trial RPC remains owner-scoped and read-only. No schema, trial, invoice, or payment data changes.
+- Behavioral regression coverage checks non-owner denial, owner Preview visibility, absence of Preview management controls, and Production denial while its explicit gate is disabled. Keep PR #189 in progress until current CI and authenticated Preview behavior are verified.

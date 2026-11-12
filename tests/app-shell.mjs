@@ -6,7 +6,7 @@ import ts from 'typescript'
 import React from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 const require=createRequire(import.meta.url)
-function compile(path,imports={}){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,URLSearchParams,require:n=>imports[n]||require(n)});return exports}
+function compile(path,imports={}){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,URLSearchParams,process,require:n=>imports[n]||require(n)});return exports}
 const nav=compile('src/lib/navigation.ts')
 assert.ok(nav.navigation.every(item=>item.group),'Every destination must belong to a product domain group.')
 for(const item of nav.navigation)assert.ok(existsSync('src/app'+item.href+'/page.tsx'),item.href+' must resolve to a real page')
@@ -27,7 +27,7 @@ assert.ok(settingsPage.includes("['school_admin', 'director', 'censeur', 'secret
 assert.match(settingsPage,/href:\s*['"]\/dashboard\/grading-settings['"]/,'Settings center must link to the existing grading rules page.')
 let academicYearContext={years:[],year:null,yearId:'',canSelect:false,setYearId:()=>{}}
 let activeShellPath='/dashboard/grades'
-const {default:AppShell}=compile('src/components/app-shell.tsx',{'next/link':{default:({children,...props})=>React.createElement('a',props,children)},'next/image':{default:({priority,...props})=>React.createElement('img',props)},'next/navigation':{usePathname:()=>activeShellPath},'@/lib/navigation':nav,'@/lib/staff-profile':{canAccessStaffProfile:roles=>roles.some(role=>['school_admin','director','secretary','censeur','teacher','accountant','surveillant'].includes(role))},'@/lib/school-date':{schoolDateTime:()=>''},'@/lib/translations':{translate:text=>text},'@/components/translation-provider':{T:({text})=>text,useLocale:()=> 'fr'},'@/components/language-selector':{default:()=>null},'@/components/academic-year-context':{useAcademicYear:()=>academicYearContext},'@/lib/supabase/client':{createClient:()=>{throw Error('render must not query')}}})
+const {default:AppShell}=compile('src/components/app-shell.tsx',{'next/link':{default:({children,...props})=>React.createElement('a',props,children)},'next/image':{default:({priority,...props})=>React.createElement('img',props)},'next/navigation':{usePathname:()=>activeShellPath},'@/lib/navigation':nav,'@/lib/school-subscriptions-feature':{isSchoolSubscriptionsEnabled:()=>false},'@/lib/staff-profile':{canAccessStaffProfile:roles=>roles.some(role=>['school_admin','director','secretary','censeur','teacher','accountant','surveillant'].includes(role))},'@/lib/school-date':{schoolDateTime:()=>''},'@/lib/translations':{translate:text=>text},'@/components/translation-provider':{T:({text})=>text,useLocale:()=> 'fr'},'@/components/language-selector':{default:()=>null},'@/components/academic-year-context':{useAcademicYear:()=>academicYearContext},'@/lib/supabase/client':{createClient:()=>{throw Error('render must not query')}}})
 const html=renderToStaticMarkup(React.createElement(AppShell,{name:'Actual Fixture Teacher',school:'Fixture School',avatar:null,roles:['teacher'],owner:false,academicYear:'2025–2026'},'Fixture content'))
 assert.ok(html.includes('Actual Fixture Teacher'));assert.ok(html.includes('Teacher'));assert.ok(html.includes('title="Actual Fixture Teacher · Teacher"'),'Header identity must remain available as complete text.');
 assert.ok(html.includes('break-words text-sm font-semibold leading-5'),'Header identity must wrap readable long names on narrow screens.');
@@ -90,13 +90,18 @@ assert.ok(html.includes('min-h-11'),'Sidebar and header controls must meet a con
 assert.ok(html.includes('lg:hidden'),'The shared shell must keep a brand mark visible in the mobile header.')
 
 let activeRole = 'teacher'
+let activeOwner = false
+let subscriptionGateEnabled = false
+let trialRpcCalls = 0
 const dashboardDb = {
   auth: { getUser: async () => ({ data: { user: { id: 'fixture-user' } } }) },
   rpc: async name => name === 'school_context'
-    ? { data: { roles: [activeRole], school_name: 'Fixture School', owner: false }, error: null }
-    : { data: activeRole === 'parent'
-      ? { students: null, present: null, late: null, absent: null, date: null, school_scope: false, draft_grades: 0 }
-      : { students: 20, present: 18, late: 1, absent: 1, date: '2026-10-18', school_scope: false, draft_grades: 0 }, error: null },
+    ? { data: { roles: [activeRole], school_name: 'Fixture School', owner: activeOwner }, error: null }
+    : name === 'school_subscription_trial'
+      ? (trialRpcCalls++, { data: { plan: 'school', ends_at: new Date(Date.now() + 7 * 86_400_000).toISOString(), active: true }, error: null })
+      : { data: activeRole === 'parent'
+        ? { students: null, present: null, late: null, absent: null, date: null, school_scope: false, draft_grades: 0 }
+        : { students: 20, present: 18, late: 1, absent: 1, date: '2026-10-18', school_scope: false, draft_grades: 0 }, error: null },
 }
 const { default: DashboardPage } = compile('src/app/dashboard/page.tsx', {
   '@/components/grade-actions': { default: () => React.createElement('div', null, 'grade-actions-fixture') },
@@ -108,9 +113,11 @@ const { default: DashboardPage } = compile('src/app/dashboard/page.tsx', {
   'next/headers': { cookies: async () => ({ get: () => ({ value: 'fr' }) }) },
   '@/lib/i18n': { localeFrom: () => 'fr' },
   '@/lib/navigation': nav,
+  '@/lib/school-subscriptions-feature': { isSchoolSubscriptionsEnabled: () => subscriptionGateEnabled },
 })
-async function renderRoleDashboard(role, year = 'fixture-year') {
+async function renderRoleDashboard(role, year = 'fixture-year', owner = false) {
   activeRole = role
+  activeOwner = owner
   const element = await DashboardPage({ searchParams: Promise.resolve({ year }) })
   return renderToStaticMarkup(element)
 }
@@ -128,3 +135,24 @@ assert.ok(parentDashboard.includes('href="/dashboard/family-bulletins?year=fixtu
 assert.ok(!parentDashboard.includes('href="/dashboard/students'), 'Parent quick actions must not expose the school-wide student directory.')
 assert.ok(!parentDashboard.includes('aria-label="Dashboard totals"'), 'Parent view must not render an empty staff-only aggregate section.')
 console.log('PASS dashboard hub: official logos, year-preserving quick links, and role-filtered actions for teachers, censeurs and parents.')
+
+const previousVercelEnv = process.env.VERCEL_ENV
+process.env.VERCEL_ENV = 'preview'
+const nonOwnerCallsBefore = trialRpcCalls
+const nonOwnerPreview = await renderRoleDashboard('school_admin', 'fixture-year', false)
+assert.ok(!nonOwnerPreview.includes('Your school trial is active'))
+assert.equal(trialRpcCalls, nonOwnerCallsBefore, 'A non-owner must not read school trial data in Preview.')
+const ownerPreview = await renderRoleDashboard('school_admin', 'fixture-year', true)
+assert.ok(ownerPreview.includes('Your school trial is active'))
+assert.ok(ownerPreview.includes('days remaining'))
+assert.ok(!ownerPreview.includes('Manage trial and subscription'), 'Preview status must remain read-only while the feature gate is off.')
+assert.equal(trialRpcCalls, nonOwnerCallsBefore + 1, 'Only the authenticated school owner may read trial status in Preview.')
+process.env.VERCEL_ENV = 'production'
+subscriptionGateEnabled = false
+const productionCallsBefore = trialRpcCalls
+const ownerProduction = await renderRoleDashboard('school_admin', 'fixture-year', true)
+assert.ok(!ownerProduction.includes('Your school trial is active'), 'Production must keep its explicit feature gate.')
+assert.equal(trialRpcCalls, productionCallsBefore, 'Production must not read trial data while its feature gate is disabled.')
+if (previousVercelEnv === undefined) delete process.env.VERCEL_ENV
+else process.env.VERCEL_ENV = previousVercelEnv
+console.log('PASS school trial visibility: owner-only read access in Preview; subscription management and gated Production remain hidden.')

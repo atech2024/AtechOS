@@ -26,7 +26,7 @@ const pricingCopy = {
     "Par an",
     "L’abonnement annuel coûte l’équivalent de 10 mois. Au-delà de 150 élèves, le prix est établi sur devis.",
     "La devise (HTG ou USD) est choisie avant la facturation. Le montant reste fixe sur la facture. Matériel KIOS, impression de badges et installation sur place font l’objet d’un devis séparé si nécessaire.",
-    "L’essai de 30 jours est disponible après la création de l’espace scolaire. Un administrateur peut l’activer dans les paramètres de l’établissement. Aucun paiement automatique pendant l’essai."
+    "L’essai de 30 jours choisi commence à la création de l’espace scolaire. Aucun paiement automatique pendant l’essai."
   ],
   "ht": [
     "Pri lansman pou chak lekòl, jiska 150 elèv aktif.",
@@ -34,7 +34,7 @@ const pricingCopy = {
     "Pa ane",
     "Abònman anyèl la koute menm pri ak 10 mwa. Pou plis pase 150 elèv, pri a sou devis.",
     "Lekòl la chwazi HTG oswa USD anvan fakti a soti. Montan an rete fiks sou fakti a. Si sa nesesè, ekipman KIOS, enpresyon badj ak enstalasyon sou plas gen yon devis apa.",
-    "Esè 30 jou a disponib apre kreyasyon espas lekòl la. Yon administratè ka aktive l nan paramèt lekòl la. Pa gen peman otomatik pandan esè a."
+    "Esè 30 jou ou chwazi a kòmanse lè ou kreye espas lekòl la. Pa gen peman otomatik pandan esè a."
   ],
   "en": [
     "Launch pricing per school, up to 150 active students.",
@@ -42,7 +42,7 @@ const pricingCopy = {
     "Yearly",
     "A yearly subscription costs the equivalent of 10 months. Schools with more than 150 students receive a quote.",
     "Choose HTG or USD before invoicing. The invoice amount stays fixed. KIOS hardware, badge printing and on-site installation are quoted separately if needed.",
-    "The 30-day trial is available after the school workspace is created. A school administrator can start it in school settings. No automatic payment during the trial."
+    "The selected 30-day trial starts when the school workspace is created. No automatic payment during the trial."
   ]
 }
 

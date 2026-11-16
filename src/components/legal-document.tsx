@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { T } from '@/components/translation-provider'
+import { translate } from '@/lib/translations'
 import { MarketingFooter, MarketingHeader } from '@/components/marketing-chrome'
 import { landingCopyFor } from '@/lib/landing-content'
 import { localeFrom } from '@/lib/i18n'
@@ -19,13 +19,13 @@ export async function LegalDocument({ title, introduction, sections }: {
       <MarketingHeader copy={copy} />
       <section className="landing-section">
         <article className="landing-frame legal-document">
-          <p className="legal-document__status"><T text="Draft for review — not a final policy." /></p>
-          <h1><T text={title} /></h1>
-          <p className="legal-document__intro"><T text={introduction} /></p>
+          <p className="legal-document__status">{translate("Draft for review — not a final policy.", locale)}</p>
+          <h1>{translate(title, locale)}</h1>
+          <p className="legal-document__intro">{translate(introduction, locale)}</p>
           {sections.map((section) => (
             <section className="legal-document__section" key={section.title}>
-              <h2><T text={section.title} /></h2>
-              <p><T text={section.body} /></p>
+              <h2>{translate(section.title, locale)}</h2>
+              <p>{translate(section.body, locale)}</p>
             </section>
           ))}
         </article>

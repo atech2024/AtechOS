@@ -46,6 +46,21 @@ const pricingCopy = {
   ]
 }
 
+const subscriptionPaymentCopy = {
+  "fr": {
+    "title": "Comment régler l’abonnement",
+    "body": "Connectez-vous à l’espace de l’école, puis ouvrez Paramètres > Abonnement AtechOS. Choisissez l’offre, la devise, la période et un moyen disponible, puis créez la facture. Effectuez le paiement auprès du service indiqué et soumettez la référence de transaction. AtechOS vérifie le paiement avant d’activer l’abonnement."
+  },
+  "ht": {
+    "title": "Kijan pou peye abònman an",
+    "body": "Konekte nan espas lekòl la, epi ale nan Paramèt > Abònman AtechOS. Chwazi plan an, lajan an, peryòd la ak yon metòd ki disponib, epi kreye fakti a. Fè peman an nan sèvis ki parèt la, epi soumèt referans tranzaksyon an. AtechOS verifye peman an anvan li aktive abònman an."
+  },
+  "en": {
+    "title": "How to pay for a subscription",
+    "body": "Sign in to the school workspace and open Settings > AtechOS subscription. Choose a plan, currency, billing period and an available method, then create the invoice. Pay through the listed service and submit the transaction reference. AtechOS verifies the payment before activating the subscription."
+  }
+}
+
 const schoolPlans = {
   "fr": {
     "title": "Trois offres pour votre école",
@@ -185,6 +200,7 @@ export default async function FeaturesPage() {
   const copy = landingCopyFor(locale)
   const guide = evaluation[locale]
   const plans = schoolPlans[locale]
+  const subscriptionPayment = subscriptionPaymentCopy[locale]
   const formatPrice = (index: number, currency: BillingCurrency, period: BillingPeriod) => {
     const amount = getLaunchPrice(schoolPlanIds[index], currency, period, launchStudentLimit)
     return amount === null ? '—' : amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ' + currency
@@ -284,6 +300,10 @@ export default async function FeaturesPage() {
         </ul>
         <p className="mt-5 max-w-3xl">{annualTerms}</p>
         <p className="mt-2 max-w-3xl">{invoiceTerms}</p>
+        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+          <h3 className="text-lg font-semibold text-slate-950">{subscriptionPayment.title}</h3>
+          <p className="mt-2 max-w-3xl text-slate-700">{subscriptionPayment.body}</p>
+        </div>
         <div className="mt-6 rounded-xl bg-blue-50 p-5 text-blue-950">
           <h3 className="text-lg font-semibold">{plans.trial}</h3>
           <p className="mt-2">{plans.note}</p>

@@ -5,7 +5,7 @@ export type LandingCopy = {
   visuals: { conceptLabel: string; heroAlt: string; heroCaption: string; roleAlts: string[]; workflowAlt: string; workflowCaption: string }
   metadata: { title: string; description: string }
   brand: { subtitle: string }
-  navigation: { features: string; roles: string; signIn: string; createSchool: string; skipToContent: string; security: string; aria: string }
+  navigation: { features: string; pricing: string; roles: string; signIn: string; createSchool: string; skipToContent: string; security: string; aria: string }
   hero: {
     title: string
     emphasis: string

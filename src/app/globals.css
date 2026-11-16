@@ -252,7 +252,7 @@ button, input { font: inherit; }
   .landing-language-floating { position: absolute; top: 18px; right: 18px; }
   .landing-header__actions { display: none; }
   .landing-brand { min-width: 0; }
-  .landing-nav { justify-content: flex-start; gap: 24px; }
+  .landing-nav { justify-content: flex-start; flex-wrap: wrap; gap: 9px 18px; }
   .landing-header__actions { grid-column: auto; justify-content: flex-start; gap: 17px; }
   .landing-button--nav { min-height: 40px; }
   .landing-hero__inner { grid-template-columns: 1fr; gap: 42px; min-height: 0; padding-top: 61px; padding-bottom: 52px; }

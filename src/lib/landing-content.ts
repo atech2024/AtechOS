@@ -5,7 +5,7 @@ export type LandingCopy = {
   visuals: { conceptLabel: string; heroAlt: string; heroCaption: string; roleAlts: string[]; workflowAlt: string; workflowCaption: string }
   metadata: { title: string; description: string }
   brand: { subtitle: string }
-  navigation: { features: string; roles: string; signIn: string; createSchool: string; skipToContent: string; security: string; aria: string }
+  navigation: { features: string; pricing: string; roles: string; signIn: string; createSchool: string; skipToContent: string; security: string; aria: string }
   hero: {
     title: string
     emphasis: string
@@ -44,7 +44,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       workflowAlt: 'Illustration conceptuelle de plusieurs écrans numériques reliés dans un parcours de gestion scolaire.',
       workflowCaption: 'Cette représentation est illustrative et ne décrit pas un parcours produit exact.',
     },
-    navigation: { features: 'Fonctionnalités', roles: 'Solutions par rôle', signIn: 'Se connecter', createSchool: 'Créer votre école', skipToContent: 'Aller au contenu', security: 'Accès', aria: 'Navigation principale' },
+    navigation: { features: 'Fonctionnalités', pricing: 'Offres', roles: 'Solutions par rôle', signIn: 'Se connecter', createSchool: 'Créer votre école', skipToContent: 'Aller au contenu', security: 'Accès', aria: 'Navigation principale' },
     hero: {
       title: 'Toute votre école,',
       emphasis: 'mieux organisée.',
@@ -111,7 +111,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       workflowAlt: 'Imaj konsèp ki montre plizyè ekran dijital ki konekte pou jesyon lekòl.',
       workflowCaption: 'Imaj sa a bay yon lide jeneral; li pa montre yon etap pwodwi egzak.',
     },
-    navigation: { features: 'Fonksyonalite', roles: 'Solisyon pa wòl', signIn: 'Konekte', createSchool: 'Kreye lekòl ou', skipToContent: 'Ale nan kontni an', security: 'Aksè', aria: 'Navigasyon prensipal' },
+    navigation: { features: 'Fonksyonalite', pricing: 'Plan ak pri', roles: 'Solisyon pa wòl', signIn: 'Konekte', createSchool: 'Kreye lekòl ou', skipToContent: 'Ale nan kontni an', security: 'Aksè', aria: 'Navigasyon prensipal' },
     hero: {
       title: 'Tout lekòl ou a,',
       emphasis: 'pi byen òganize.',
@@ -178,7 +178,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       workflowAlt: 'Concept illustration showing connected digital screens for school management.',
       workflowCaption: 'This is an illustrative representation, not an exact product workflow.',
     },
-    navigation: { features: 'Features', roles: 'By role', signIn: 'Sign in', createSchool: 'Create your school', skipToContent: 'Skip to content', security: 'Access', aria: 'Main navigation' },
+    navigation: { features: 'Features', pricing: 'Plans', roles: 'By role', signIn: 'Sign in', createSchool: 'Create your school', skipToContent: 'Skip to content', security: 'Access', aria: 'Main navigation' },
     hero: {
       title: 'Your whole school,',
       emphasis: 'better organized.',

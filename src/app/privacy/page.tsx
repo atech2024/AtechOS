@@ -9,13 +9,13 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return <LegalDocument
     title="Privacy notice"
-    introduction="This working draft includes the operator and support details supplied by AtechOS. Hosting and data lifecycle details still need confirmation; this is not a final privacy policy."
+    introduction="This working draft identifies the current Supabase primary region from live project settings. Other hosting and data lifecycle details still need confirmation; this is not a final privacy policy."
     sections={[
       { title: 'Service operator', body: 'AtechOS is operated by Almando Tech, based in Montrouis, Haiti.' },
       { title: 'Support contact', body: 'For AtechOS service questions, contact almandotech@gmail.com or +509 4446 3728. For a student or family record request, contact the school administrator.' },
       { title: 'Information the platform may contain', body: 'Depending on the modules a school uses, AtechOS may contain staff and family account details, student identity, class and academic records, attendance, sanctions, and school payment records.' },
       { title: 'School access and use', body: 'School teams use these records to manage school workflows. The information available to each account depends on the school’s configured roles and access settings.' },
-      { title: 'Hosting and data lifecycle', body: 'AtechOS has been described by its operator as hosted on secure servers. The hosting provider, server location, retention periods, deletion process, email providers, international transfers, security controls, and data-processing agreements have not yet been confirmed in the information available for this draft.' },
+      { title: 'Hosting and data lifecycle', body: 'The active AtechOS Supabase project reports US East (Ohio), us-east-2. Supabase documentation states that the selected region applies to the primary Postgres database, Auth, and Storage objects. The AtechOS web application is deployed through Vercel, but its execution regions and log locations or retention are not confirmed here. This draft also does not yet establish the email providers, data retention periods, deletion process, cross-region processing, security controls, or data-processing agreements. Confirm these details before publishing a final notice.' },
       { title: 'Children and families', body: 'Before publication, the school and service operator must confirm the rules and contact process for student information, family relationships, and requests made on behalf of a child.' },
     ]}
   />

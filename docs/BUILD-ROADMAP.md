@@ -13,6 +13,8 @@ Statuses use `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, or `DONE`; use `DECISION R
 
 ### Subscription plans and trial lifecycle — 2026-11-11
 
+- Dashboard trial visibility follow-up: active school owners now see the selected trial plan and a days-remaining countdown on the school dashboard; settings keeps the same persisted 720-hour deadline visible and explains that plan changes do not restart it. Production gate and owner-scoped RPC remain unchanged. Existing schools without a trial and non-owner members must not see another school's subscription state. CI and authenticated Preview verification are required before release.
+
 - Storage follow-up adds restrictive INSERT/UPDATE policies for assignment files, teacher exam files, and school finance proofs. Existing permissive role/ownership policies remain required. The helper rejects malformed paths and missing/disabled same-school membership; the selected module must be active. Existing SELECT and DELETE rules and unrelated buckets remain unchanged. Both the old and new object locations are checked on UPDATE.
 - Rollback-only checks exercise real storage.objects RLS with controlled, transaction-local permissive policies: Attendance/School/Finance boundaries, active replacement, expiry, preserved reads, source/destination bucket moves, renewal, a nonmember school, wrong owner, parent proofs, and disabled membership. These validate the additive subscription boundary; full production file-role workflows and HTTP upload behavior remain a separate acceptance gate. New changes await isolated CI.
 - Checkpoint 7728c5c passed all application/build and isolated SQL checks and Vercel Preview deployment. The attendance-expiry cases below passed at that checkpoint; authenticated Preview walkthrough, real numeric-grade/exam-capture integration, capacity after admissions, and Production activation remain pending.
@@ -328,3 +330,9 @@ Bulletin publication boundary follow-up: the existing calculated report is still
 - 2026-10-22 Coordinator eligibility correction: PR #164 expands assignment to enabled same-school staff roles while excluding parents, students, and cross-school members, and preserves each person's base staff role. Its GitHub application and isolated Supabase migration workflows passed, and Vercel marked the Preview Ready. A follow-up invitation-guidance UI fix is local only; its targeted regression test and translation audit pass, while full CI/build and authenticated Preview review for that follow-up are pending. No Production migration or deployment has been performed. BUILD 05 remains IN PROGRESS.
 
 - 2026-10-23 Staff directory simplification: remove the duplicate coordinator assignment panel and invitation guidance while keeping coordinator visibility and staff-row assignment. No database change. BUILD 05 remains IN PROGRESS pending CI, Preview, and Production verification.
+
+
+### School subscription trial countdown Preview follow-up — 2026-11-12
+
+- Preview can show the authenticated school owner a read-only trial plan and remaining-days status while the dashboard/settings subscription feature gate is off. Plan changes, billing links, and subscription management remain behind the explicit feature gate; Production keeps its existing environment gate. The trial RPC remains owner-scoped and read-only. No schema, trial, invoice, or payment data changes.
+- Behavioral regression coverage checks non-owner denial, owner Preview visibility, absence of Preview management controls, and Production denial while its explicit gate is disabled. Keep PR #189 in progress until current CI and authenticated Preview behavior are verified.

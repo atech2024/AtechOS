@@ -15,6 +15,7 @@ export function MarketingHeader({ copy, home = false }: { copy: LandingCopy; hom
       </Link>
       <nav className="landing-nav" aria-label={copy.navigation.aria}>
         <Link href="/fonctionnalites">{copy.navigation.features}</Link>
+        <Link href="/fonctionnalites#offres">{copy.navigation.pricing}</Link>
         <Link href="/solutions">{copy.navigation.roles}</Link>
         <Link href={home ? '#access' : '/#access'}>{copy.navigation.security}</Link>
       </nav>
@@ -30,7 +31,7 @@ export function MarketingFooter({ copy }: { copy: LandingCopy }) {
   return <footer className="landing-footer">
     <div className="landing-frame landing-footer__inner">
       <div><Link href="/" className="landing-footer__brand">AtechOS</Link><p>{copy.footer.tagline}</p></div>
-      <nav aria-label={copy.navigation.aria}><Link href="/fonctionnalites">{copy.navigation.features}</Link><Link href="/solutions">{copy.navigation.roles}</Link><Link href="/signin">{copy.footer.signIn}</Link><Link href="/signup">{copy.footer.createSchool}</Link><Link href="/terms"><T text="Terms of use" /></Link><Link href="/privacy"><T text="Privacy notice" /></Link></nav>
+      <nav aria-label={copy.navigation.aria}><Link href="/fonctionnalites">{copy.navigation.features}</Link><Link href="/fonctionnalites#offres">{copy.navigation.pricing}</Link><Link href="/solutions">{copy.navigation.roles}</Link><Link href="/signin">{copy.footer.signIn}</Link><Link href="/signup">{copy.footer.createSchool}</Link><Link href="/terms"><T text="Terms of use" /></Link><Link href="/privacy"><T text="Privacy notice" /></Link></nav>
       <small>© {new Date().getFullYear()} AtechOS · {copy.footer.copyright}</small>
     </div>
   </footer>

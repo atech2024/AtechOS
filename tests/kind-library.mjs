@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import ts from 'typescript'
+const cache={}
+function load(file){if(cache[file])return cache[file];const exports={};cache[file]=exports;const js=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;new Function('exports','require',js)(exports,name=>name.endsWith('.json')?JSON.parse(fs.readFileSync('src/lib/'+name.replace('./',''),'utf8')):load('src/lib/'+name.replace('./','')+'.ts'));return exports}
+const {libraryCards,libraryTitle,generateLibraryWorksheet,subjectSets}=load('src/lib/kind-library.ts'),{getArt}=load('src/lib/kind-art.ts')
+assert.equal(libraryCards.length,417);assert.equal(new Set(libraryCards.map(c=>c.id)).size,417)
+for(const [category,count] of Object.entries({numbers:45,coloring:218,'step-by-step-drawing':89,'general-knowledge':27,'matching-worksheets':38}))assert.equal(libraryCards.filter(c=>c.category===category).length,count)
+for(const ids of Object.values(subjectSets))for(const id of ids)assert(getArt(id))
+const output=[]
+for(const card of libraryCards){assert(getArt(card.subject));const sheet=generateLibraryWorksheet(card,'École Test & Découvertes');assert(sheet.svg.startsWith('<svg'));assert(!sheet.svg.includes('undefined'));assert(sheet.svg.includes('AtechOS'));assert(sheet.svg.includes('École Test &amp; Découvertes'));assert(sheet.answers.length>0);assert(libraryTitle(card).length>3);assert(!/Pikachu|Superman|Spider-Man|Cinderella|Jurassic|Ariel|Hulk|Ninja Turtles/i.test(sheet.title));if(card.mode==='draw-steps'){const labels=sheet.svg.match(/Étape \d/g)||[];assert(labels.length>=2&&labels.length<=6);for(let n=1;n<=labels.length;n++)assert(sheet.svg.includes('Étape '+n));}if(card.mode==='match-shadow'||card.mode==='match-word'){const left=sheet.answers.map(a=>a.split('→')[0].trim()),right=sheet.answers.map(a=>a.split('→')[1].trim().split(' :')[0]);assert.equal(new Set(left).size,left.length);assert.equal(new Set(right).size,right.length)}output.push({id:card.id,category:card.category,mode:card.mode,svg:sheet.svg,title:sheet.title,answers:sheet.answers})}
+const unsafe=generateLibraryWorksheet(libraryCards[0],'<script>alert(1)</script>');assert(!unsafe.svg.includes('<script>'));assert(unsafe.svg.includes('&lt;script&gt;'))
+const sequence=libraryCards.find(c=>c.mode==='number-sequence'&&c.end===100);const sheet=generateLibraryWorksheet(sequence,'École Test');for(const n of sheet.answers[0].match(/\d+/g).map(Number))assert(n>=sequence.start&&n<=sequence.end)
+const compare=libraryCards.find(c=>c.mode==='match-word');assert.notEqual(generateLibraryWorksheet(compare,'Test',{seed:1}).svg,generateLibraryWorksheet(compare,'Test',{seed:2}).svg)
+if(process.env.KIND_SVG_EXPORT)fs.writeFileSync(process.env.KIND_SVG_EXPORT,JSON.stringify(output))
+console.log('PASS KIND library: all 417 cards generated; five exact category totals; unique IDs; valid illustration references; school escaping; progressive drawings; bijective matching and safe replacement titles.')

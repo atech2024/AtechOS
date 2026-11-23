@@ -2,9 +2,15 @@
 
 ## Kote li ye
 
-Nan **Préscolaire / Maternelle**, sou `/dashboard/preschool/overview`, nouvo onglet **Fiches et exercices** la ouvri jeneratè a andedan espas KIND la. Pa gen sit separe oswa nouvo aksè piblik.
+Nan **Préscolaire / Maternelle**, sou `/dashboard/preschool/overview`, onglet **Fiches et exercices** la ouvri bibliyotèk la andedan KIND. Li gen **Bibliothèque de fiches** ak **Créer une activité libre**. Pa gen sit separe oswa nouvo aksè piblik.
 
-## Fonksyon
+## Bibliyotèk la
+
+417 fich orijinal adapte an fransè: 45 pou chif/nonb, 218 pou koloryaj, 89 pou desen pa etap, 27 pou dekouvèt ak 38 pou asosyasyon. Gen kategori, rechèch san distenksyon aksan, filtè aktivite/nivo, paj swivan, aperçu, seleksyon lokal ak enpresyon A4.
+
+Tout fich yo pote non lekòl ak AtechOS. Gade [KIND-LIBRARY-SOURCES.md](KIND-LIBRARY-SOURCES.md) pou sous yo ak atribisyon planch ASL nan domèn piblik. Pa gen fich oswa desen Kiddoworksheets ki redistribye.
+
+## Jeneratè lib ki deja la
 
 - Sis aktivite an fransè: konte desen, adisyon, soustraksyon, lèt an pwentiye A–Z, swit fòm ak nonb ki manke.
 - Twa seri desen orijinal: chat, pòm ak fize.
@@ -29,6 +35,8 @@ Jeneratè a suiv aksè ki deja egziste nan KIND pou administrasyon, anseyan, cen
 
 Paj tès tanporè a retire nan sous final la. Non « École des Étoiles — Exemple » nan captures ak PDF demonstrasyon yo se done tès, pa yon lekòl itilizatè a konfime. Koneksyon nan yon kont reyèl ak enprimant fizik poko teste. Validasyon pa yon pwofesyonèl edikasyon poko fèt.
 
-## Estati
+## Verifikasyon bibliyotèk la
 
-Entegrasyon lokal baze sou `origin/main` commit `5c17bd2`. Pa gen push, piblikasyon, acha oswa chanjman nan baz done. Branch lokal: `codex/educational-resources`.
+`tests/kind-library.mjs` verifye tout 417 jenerasyon, kantite pa kategori, idantifyan, ilistrasyon, non lekòl, asosyasyon ak desen pwogresif. Tès navigatè yo kouvri tout aperçu yo, filtè, rechèch, seleksyon, alfabè ASL, ansyen jeneratè a ak ekran 390/768/1440 px. 40 export PDF sou 20 kalite aktivite/sijè verifye kòm youn oswa de paj A4.
+
+Non « École des Découvertes — Exemple » nan nouvo PDF ak captures yo se done tès. Kont lekòl reyèl, enprimant fizik ak validasyon pedagojik pwofesyonèl poko konfime. Pa gen migrasyon oswa nouvo depandans.

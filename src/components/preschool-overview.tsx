@@ -18,7 +18,7 @@ type Workspace={classes:ClassRow[];settings?:{coordinator_user_id?:string|null}}
 type ClassDetail={students?:{id:string}[];staff?:PreschoolAssignedStaff[];staff_options?:{id:string;name:string}[];settings?:{coordinator_user_id?:string|null};manager?:boolean}
 type ViewState={classes:PreschoolClassOverview[];manager:boolean;coordinatorName:string|null;coordinatorAssigned:boolean}
 const blank:ViewState={classes:[],manager:false,coordinatorName:null,coordinatorAssigned:false}
-const PreschoolWorksheetGenerator=dynamic(()=>import('@/components/preschool-worksheet-generator'),{loading:()=> <p role="status">Chargement des activités…</p>})
+const PreschoolWorksheetGenerator=dynamic(()=>import('@/components/preschool-learning-library'),{loading:()=> <p role="status">Chargement des activités…</p>})
 
 function initials(name:string){return name.trim().split(/\s+/).slice(0,2).map(part=>part[0]||'').join('').toUpperCase()}
 

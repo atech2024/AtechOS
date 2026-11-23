@@ -1,6 +1,7 @@
 'use client'
 
 import {useCallback,useEffect,useMemo,useState} from 'react'
+import dynamic from 'next/dynamic'
 import {Baby,BookOpen,CalendarDays,CheckCircle2,ClipboardCheck,GraduationCap,Layers3,Users,ClipboardList,DoorOpen,School,Settings2} from 'lucide-react'
 import {T,useLocale} from '@/components/translation-provider'
 import {useAcademicYear} from '@/components/academic-year-context'
@@ -17,14 +18,15 @@ type Workspace={classes:ClassRow[];settings?:{coordinator_user_id?:string|null}}
 type ClassDetail={students?:{id:string}[];staff?:PreschoolAssignedStaff[];staff_options?:{id:string;name:string}[];settings?:{coordinator_user_id?:string|null};manager?:boolean}
 type ViewState={classes:PreschoolClassOverview[];manager:boolean;coordinatorName:string|null;coordinatorAssigned:boolean}
 const blank:ViewState={classes:[],manager:false,coordinatorName:null,coordinatorAssigned:false}
+const PreschoolWorksheetGenerator=dynamic(()=>import('@/components/preschool-worksheet-generator'),{loading:()=> <p role="status">Chargement des activités…</p>})
 
 function initials(name:string){return name.trim().split(/\s+/).slice(0,2).map(part=>part[0]||'').join('').toUpperCase()}
 
-export default function PreschoolOverview({canManage}:{canManage:boolean}){
+export default function PreschoolOverview({canManage,schoolName=''}:{canManage:boolean;schoolName?:string}){
  const locale=useLocale(),t=(text:string)=>translate(text,locale),db=useMemo(()=>createClient(),[])
  const {yearId,years}=useAcademicYear()
  const activeYear=years.find(item=>item.id===yearId)||years.find(item=>item.is_current)||null
- const [state,setState]=useState(blank),[loading,setLoading]=useState(true),[error,setError]=useState(''),[activeView,setActiveView]=useState<'overview'|'classes'|'reports'|'attendance'|'pickup'|'settings'>('overview')
+ const [state,setState]=useState(blank),[loading,setLoading]=useState(true),[error,setError]=useState(''),[activeView,setActiveView]=useState<'overview'|'classes'|'reports'|'attendance'|'pickup'|'settings'|'worksheets'>('overview')
  const load=useCallback(async()=>{
   setLoading(true);setError('')
   try{
@@ -61,6 +63,7 @@ export default function PreschoolOverview({canManage}:{canManage:boolean}){
   {id:'overview' as const,label:'Overview',icon:School},
   {id:'classes' as const,label:'Classes',icon:BookOpen},
   {id:'reports' as const,label:'Preschool competency bulletins',icon:ClipboardList},
+  {id:'worksheets' as const,label:'Worksheet generator',icon:BookOpen},
   {id:'attendance' as const,label:'Attendance',icon:CheckCircle2},
   ...(state.manager?[{id:'pickup' as const,label:'Kindergarten pickup',icon:DoorOpen}]:[]),
   ...(state.manager?[{id:'settings' as const,label:'Kindergarten settings',icon:Settings2}]:[]),
@@ -139,7 +142,7 @@ export default function PreschoolOverview({canManage}:{canManage:boolean}){
    <Shortcut onClick={()=>setActiveView('classes')} icon={Layers3} title="Preschool levels" text="Review the classes and assigned team for each level."/>
    <Shortcut onClick={()=>setActiveView('reports')} icon={BookOpen} title="Academic program" text="Review observations and bulletins."/>
   </section>
-  </div>:<section key={activeView} className="preschool-panel-enter space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-bold text-slate-950"><T text={views.find(view=>view.id===activeView)?.label||'Overview'}/></h2><button type="button" onClick={()=>setActiveView('overview')} className="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><T text="Overview"/></button></div>{activeView==='classes'?<section className="space-y-3">{state.classes.length?state.classes.map(item=><article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-semibold text-slate-950">{item.name}</h3><p className="text-sm text-slate-600">{item.grade} · {item.year}</p></div><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800"><T text="Active"/></span></div><p className="mt-2 text-sm text-slate-700">{item.student_count} <T text="students"/></p><div className="mt-3 flex flex-wrap gap-2">{uniquePreschoolClassStaff(item.staff).map(person=><span key={person.id} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-700">{person.name} · <T text={person.display_label||(person.role==='titulaire'?'Classroom lead teacher':'Teaching assistant')}/></span>)}</div></article>):<p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600"><T text="No preschool classes are available for this academic year."/></p>}</section>:activeView==='reports'?<PreschoolWorkspace embedded/>:activeView==='attendance'?<AttendancePage embedded/>:activeView==='pickup'?<KindergartenPickupPage embedded/>:<PreschoolSettingsWorkspace/>}</section>}
+  </div>:<section key={activeView} className="preschool-panel-enter space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-bold text-slate-950"><T text={views.find(view=>view.id===activeView)?.label||'Overview'}/></h2><button type="button" onClick={()=>setActiveView('overview')} className="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><T text="Overview"/></button></div>{activeView==='classes'?<section className="space-y-3">{state.classes.length?state.classes.map(item=><article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-semibold text-slate-950">{item.name}</h3><p className="text-sm text-slate-600">{item.grade} · {item.year}</p></div><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800"><T text="Active"/></span></div><p className="mt-2 text-sm text-slate-700">{item.student_count} <T text="students"/></p><div className="mt-3 flex flex-wrap gap-2">{uniquePreschoolClassStaff(item.staff).map(person=><span key={person.id} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-700">{person.name} · <T text={person.display_label||(person.role==='titulaire'?'Classroom lead teacher':'Teaching assistant')}/></span>)}</div></article>):<p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600"><T text="No preschool classes are available for this academic year."/></p>}</section>:activeView==='worksheets'?<PreschoolWorksheetGenerator schoolName={schoolName}/>:activeView==='reports'?<PreschoolWorkspace embedded/>:activeView==='attendance'?<AttendancePage embedded/>:activeView==='pickup'?<KindergartenPickupPage embedded/>:<PreschoolSettingsWorkspace/>}</section>}
  </main>
 }
 

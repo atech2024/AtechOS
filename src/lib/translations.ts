@@ -1,6 +1,7 @@
 import type {Locale} from './i18n'
 import {extraTranslations} from './translations-extra'
 export const translations:Record<string,[string,string]> = {
+ "Worksheet generator":['Fiches et exercices','Fich ak egzèsis'],
  ...extraTranslations,
  "Schedule the family meeting before recording a departure decision.":['Planifiez la rencontre avec la famille avant de confirmer la décision de départ.','Fikse rankont ak fanmi an anvan ou konfime desizyon depa a.'],
  "Record the decision after the scheduled family meeting.":['Enregistrez la décision après la rencontre prévue avec la famille.','Anrejistre desizyon an apre reyinyon ki te pwograme ak fanmi an.'],

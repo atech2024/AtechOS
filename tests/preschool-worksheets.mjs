@@ -2,13 +2,14 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import ts from 'typescript'
 const exports={}
-new Function('exports',ts.transpileModule(readFileSync('src/lib/preschool-worksheets.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(exports)
+const brand={};new Function('exports',ts.transpileModule(readFileSync('src/lib/worksheet-brand.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(brand)
+new Function('exports','require',ts.transpileModule(readFileSync('src/lib/preschool-worksheets.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(exports,()=>brand)
 const {generateWorksheet,worksheetPrintHTML}=exports
 const options={schoolName:'École des Étoiles & Découvertes',kind:'count',level:'PS2',theme:'animals',count:6,seed:4,letter:'A',color:true}
 for(const kind of ['count','add','subtract','letters','patterns','numbers'])for(const theme of ['fruit','animals','space'])for(const count of [4,6]){
  const sheet=generateWorksheet({...options,kind,theme,count})
  assert.equal(sheet.answers.length,count)
- assert(sheet.svg.includes('AtechOS'))
+ assert(sheet.svg.includes('data-worksheet-brand="atechos"'));assert(sheet.svg.includes('data:image/png;base64,'));assert(worksheetPrintHTML(sheet,true).includes('aria-label="Logo AtechOS"'))
  assert(sheet.svg.includes('École des Étoiles &amp; Découvertes'))
  assert(!sheet.svg.includes('undefined'))
  const html=worksheetPrintHTML(sheet,true)
